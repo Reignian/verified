@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import './AcademicInstitution.css';
-import { fetchCredentialTypes } from '../services/apiService';
+import { fetchCredentialTypes, fetchStudents } from '../services/apiService';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
   const [credentialTypes, setCredentialTypes] = useState([]);
+  const [students, setStudents] = useState([]);
 
   useEffect(() => {
     const getAccount = async () => {
@@ -31,8 +32,18 @@ function AcademicInstitution() {
       }
     };
 
+    const loadStudents = async () => {
+      try {
+        const studentData = await fetchStudents();
+        setStudents(studentData);
+      } catch (error) {
+        console.error('Error loading students:', error);
+      }
+    };
+
     getAccount();
     loadCredentialTypes();
+    loadStudents();
   }, []);
 
   return (
@@ -64,10 +75,11 @@ function AcademicInstitution() {
             <label htmlFor="studentAccount">Student Account:</label>
             <select id="studentAccount" name="studentAccount" style={{ width: '100%', padding: '8px', marginTop: '5px' }}>
               <option value="">Select Student</option>
-              <option value="student1">John Doe (0x1234...5678)</option>
-              <option value="student2">Jane Smith (0x9876...4321)</option>
-              <option value="student3">Mike Johnson (0xabcd...efgh)</option>
-              <option value="student4">Sarah Wilson (0x1111...2222)</option>
+              {students.map((student) => (
+                <option key={student.id} value={student.id}>
+                  {student.first_name} {student.last_name} ({student.public_address})
+                </option>
+              ))}
             </select>
           </div>
 
