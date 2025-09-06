@@ -3,7 +3,7 @@ import axios from 'axios';
 // API base URL - works for both development and production
 const API_URL = process.env.NODE_ENV === 'production' 
   ? '/api'  // In production, use relative path (same domain)
-  : 'http://localhost:5000/api';  // In development, use localhost
+  : 'http://localhost:3001/api';  // In development, use localhost
 
 // Get credential types from the server
 export const fetchCredentialTypes = async () => {

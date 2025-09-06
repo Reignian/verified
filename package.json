@@ -25,7 +25,8 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "database": "node database.js",
-    "server": "node server.js",
+    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "server": "nodemon server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -46,5 +47,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.10"
   }
 }
