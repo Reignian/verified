@@ -14,8 +14,8 @@ function Navigation({ currentPage, onPageChange }) {
       console.error('Failed to connect wallet:', error);
     }
     
-    // Then navigate to the page
-    onPageChange('academic-institution');
+    // Then navigate to the login page
+    onPageChange('login');
   };
 
   return (
@@ -34,7 +34,7 @@ function Navigation({ currentPage, onPageChange }) {
           </a>
           <a 
             href="#" 
-            className={`nav-link ${currentPage === 'academic-institution' ? 'active' : ''}`}
+            className={`nav-link ${currentPage === 'login' ? 'active' : ''}`}
             onClick={handleAcademicInstitutionClick}
           >
             Academic Institution

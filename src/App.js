@@ -12,7 +12,7 @@ function App() {
         onPageChange={changePage} 
       />
       <div>
-        {renderPage(currentPage)}
+        {renderPage(currentPage, changePage)}
       </div>
     </div>
   );

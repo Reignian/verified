@@ -1,8 +1,11 @@
 import HomePage from '../components/HomePage';
 import AcademicInstitution from '../components/AcademicInstitution';
+import Login from '../components/Login';
 
-function renderPage(currentPage) {
+function renderPage(currentPage, onPageChange) {
   switch(currentPage) {
+    case 'login':
+      return <Login onPageChange={onPageChange} />;
     case 'academic-institution':
       return <AcademicInstitution />;
     case 'home':
