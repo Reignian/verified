@@ -95,6 +95,9 @@ function AcademicInstitution() {
     }
 
     const loggedInUserId = localStorage.getItem('userId');
+    console.log('Checking userId from localStorage:', loggedInUserId);
+    console.log('All localStorage items:', Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)}`));
+    
     if (!loggedInUserId) {
       setUploadMessage('Please log in again');
       return;
@@ -141,7 +144,7 @@ function AcademicInstitution() {
 
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
-      <style jsx>{`
+      <style>{`
         /* CSS variables and styles from HomePage.js */
         :root {
           --primary-color: #4050b5;

@@ -32,22 +32,41 @@ function HomePage() {
     e.target.reset();
   };
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
-    const userType = e.target.userType.value;
-    if (userType === 'institution') {
-      // Use navigate to change the route
-      navigate('/institution-dashboard');
-    } else if (userType === 'student') {
-      alert('Redirecting to Student Dashboard...');
-      // You could add navigate('/student-dashboard') here if the route exists
+    const formData = new FormData(e.target);
+    const username = formData.get('username');
+    const password = formData.get('password');
+    const userType = formData.get('userType');
+    
+    if (userType !== 'institution') {
+      alert('Only institution accounts are supported in this demo');
+      return;
     }
-    setShowLoginModal(false);
+    
+    try {
+      // Import the login function
+      const { login } = await import('../services/apiService');
+      const response = await login(username, password);
+      console.log('Login successful:', response);
+      console.log('User ID from response:', response.user.id);
+      console.log('User object:', response.user);
+      
+      // Store user ID in localStorage for use in credential uploads
+      localStorage.setItem('userId', response.user.id);
+      localStorage.setItem('userType', response.user.account_type);
+      
+      setShowLoginModal(false);
+      navigate('/institution-dashboard');
+    } catch (error) {
+      console.error('Login failed:', error);
+      alert('Login failed. Please check your credentials.');
+    }
   };
 
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
-      <style jsx>{`
+      <style>{`
         :root {
           --primary-color: #4050b5;
           --secondary-color: #7986cb;
@@ -817,8 +836,8 @@ function HomePage() {
                   <input type="email" className="form-control" placeholder="Email" required />
                 </div>
                 <div className="mb-3">
-                  <select className="form-select" required>
-                    <option value="" disabled selected>I am a...</option>
+                  <select className="form-select" defaultValue="" required>
+                    <option value="" disabled>I am a...</option>
                     <option value="institution">Academic Institution</option>
                     <option value="employer">Employer/Verifier</option>
                     <option value="student">Student/Graduate</option>
@@ -937,14 +956,14 @@ function HomePage() {
             
             <form onSubmit={handleLoginSubmit}>
               <div className="mb-3">
-                <input type="username" className="form-control" placeholder="Username/Email" required />
+                <input name="username" type="text" className="form-control" placeholder="Username/Email" required />
               </div>
               <div className="mb-3">
-                <input type="password" className="form-control" placeholder="Password" required />
+                <input name="password" type="password" className="form-control" placeholder="Password" required />
               </div>
               <div className="mb-3">
-                <select name="userType" className="form-select" required>
-                  <option value="" disabled selected>Select User Type</option>
+                <select name="userType" className="form-select" defaultValue="" required>
+                  <option value="" disabled>Select User Type</option>
                   <option value="institution">Academic Institution</option>
                   <option value="student">Student/Graduate</option>
                   <option value="employer">Employer/Verifier</option>

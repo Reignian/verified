@@ -27,6 +27,8 @@ function Login({ onPageChange }) {
     try {
       const response = await login(formData.username, formData.password);
       console.log('Login successful:', response);
+      console.log('User ID from response:', response.user.id);
+      console.log('User object:', response.user);
       
       // Store user ID in localStorage for use in credential uploads
       localStorage.setItem('userId', response.user.id);
