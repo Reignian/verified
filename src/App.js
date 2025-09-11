@@ -1,20 +1,19 @@
-import Navigation from './components/Navigation';
-import useNavigation from './hooks/useNavigation';
-import renderPage from './utils/pageRenderer';
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import HomePage from './components/HomePage';
+import AcademicInstitution from './components/AcademicInstitution';
+import Login from './components/Login';
 
 function App() {
-  const { currentPage, changePage } = useNavigation();
-
   return (
-    <div>
-      <Navigation 
-        currentPage={currentPage} 
-        onPageChange={changePage} 
-      />
-      <div>
-        {renderPage(currentPage, changePage)}
-      </div>
-    </div>
+    <BrowserRouter>
+      {/* The Navigation component can be placed here if it should appear on all pages */}
+      {/* Or it can be removed if each page has its own navigation */}
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/institution-dashboard" element={<AcademicInstitution />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
