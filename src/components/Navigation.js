@@ -1,20 +1,7 @@
 import './Navigation.css';
 
 function Navigation({ currentPage, onPageChange }) {
-  const handleAcademicInstitutionClick = async () => {
-    // Connect to wallet first
-    try {
-      if (window.ethereum) {
-        await window.ethereum.request({
-          method: 'eth_requestAccounts'
-        });
-        console.log('Wallet connected');
-      }
-    } catch (error) {
-      console.error('Failed to connect wallet:', error);
-    }
-    
-    // Then navigate to the login page
+  const handleAcademicInstitutionClick = () => {
     onPageChange('login');
   };
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './AcademicInstitution.css';
 import { fetchCredentialTypes, fetchStudents, uploadCredential } from '../services/apiService';
+import blockchainService from '../services/blockchainService';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -18,39 +19,40 @@ function AcademicInstitution() {
     const getAccount = async () => {
       if (window.ethereum) {
         try {
-          const accounts = await window.ethereum.request({
+          let accounts = await window.ethereum.request({
             method: 'eth_accounts'
           });
+          
+          if (accounts.length === 0) {
+            accounts = await window.ethereum.request({
+              method: 'eth_requestAccounts'
+            });
+          }
+          
           if (accounts.length > 0) {
             setAccount(accounts[0]);
           }
         } catch (error) {
-          console.error('Error getting account:', error);
+          console.error('MetaMask connection failed:', error);
         }
       }
     };
 
-    const loadCredentialTypes = async () => {
+    const loadData = async () => {
       try {
-        const types = await fetchCredentialTypes();
+        const [types, studentData] = await Promise.all([
+          fetchCredentialTypes(),
+          fetchStudents()
+        ]);
         setCredentialTypes(types);
-      } catch (error) {
-        console.error('Error loading credential types:', error);
-      }
-    };
-
-    const loadStudents = async () => {
-      try {
-        const studentData = await fetchStudents();
         setStudents(studentData);
       } catch (error) {
-        console.error('Error loading students:', error);
+        console.error('Data loading failed:', error);
       }
     };
 
     getAccount();
-    loadCredentialTypes();
-    loadStudents();
+    loadData();
   }, []);
 
   const handleInputChange = (e) => {
@@ -59,33 +61,35 @@ function AcademicInstitution() {
       ...prevState,
       [name]: files ? files[0] : value
     }));
-    // Clear upload message when user changes form
     if (uploadMessage) setUploadMessage('');
+  };
+
+  const resetForm = () => {
+    setFormData({
+      credentialType: '',
+      studentAccount: '',
+      credentialFile: null
+    });
+    const fileInput = document.getElementById('credentialFile');
+    if (fileInput) fileInput.value = '';
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!formData.credentialType || !formData.studentAccount) {
-      setUploadMessage('Please select both credential type and student account');
+    if (!formData.credentialType || !formData.studentAccount || !formData.credentialFile) {
+      setUploadMessage('Please fill all required fields');
       return;
     }
 
-    if (!formData.credentialFile) {
-      setUploadMessage('Please select a credential file to upload');
-      return;
-    }
-
-    // Get logged-in user ID from localStorage
     const loggedInUserId = localStorage.getItem('userId');
-    
     if (!loggedInUserId) {
-      setUploadMessage('Please log in again to upload credentials');
+      setUploadMessage('Please log in again');
       return;
     }
     
     setUploading(true);
-    setUploadMessage('');
+    setUploadMessage('Uploading...');
     
     try {
       const credentialData = {
@@ -95,26 +99,29 @@ function AcademicInstitution() {
       };
       
       const response = await uploadCredential(credentialData, formData.credentialFile);
-      setUploadMessage(`Credential uploaded successfully! IPFS Hash: ${response.ipfs_hash}`);
+      const blockchainResult = await blockchainService.issueCredential(
+        response.ipfs_hash, 
+        formData.studentAccount.toString()
+      );
       
-      // Reset form
-      setFormData({
-        credentialType: '',
-        studentAccount: '',
-        credentialFile: null
+      const updateResponse = await fetch('http://localhost:3001/api/update-blockchain-id', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          credential_id: response.credential_id,
+          blockchain_id: blockchainResult.credentialId
+        }),
       });
       
-      // Reset file input by clearing its value
-      const fileInput = document.getElementById('credentialFile');
-      if (fileInput) fileInput.value = '';
+      if (!updateResponse.ok) {
+        throw new Error('Database update failed');
+      }
+      
+      setUploadMessage(`✅ Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
+      resetForm();
       
     } catch (error) {
-      console.error('Upload failed:', error);
-      if (error.response && error.response.data && error.response.data.error) {
-        setUploadMessage(`Error: ${error.response.data.error}`);
-      } else {
-        setUploadMessage('Upload failed. Please try again.');
-      }
+      setUploadMessage(`Upload failed: ${error.message}`);
     } finally {
       setUploading(false);
     }
@@ -125,17 +132,22 @@ function AcademicInstitution() {
       <h1>Academic Institution</h1>
       {account && (
         <div>
-          <p><strong>Connected Wallet Address: </strong>{account}</p>
+          <p><strong>Connected Wallet: </strong>{account}</p>
         </div>
       )}
 
-      {/* Credential Upload Form */}
       <div style={{ marginTop: '30px', padding: '20px', border: '1px solid #ccc' }}>
         <h2>Upload Credential</h2>
         <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: '15px' }}>
             <label htmlFor="credentialType">Credential Type:</label>
-            <select id="credentialType" name="credentialType" value={formData.credentialType} onChange={handleInputChange} style={{ width: '100%', padding: '8px', marginTop: '5px' }}>
+            <select 
+              id="credentialType" 
+              name="credentialType" 
+              value={formData.credentialType} 
+              onChange={handleInputChange} 
+              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            >
               <option value="">Select Credential Type</option>
               {credentialTypes.map((type) => (
                 <option key={type.id} value={type.id}>
@@ -147,7 +159,13 @@ function AcademicInstitution() {
 
           <div style={{ marginBottom: '15px' }}>
             <label htmlFor="studentAccount">Student Account:</label>
-            <select id="studentAccount" name="studentAccount" value={formData.studentAccount} onChange={handleInputChange} style={{ width: '100%', padding: '8px', marginTop: '5px' }}>
+            <select 
+              id="studentAccount" 
+              name="studentAccount" 
+              value={formData.studentAccount} 
+              onChange={handleInputChange} 
+              style={{ width: '100%', padding: '8px', marginTop: '5px' }}
+            >
               <option value="">Select Student</option>
               {students.map((student) => (
                 <option key={student.id} value={student.id}>
@@ -169,7 +187,11 @@ function AcademicInstitution() {
             />
           </div>
 
-          <button type="submit" style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }} disabled={uploading}>
+          <button 
+            type="submit" 
+            style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }} 
+            disabled={uploading}
+          >
             {uploading ? 'Uploading...' : 'Upload Credential'}
           </button>
           {uploadMessage && <p style={{ color: uploading ? 'blue' : 'green' }}>{uploadMessage}</p>}

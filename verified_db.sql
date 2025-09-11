@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 06, 2025 at 06:46 PM
+-- Generation Time: Sep 09, 2025 at 06:25 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -37,6 +37,14 @@ CREATE TABLE `account` (
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `account`
+--
+
+INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `public_address`, `created_at`) VALUES
+(1, 'institution', 'wmsu', 'wmsu', 'wmsu@gmail.com', '0x852A8e5c3D309626810944b1a520Dd81B3B5A7fA', '2025-09-06 17:20:14'),
+(2, 'student', 'reign', 'reign', 'reign@gmail.com', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6', '2025-09-06 17:20:56');
+
 -- --------------------------------------------------------
 
 --
@@ -52,6 +60,7 @@ CREATE TABLE `credential` (
   `ipfs_cid` varchar(255) NOT NULL,
   `ipfs_cid_hash` varchar(100) NOT NULL,
   `status` varchar(50) DEFAULT NULL,
+  `blockchain_id` bigint(20) NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -85,6 +94,13 @@ CREATE TABLE `institution` (
   `institution_name` varchar(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `institution`
+--
+
+INSERT INTO `institution` (`id`, `institution_name`) VALUES
+(1, 'WMSU');
+
 -- --------------------------------------------------------
 
 --
@@ -98,6 +114,13 @@ CREATE TABLE `student` (
   `middle_name` varchar(50) DEFAULT NULL,
   `last_name` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `student`
+--
+
+INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_name`) VALUES
+(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno');
 
 --
 -- Indexes for dumped tables
@@ -114,6 +137,7 @@ ALTER TABLE `account`
 --
 ALTER TABLE `credential`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `blockchain_id` (`blockchain_id`),
   ADD KEY `credential_type_id` (`credential_type_id`),
   ADD KEY `owner_id` (`owner_id`),
   ADD KEY `sender_id` (`sender_id`);
@@ -144,13 +168,13 @@ ALTER TABLE `student`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
@@ -162,7 +186,7 @@ ALTER TABLE `credential_types`
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- Constraints for dumped tables

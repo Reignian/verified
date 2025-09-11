@@ -24,13 +24,14 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid = 'default_cid', 
     ipfs_cid_hash = 'default_hash', 
+    blockchain_id = null,
     status = 'pending' 
   } = credentialData;
   
   const query = `
     INSERT INTO credential 
-    (credential_type_id, owner_id, sender_id, ipfs_cid, ipfs_cid_hash, status) 
-    VALUES (?, ?, ?, ?, ?, ?)
+    (credential_type_id, owner_id, sender_id, ipfs_cid, ipfs_cid_hash, blockchain_id, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   
   connection.query(query, [
@@ -39,6 +40,7 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid, 
     ipfs_cid_hash, 
+    blockchain_id,
     status
   ], callback);
 };
