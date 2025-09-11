@@ -67,8 +67,15 @@ class BlockchainService {
       console.log('IPFS Hash:', ipfsHash);
       console.log('Student ID:', studentId);
 
-      // Send transaction
-      const tx = await contract.issueCredential(ipfsHash, studentId);
+      // Convert IPFS hash and student ID to bytes32 for gas optimization
+      const ipfsHashBytes32 = ethers.encodeBytes32String(ipfsHash.slice(0, 31)); // Take first 31 chars to fit in bytes32
+      const studentIdBytes32 = ethers.encodeBytes32String(String(studentId).slice(0, 31));
+      
+      console.log('IPFS Hash as bytes32:', ipfsHashBytes32);
+      console.log('Student ID as bytes32:', studentIdBytes32);
+
+      // Send transaction with bytes32 parameters
+      const tx = await contract.issueCredential(ipfsHashBytes32, studentIdBytes32);
       console.log('Transaction sent:', tx.hash);
 
       // Wait for confirmation
