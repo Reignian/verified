@@ -64,3 +64,25 @@ export const fetchStudents = async () => {
     throw error;
   }
 };
+
+// Get issued credentials from the server
+export const fetchIssuedCredentials = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/issued-credentials`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching issued credentials:', error);
+    throw error;
+  }
+};
+
+// Get credential statistics from the server
+export const fetchCredentialStats = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/credential-stats`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching credential stats:', error);
+    throw error;
+  }
+};

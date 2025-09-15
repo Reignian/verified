@@ -384,7 +384,7 @@ function HomePage() {
                 {
                   number: 3,
                   title: "Self-Sovereign Access",
-                  description: "Students access and manage their verified credentials through a decentralized identity portal, maintaining full control over their personal data.",
+                  description: "Students access and manage their verified credentials through a decentralized identity portal.",
                   icon: "fas fa-user-shield"
                 },
                 {
@@ -485,8 +485,6 @@ function HomePage() {
                   "Instant verification without calls or emails",
                   "Tamper-proof credential validation",
                   "Reduced hiring risks and compliance concerns",
-                  "API integration with existing HR systems",
-                  "Audit trail for compliance purposes"
                 ].map((benefit, index) => (
                   <li key={index} className="d-flex align-items-center mb-3">
                     <i className="fas fa-check text-success me-3"></i>
