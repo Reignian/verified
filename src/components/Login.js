@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { login } from '../services/apiService';
 import { useNavigate } from 'react-router-dom';
 
-function Login({ onPageChange, isModal = false, onClose }) {
+function Login({ onPageChange, isModal = false, onClose, onLoginSuccess }) {
   const [formData, setFormData] = useState({
     username: '',
     password: '',
@@ -39,6 +39,9 @@ function Login({ onPageChange, isModal = false, onClose }) {
       
       // Close modal if it's a modal login
       if (isModal && onClose) onClose();
+      
+      // Call success callback to update app state
+      if (onLoginSuccess) onLoginSuccess();
       
       // Navigate based on account type using React Router
       if (response.user.account_type === 'student') {

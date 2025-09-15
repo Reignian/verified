@@ -54,7 +54,7 @@ function MyVerifiED() {
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
+    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto', paddingTop: '100px' }}>
       <h1>My VerifiED Dashboard</h1>
       <p>Welcome to your credential management portal</p>
       

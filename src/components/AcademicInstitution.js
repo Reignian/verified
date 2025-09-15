@@ -61,11 +61,6 @@ function AcademicInstitution() {
     loadData();
   }, []);
   
-  // Handler for the new Logout button
-  const handleLogout = () => {
-    localStorage.removeItem('userId'); // Clear user session
-    navigate('/'); // Redirect to homepage
-  };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
@@ -162,60 +157,6 @@ function AcademicInstitution() {
           --border-color: #e0e0e0;
           --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
           --transition: all 0.3s ease;
-        }
-
-        .navbar-custom {
-          background-color: white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          height: 80px;
-        }
-
-        .navbar-brand {
-          font-size: 1.8rem;
-          color: var(--text-dark) !important;
-          font-weight: bold;
-          text-decoration: none;
-        }
-
-        .navbar-brand span {
-          color: var(--primary-color);
-        }
-
-        .nav-link {
-          color: var(--text-dark) !important;
-          font-weight: 500;
-          transition: var(--transition);
-        }
-
-        .nav-link:hover {
-          color: var(--primary-color) !important;
-        }
-        
-        .btn-primary-custom {
-          background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
-          border: none;
-          color: white;
-          padding: 14px 30px;
-          border-radius: 8px;
-          font-weight: 600;
-          font-size: 1.1rem;
-          transition: var(--transition);
-          cursor: pointer;
-          min-width: 180px;
-          text-decoration: none; /* Added for anchor tags */
-        }
-
-        .btn-primary-custom:hover:not(:disabled) {
-          transform: translateY(-2px);
-          box-shadow: 0 8px 25px rgba(64, 80, 181, 0.3);
-          background-color: var(--accent-color);
-          border-color: var(--accent-color);
-          color: white;
         }
         
         /* Original styles from AcademicInstitution.js */
@@ -485,44 +426,6 @@ function AcademicInstitution() {
       `}</style>
 
       {/* FontAwesome CDN */}
-      <link 
-        rel="stylesheet" 
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-      />
-
-      {/* Navbar - Modified */}
-      <nav className="navbar navbar-expand-lg navbar-custom">
-        <div className="container">
-          <a className="navbar-brand" href="/">
-            Verifi<span>ED</span>
-          </a>
-          
-          <button 
-            className="navbar-toggler" 
-            type="button"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          
-          <div className={`collapse navbar-collapse ${showMobileMenu ? 'show' : ''}`}>
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <button 
-                  className="btn btn-primary-custom ms-2"
-                  style={{padding: '12px 24px', fontSize: '1rem'}}
-                  onClick={handleLogout}
-                >
-                  <i className="fas fa-sign-out-alt me-2"></i>
-                  Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
-
       {/* Header Section */}
       <div className="dashboard-header">
         <div className="container">
