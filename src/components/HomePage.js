@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import { useNavigate } from 'react-router-dom'; // <-- Import useNavigate
+import Navigation from './Navigation';
+import Login from './Login';
 
 function HomePage() {
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showVerificationResult, setShowVerificationResult] = useState(false);
-  const navigate = useNavigate(); // <-- Get the navigate function
 
   useEffect(() => {
     // Smooth scrolling for anchor links
@@ -17,7 +16,6 @@ function HomePage() {
         const target = document.querySelector(href);
         if (target) {
           target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          setShowMobileMenu(false);
         }
       }
     };
@@ -32,37 +30,6 @@ function HomePage() {
     e.target.reset();
   };
 
-  const handleLoginSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData(e.target);
-    const username = formData.get('username');
-    const password = formData.get('password');
-    const userType = formData.get('userType');
-    
-    if (userType !== 'institution') {
-      alert('Only institution accounts are supported in this demo');
-      return;
-    }
-    
-    try {
-      // Import the login function
-      const { login } = await import('../services/apiService');
-      const response = await login(username, password);
-      console.log('Login successful:', response);
-      console.log('User ID from response:', response.user.id);
-      console.log('User object:', response.user);
-      
-      // Store user ID in localStorage for use in credential uploads
-      localStorage.setItem('userId', response.user.id);
-      localStorage.setItem('userType', response.user.account_type);
-      
-      setShowLoginModal(false);
-      navigate('/institution-dashboard');
-    } catch (error) {
-      console.error('Login failed:', error);
-      alert('Login failed. Please check your credentials.');
-    }
-  };
 
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
@@ -87,38 +54,6 @@ function HomePage() {
         body {
           background-color: var(--background-light);
           color: var(--text-dark);
-        }
-
-        .navbar-custom {
-          background-color: white;
-          box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          z-index: 1000;
-          height: 80px;
-        }
-
-        .navbar-brand {
-          font-size: 1.8rem;
-          color: var(--text-dark) !important;
-          font-weight: bold;
-          text-decoration: none;
-        }
-
-        .navbar-brand span {
-          color: var(--primary-color);
-        }
-
-        .nav-link {
-          color: var(--text-dark) !important;
-          font-weight: 500;
-          transition: var(--transition);
-        }
-
-        .nav-link:hover {
-          color: var(--primary-color) !important;
         }
 
         .btn-primary-custom {
@@ -360,27 +295,6 @@ function HomePage() {
           color: white;
         }
 
-        .modal-overlay {
-          display: ${showLoginModal ? 'flex' : 'none'};
-          position: fixed;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 100%;
-          background-color: rgba(0, 0, 0, 0.5);
-          z-index: 2000;
-          align-items: center;
-          justify-content: center;
-        }
-
-        .modal-content-custom {
-          background-color: white;
-          padding: 30px;
-          border-radius: 8px;
-          max-width: 400px;
-          width: 90%;
-          position: relative;
-        }
 
         .verification-result-box {
           background-color: white;
@@ -397,15 +311,6 @@ function HomePage() {
           
           .section-header h2 {
             font-size: 2rem;
-          }
-
-          .navbar-toggler {
-            border: none;
-            padding: 4px 8px;
-          }
-
-          .navbar-toggler:focus {
-            box-shadow: none;
           }
         }
 
@@ -426,51 +331,8 @@ function HomePage() {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       />
 
-      {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-custom">
-        <div className="container">
-          <a className="navbar-brand" href="#home">
-            Verifi<span>ED</span>
-          </a>
-          
-          <button 
-            className="navbar-toggler" 
-            type="button"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          
-          <div className={`collapse navbar-collapse ${showMobileMenu ? 'show' : ''}`}>
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <a className="nav-link" href="#home">Home</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#about">About</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#how-it-works">How It Works</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#verifier">Verifier</a>
-              </li>
-              <li className="nav-item">
-                <a className="nav-link" href="#contact">Contact</a>
-              </li>
-              <li className="nav-item">
-                <button 
-                  className="btn btn-primary-custom ms-2"
-                  onClick={() => setShowLoginModal(true)}
-                >
-                  Login
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+      {/* Navigation */}
+      <Navigation onLoginClick={() => setShowLoginModal(true)} />
 
       {/* Hero Section */}
       <section id="home" className="hero-section">
@@ -943,39 +805,10 @@ function HomePage() {
 
       {/* Login Modal */}
       {showLoginModal && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowLoginModal(false)}>
-          <div className="modal-content-custom">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-              <h3>Login to VerifiED</h3>
-              <button 
-                className="btn-close" 
-                onClick={() => setShowLoginModal(false)}
-                aria-label="Close"
-              ></button>
-            </div>
-            
-            <form onSubmit={handleLoginSubmit}>
-              <div className="mb-3">
-                <input name="username" type="text" className="form-control" placeholder="Username/Email" required />
-              </div>
-              <div className="mb-3">
-                <input name="password" type="password" className="form-control" placeholder="Password" required />
-              </div>
-              <div className="mb-3">
-                <select name="userType" className="form-select" defaultValue="" required>
-                  <option value="" disabled>Select User Type</option>
-                  <option value="institution">Academic Institution</option>
-                  <option value="student">Student/Graduate</option>
-                  <option value="employer">Employer/Verifier</option>
-                </select>
-              </div>
-              <button type="submit" className="btn btn-primary-custom w-100 mb-3">Login</button>
-              <div className="text-center">
-                <a href="#" className="text-decoration-none">Forgot Password?</a>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Login 
+          isModal={true} 
+          onClose={() => setShowLoginModal(false)} 
+        />
       )}
     </div>
   );

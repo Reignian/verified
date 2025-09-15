@@ -8,6 +8,8 @@ function useNavigation(initialPage = 'home') {
     
     if (userId && userType === 'institution') {
       return 'academic-institution';
+    } else if (userId && userType === 'student') {
+      return 'student-account';
     }
     return initialPage;
   });
