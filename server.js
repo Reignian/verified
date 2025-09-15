@@ -168,6 +168,26 @@ app.get('/api/students', (req, res) => {
   });
 });
 
+// Get issued credentials
+app.get('/api/issued-credentials', (req, res) => {
+  academicQueries.getIssuedCredentials((err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// Get credential statistics
+app.get('/api/credential-stats', (req, res) => {
+  academicQueries.getCredentialStats((err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results[0]);
+  });
+});
+
 // Get contract address
 app.get('/api/contract-address', (req, res) => {
   if (!contractData || !contractData.networks['1337']) {

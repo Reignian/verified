@@ -1,7 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import { useNavigate } from 'react-router-dom';
-import { fetchCredentialTypes, fetchStudents, uploadCredential } from '../services/apiService';
+import { 
+  fetchCredentialTypes, 
+  fetchStudents, 
+  uploadCredential, 
+  fetchIssuedCredentials, 
+  fetchCredentialStats 
+} from '../services/apiService';
 import blockchainService from '../services/blockchainService';
 
 function AcademicInstitution() {
@@ -9,6 +15,8 @@ function AcademicInstitution() {
   const [account, setAccount] = useState(null);
   const [credentialTypes, setCredentialTypes] = useState([]);
   const [students, setStudents] = useState([]);
+  const [issuedCredentials, setIssuedCredentials] = useState([]);
+  const [credentialStats, setCredentialStats] = useState({ total_credentials: 0, new_credentials_week: 0 });
   const [formData, setFormData] = useState({
     credentialType: '',
     studentAccount: '',
@@ -16,6 +24,9 @@ function AcademicInstitution() {
   });
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [showErrorPopup, setShowErrorPopup] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // State and hooks for navbar
   const [showMobileMenu, setShowMobileMenu] = useState(false);
@@ -46,14 +57,20 @@ function AcademicInstitution() {
 
     const loadData = async () => {
       try {
-        const [types, studentData] = await Promise.all([
+        const [types, studentData, credentials, stats] = await Promise.all([
           fetchCredentialTypes(),
-          fetchStudents()
+          fetchStudents(),
+          fetchIssuedCredentials(),
+          fetchCredentialStats()
         ]);
         setCredentialTypes(types);
         setStudents(studentData);
+        setIssuedCredentials(credentials);
+        setCredentialStats(stats);
       } catch (error) {
         console.error('Data loading failed:', error);
+        setErrorMessage('Failed to load data. Please refresh the page.');
+        setShowErrorPopup(true);
       }
     };
 
@@ -90,16 +107,17 @@ function AcademicInstitution() {
     e.preventDefault();
     
     if (!formData.credentialType || !formData.studentAccount || !formData.credentialFile) {
-      setUploadMessage('Please fill all required fields');
+      setErrorMessage('Please fill all required fields');
+      setShowErrorPopup(true);
       return;
     }
 
     const loggedInUserId = localStorage.getItem('userId');
     console.log('Checking userId from localStorage:', loggedInUserId);
-    console.log('All localStorage items:', Object.keys(localStorage).map(key => `${key}: ${localStorage.getItem(key)}`));
     
     if (!loggedInUserId) {
-      setUploadMessage('Please log in again');
+      setErrorMessage('Please log in again');
+      setShowErrorPopup(true);
       return;
     }
     
@@ -132,14 +150,37 @@ function AcademicInstitution() {
         throw new Error('Database update failed');
       }
       
-      setUploadMessage(`✅ Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
+      setUploadMessage(`âœ… Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
       resetForm();
+      setShowModal(false);
+      
+      // Reload data to show updated credentials
+      const [credentials, stats] = await Promise.all([
+        fetchIssuedCredentials(),
+        fetchCredentialStats()
+      ]);
+      setIssuedCredentials(credentials);
+      setCredentialStats(stats);
       
     } catch (error) {
-      setUploadMessage(`Upload failed: ${error.message}`);
+      setErrorMessage(`Upload failed: ${error.message}`);
+      setShowErrorPopup(true);
     } finally {
       setUploading(false);
     }
+  };
+
+  const handleViewCredential = (ipfsCid) => {
+    const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsCid}`;
+    window.open(ipfsUrl, '_blank');
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   return (
@@ -207,7 +248,7 @@ function AcademicInstitution() {
           transition: var(--transition);
           cursor: pointer;
           min-width: 180px;
-          text-decoration: none; /* Added for anchor tags */
+          text-decoration: none;
         }
 
         .btn-primary-custom:hover:not(:disabled) {
@@ -217,8 +258,13 @@ function AcademicInstitution() {
           border-color: var(--accent-color);
           color: white;
         }
+
+        .btn-sm {
+          padding: 8px 16px;
+          font-size: 0.9rem;
+          min-width: auto;
+        }
         
-        /* Original styles from AcademicInstitution.js */
         .dashboard-header {
           background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
           color: white;
@@ -264,12 +310,12 @@ function AcademicInstitution() {
         }
 
         .main-content {
-          max-width: 800px;
+          max-width: 1200px;
           margin: 0 auto;
           padding: 0 20px;
         }
 
-        .upload-card {
+        .upload-card, .table-card {
           background-color: var(--background-white);
           border-radius: 12px;
           box-shadow: var(--shadow);
@@ -298,6 +344,157 @@ function AcademicInstitution() {
           justify-content: center;
           margin-right: 15px;
           font-size: 1.2rem;
+        }
+
+        .stats-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 20px;
+          margin-bottom: 40px;
+        }
+
+        .stat-card {
+          background: white;
+          padding: 25px;
+          border-radius: 12px;
+          box-shadow: var(--shadow);
+          text-align: center;
+          transition: var(--transition);
+          position: relative;
+        }
+
+        .stat-card:hover {
+          transform: translateY(-5px);
+          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .stat-number {
+          font-size: 2rem;
+          font-weight: 700;
+          color: var(--primary-color);
+          margin-bottom: 5px;
+        }
+
+        .stat-label {
+          color: var(--text-light);
+          font-size: 0.9rem;
+          margin: 0;
+        }
+
+        .notification-badge {
+          position: absolute;
+          top: -5px;
+          right: -5px;
+          background: var(--danger-color);
+          color: white;
+          border-radius: 50%;
+          width: 25px;
+          height: 25px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.75rem;
+          font-weight: bold;
+        }
+
+        .table-responsive {
+          border-radius: 8px;
+          overflow: hidden;
+        }
+
+        .table {
+          margin-bottom: 0;
+        }
+
+        .table th {
+          background-color: #f8f9fa;
+          border-bottom: 2px solid var(--border-color);
+          font-weight: 600;
+          color: var(--text-dark);
+          padding: 15px;
+        }
+
+        .table td {
+          padding: 15px;
+          vertical-align: middle;
+        }
+
+        .table tbody tr:hover {
+          background-color: rgba(64, 80, 181, 0.05);
+        }
+
+        .status-badge {
+          padding: 4px 8px;
+          border-radius: 4px;
+          font-size: 0.8rem;
+          font-weight: 500;
+        }
+
+        .status-uploaded {
+          background-color: rgba(255, 152, 0, 0.1);
+          color: var(--warning-color);
+        }
+
+        .status-blockchain_verified {
+          background-color: rgba(76, 175, 80, 0.1);
+          color: var(--success-color);
+        }
+
+        .modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1050;
+          padding: 20px;
+        }
+
+        .modal-content {
+          background: white;
+          border-radius: 12px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          overflow-y: auto;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+          padding: 20px 30px;
+          border-bottom: 1px solid var(--border-color);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .modal-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: var(--text-dark);
+          margin: 0;
+        }
+
+        .modal-close {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: var(--text-light);
+          cursor: pointer;
+          padding: 5px;
+          transition: var(--transition);
+        }
+
+        .modal-close:hover {
+          color: var(--text-dark);
+        }
+
+        .modal-body {
+          padding: 30px;
         }
 
         .form-group {
@@ -352,12 +549,6 @@ function AcademicInstitution() {
           border: 1px solid rgba(76, 175, 80, 0.3);
         }
 
-        .upload-message.error {
-          background-color: rgba(244, 67, 54, 0.1);
-          color: var(--danger-color);
-          border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-
         .file-input-wrapper {
           position: relative;
           overflow: hidden;
@@ -405,9 +596,78 @@ function AcademicInstitution() {
           font-size: 0.9rem;
         }
 
-        @keyframes fadeIn {
-          from { opacity: 0; transform: translateY(-10px); }
-          to { opacity: 1; transform: translateY(0); }
+        /* Updated Error Modal Styles to match the main modal */
+        .error-modal {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          z-index: 1060;
+          padding: 20px;
+        }
+
+        .error-modal-content {
+          background: white;
+          border-radius: 12px;
+          max-width: 600px;
+          width: 100%;
+          max-height: 90vh;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+        }
+
+        .error-modal-header {
+          background-color: var(--danger-color);
+          color: white;
+          padding: 20px 30px;
+          display: flex;
+          align-items: center;
+          justify-content: between;
+          position: relative;
+        }
+
+        .error-modal-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin: 0;
+          flex: 1;
+        }
+
+        .error-modal-close {
+          background: none;
+          border: none;
+          font-size: 1.5rem;
+          color: white;
+          cursor: pointer;
+          padding: 5px;
+          transition: var(--transition);
+          position: absolute;
+          right: 20px;
+          top: 50%;
+          transform: translateY(-50%);
+        }
+
+        .error-modal-close:hover {
+          color: rgba(255, 255, 255, 0.8);
+        }
+
+        .error-modal-body {
+          padding: 30px;
+          max-height: calc(90vh - 160px);
+          overflow-y: auto;
+        }
+
+        .error-message {
+          font-size: 1rem;
+          line-height: 1.6;
+          color: var(--text-dark);
+          margin: 0;
+          word-wrap: break-word;
         }
 
         .loading-spinner {
@@ -425,38 +685,9 @@ function AcademicInstitution() {
           to { transform: rotate(360deg); }
         }
 
-        .stats-grid {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-          gap: 20px;
-          margin-bottom: 40px;
-        }
-
-        .stat-card {
-          background: white;
-          padding: 25px;
-          border-radius: 12px;
-          box-shadow: var(--shadow);
-          text-align: center;
-          transition: var(--transition);
-        }
-
-        .stat-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .stat-number {
-          font-size: 2rem;
-          font-weight: 700;
-          color: var(--primary-color);
-          margin-bottom: 5px;
-        }
-
-        .stat-label {
-          color: var(--text-light);
-          font-size: 0.9rem;
-          margin: 0;
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(-10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 768px) {
@@ -464,7 +695,7 @@ function AcademicInstitution() {
             font-size: 2rem;
           }
           
-          .upload-card {
+          .upload-card, .table-card {
             padding: 25px;
             margin: 0 10px 20px;
           }
@@ -481,6 +712,18 @@ function AcademicInstitution() {
           .navbar-toggler:focus {
             box-shadow: none;
           }
+
+          .modal-content, .error-modal-content {
+            margin: 10px;
+          }
+
+          .modal-body, .error-modal-body {
+            padding: 20px;
+          }
+
+          .modal-header, .error-modal-header {
+            padding: 15px 20px;
+          }
         }
       `}</style>
 
@@ -490,7 +733,7 @@ function AcademicInstitution() {
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       />
 
-      {/* Navbar - Modified */}
+      {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-custom">
         <div className="container">
           <a className="navbar-brand" href="/">
@@ -553,8 +796,11 @@ function AcademicInstitution() {
         {/* Stats Section */}
         <div className="stats-grid">
           <div className="stat-card">
-            <div className="stat-number">{credentialTypes.length}</div>
-            <p className="stat-label">Credential Types</p>
+            <div className="stat-number">{credentialStats.total_credentials}</div>
+            <p className="stat-label">Total Credentials</p>
+            {credentialStats.new_credentials_week > 0 && (
+              <div className="notification-badge">{credentialStats.new_credentials_week}</div>
+            )}
           </div>
           <div className="stat-card">
             <div className="stat-number">{students.length}</div>
@@ -568,165 +814,242 @@ function AcademicInstitution() {
           </div>
         </div>
 
-        {/* Upload Form */}
-        <div className="upload-card">
-          <h2 className="card-title">
-            <div className="card-icon">
-              <i className="fas fa-upload"></i>
-            </div>
-            Issue New Credential
-          </h2>
-
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="credentialType" className="form-label">
-                <i className="fas fa-certificate me-2"></i>
-                Credential Type
-              </label>
-              <select 
-                id="credentialType" 
-                name="credentialType" 
-                value={formData.credentialType} 
-                onChange={handleInputChange}
-                className="form-select"
-                required
-              >
-                <option value="">Select Credential Type</option>
-                {credentialTypes.map((type) => (
-                  <option key={type.id} value={type.id}>
-                    {type.type_name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="studentAccount" className="form-label">
-                <i className="fas fa-user-graduate me-2"></i>
-                Student Account
-              </label>
-              <select 
-                id="studentAccount" 
-                name="studentAccount" 
-                value={formData.studentAccount} 
-                onChange={handleInputChange}
-                className="form-select"
-                required
-              >
-                <option value="">Select Student</option>
-                {students.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.first_name} {student.last_name} ({student.public_address?.slice(0, 8)}...)
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">
-                <i className="fas fa-file-alt me-2"></i>
-                Credential Document
-              </label>
-              <div className="file-input-wrapper">
-                <input 
-                  type="file" 
-                  id="credentialFile" 
-                  name="credentialFile" 
-                  onChange={handleInputChange} 
-                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  className="file-input"
-                  required
-                />
-                <label htmlFor="credentialFile" className="file-input-label">
-                  <i className="fas fa-cloud-upload-alt file-input-icon"></i>
-                  {formData.credentialFile ? 'Change Document' : 'Choose Document to Upload'}
-                </label>
-              </div>
-              {formData.credentialFile && (
-                <div className="selected-file">
-                  <i className="fas fa-file-check me-2"></i>
-                  Selected: {formData.credentialFile.name}
-                </div>
-              )}
-              <small className="text-muted mt-2 d-block">
-                Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB)
-              </small>
-            </div>
-
-            <div className="text-center">
-              <button 
-                type="submit" 
-                className="btn-primary-custom"
-                disabled={uploading}
-              >
-                {uploading && <div className="loading-spinner"></div>}
-                <i className={`fas ${uploading ? '' : 'fa-check-circle'} me-2`}></i>
-                {uploading ? 'Processing...' : 'Issue Credential'}
-              </button>
-            </div>
-
-            {uploadMessage && (
-              <div className={`upload-message ${
-                uploading ? 'uploading' : 
-                uploadMessage.includes('Success') ? 'success' : 'error'
-              }`}>
-                {uploading ? (
-                  <div className="d-flex align-items-center">
-                    <i className="fas fa-spinner fa-spin me-2"></i>
-                    {uploadMessage}
-                  </div>
-                ) : uploadMessage.includes('Success') ? (
-                  <div className="d-flex align-items-center">
-                    <i className="fas fa-check-circle me-2"></i>
-                    <div>
-                      <strong>Credential Successfully Issued!</strong>
-                      <br />
-                      <small>{uploadMessage.replace('✅ Success! ', '')}</small>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="d-flex align-items-center">
-                    <i className="fas fa-exclamation-triangle me-2"></i>
-                    {uploadMessage}
-                  </div>
-                )}
-              </div>
-            )}
-          </form>
+        {/* Upload Button */}
+        <div className="text-center mb-4">
+          <button 
+            className="btn btn-primary-custom"
+            onClick={() => setShowModal(true)}
+          >
+            <i className="fas fa-plus-circle me-2"></i>
+            Upload Credential
+          </button>
         </div>
 
-        {/* Info Cards */}
-        <div className="row g-4 mb-4">
-          <div className="col-md-6">
-            <div className="stat-card text-start">
-              <h3 className="h5 mb-3">
-                <i className="fas fa-info-circle text-primary me-2"></i>
-                How It Works
-              </h3>
-              <ul className="list-unstyled">
-                <li className="mb-2"><i className="fas fa-check text-success me-2"></i>Select credential type and student</li>
-                <li className="mb-2"><i className="fas fa-check text-success me-2"></i>Upload official document</li>
-                <li className="mb-2"><i className="fas fa-check text-success me-2"></i>System creates IPFS hash</li>
-                <li className="mb-2"><i className="fas fa-check text-success me-2"></i>Records on blockchain</li>
-              </ul>
+        {/* Issued Credentials Table */}
+        <div className="table-card">
+          <h2 className="card-title">
+            <div className="card-icon">
+              <i className="fas fa-list"></i>
             </div>
-          </div>
-          <div className="col-md-6">
-            <div className="stat-card text-start">
-              <h3 className="h5 mb-3">
-                <i className="fas fa-shield-alt text-success me-2"></i>
-                Security Features
-              </h3>
-              <ul className="list-unstyled">
-                <li className="mb-2"><i className="fas fa-lock text-primary me-2"></i>Immutable blockchain records</li>
-                <li className="mb-2"><i className="fas fa-lock text-primary me-2"></i>Cryptographic signatures</li>
-                <li className="mb-2"><i className="fas fa-lock text-primary me-2"></i>IPFS distributed storage</li>
-                <li className="mb-2"><i className="fas fa-lock text-primary me-2"></i>MetaMask wallet integration</li>
-              </ul>
-            </div>
+            Issued Credentials
+          </h2>
+
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Student Name</th>
+                  <th>Credential Type</th>
+                  <th>Date Issued</th>
+                  <th>Status</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {issuedCredentials.length > 0 ? (
+                  issuedCredentials.map((credential) => (
+                    <tr key={credential.id}>
+                      <td>
+                        <strong>{credential.student_name}</strong>
+                      </td>
+                      <td>{credential.credential_type}</td>
+                      <td>{formatDate(credential.date_issued)}</td>
+                      <td>
+                        <span className={`status-badge status-${credential.status}`}>
+                          {credential.status === 'blockchain_verified' ? 'Verified' : 'Uploaded'}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-primary-custom btn-sm"
+                          onClick={() => handleViewCredential(credential.ipfs_cid)}
+                          title="View credential document"
+                        >
+                          <i className="fas fa-eye me-1"></i>
+                          View
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="5" className="text-center text-muted py-4">
+                      <i className="fas fa-inbox fa-2x mb-3 d-block"></i>
+                      No credentials issued yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
+
+      {/* Upload Modal - Static (no outside click dismiss) */}
+      {showModal && (
+        <div className="modal-overlay">
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3 className="modal-title">
+                <i className="fas fa-upload me-2"></i>
+                Issue New Credential
+              </h3>
+              <button 
+                className="modal-close"
+                onClick={() => setShowModal(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="modal-body">
+              <form onSubmit={handleSubmit}>
+                <div className="form-group">
+                  <label htmlFor="credentialType" className="form-label">
+                    <i className="fas fa-certificate me-2"></i>
+                    Credential Type
+                  </label>
+                  <select 
+                    id="credentialType" 
+                    name="credentialType" 
+                    value={formData.credentialType} 
+                    onChange={handleInputChange}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">Select Credential Type</option>
+                    {credentialTypes.map((type) => (
+                      <option key={type.id} value={type.id}>
+                        {type.type_name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="studentAccount" className="form-label">
+                    <i className="fas fa-user-graduate me-2"></i>
+                    Student Account
+                  </label>
+                  <select 
+                    id="studentAccount" 
+                    name="studentAccount" 
+                    value={formData.studentAccount} 
+                    onChange={handleInputChange}
+                    className="form-select"
+                    required
+                  >
+                    <option value="">Select Student</option>
+                    {students.map((student) => (
+                      <option key={student.id} value={student.id}>
+                        {student.first_name} {student.last_name} ({student.public_address?.slice(0, 8)}...)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label">
+                    <i className="fas fa-file-alt me-2"></i>
+                    Credential Document
+                  </label>
+                  <div className="file-input-wrapper">
+                    <input 
+                      type="file" 
+                      id="credentialFile" 
+                      name="credentialFile" 
+                      onChange={handleInputChange} 
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      className="file-input"
+                      required
+                    />
+                    <label htmlFor="credentialFile" className="file-input-label">
+                      <i className="fas fa-cloud-upload-alt file-input-icon"></i>
+                      {formData.credentialFile ? 'Change Document' : 'Choose Document to Upload'}
+                    </label>
+                  </div>
+                  {formData.credentialFile && (
+                    <div className="selected-file">
+                      <i className="fas fa-file-check me-2"></i>
+                      Selected: {formData.credentialFile.name}
+                    </div>
+                  )}
+                  <small className="text-muted mt-2 d-block">
+                    Supported formats: PDF, JPG, PNG, DOC, DOCX (Max 10MB)
+                  </small>
+                </div>
+
+                <div className="text-center">
+                  <button 
+                    type="submit" 
+                    className="btn-primary-custom"
+                    disabled={uploading}
+                  >
+                    {uploading && <div className="loading-spinner"></div>}
+                    <i className={`fas ${uploading ? '' : 'fa-check-circle'} me-2`}></i>
+                    {uploading ? 'Processing...' : 'Issue Credential'}
+                  </button>
+                </div>
+
+                {uploadMessage && (
+                  <div className={`upload-message ${
+                    uploading ? 'uploading' : 
+                    uploadMessage.includes('Success') ? 'success' : ''
+                  }`}>
+                    {uploading ? (
+                      <div className="d-flex align-items-center">
+                        <i className="fas fa-spinner fa-spin me-2"></i>
+                        {uploadMessage}
+                      </div>
+                    ) : uploadMessage.includes('Success') ? (
+                      <div className="d-flex align-items-center">
+                        <i className="fas fa-check-circle me-2"></i>
+                        <div>
+                          <strong>Credential Successfully Issued!</strong>
+                          <br />
+                          <small>{uploadMessage.replace('âœ… Success! ', '')}</small>
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                )}
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Error Modal - Static (no outside click dismiss) with same size as main modal */}
+      {showErrorPopup && (
+        <div className="error-modal">
+          <div className="error-modal-content">
+            <div className="error-modal-header">
+              <h4 className="error-modal-title">
+                <i className="fas fa-exclamation-triangle me-2"></i>
+                Error
+              </h4>
+              <button 
+                className="error-modal-close"
+                onClick={() => setShowErrorPopup(false)}
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="error-modal-body">
+              <p className="error-message">{errorMessage}</p>
+              <div className="text-center mt-4">
+                <button 
+                  className="btn btn-primary-custom"
+                  onClick={() => setShowErrorPopup(false)}
+                  style={{minWidth: '120px'}}
+                >
+                  <i className="fas fa-check me-2"></i>
+                  OK
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -45,8 +45,40 @@ const createCredential = (credentialData, callback) => {
   ], callback);
 };
 
+// Get issued credentials with student details
+const getIssuedCredentials = (callback) => {
+  const query = `
+    SELECT 
+      c.id,
+      CONCAT(s.first_name, ' ', s.last_name) as student_name,
+      ct.type_name as credential_type,
+      c.ipfs_cid,
+      c.status,
+      c.created_at as date_issued,
+      c.blockchain_id
+    FROM credential c
+    JOIN student s ON c.owner_id = s.id
+    JOIN credential_types ct ON c.credential_type_id = ct.id
+    ORDER BY c.created_at DESC
+  `;
+  connection.query(query, callback);
+};
+
+// Get credential statistics
+const getCredentialStats = (callback) => {
+  const query = `
+    SELECT 
+      COUNT(*) as total_credentials,
+      COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_credentials_week
+    FROM credential c
+  `;
+  connection.query(query, callback);
+};
+
 module.exports = {
   getCredentialTypes,
   getStudents,
-  createCredential
+  createCredential,
+  getIssuedCredentials,
+  getCredentialStats
 };
