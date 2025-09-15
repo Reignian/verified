@@ -78,11 +78,7 @@ app.post('/api/login', (req, res) => {
     
     const user = results[0];
     
-    if (user.account_type !== 'institution') {
-      return res.status(403).json({ error: 'Institution account required' });
-    }
-    
-    if (user.password !== password) {
+    if (user.password !== password || user.username !== username) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     

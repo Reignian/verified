@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import HomePage from './components/HomePage';
 import AcademicInstitution from './components/AcademicInstitution';
+import MyVerifiED from './components/MyVerifiED';
 import Login from './components/Login';
 
 function App() {
@@ -12,6 +13,7 @@ function App() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
+        <Route path="/student-dashboard" element={<MyVerifiED />} />
       </Routes>
     </BrowserRouter>
   );
