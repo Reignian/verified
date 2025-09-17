@@ -62,10 +62,14 @@ initBlockchain();
 
 // Login endpoint
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, userType } = req.body;
   
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
+  }
+  
+  if (!userType) {
+    return res.status(400).json({ error: 'User type selection required' });
   }
   
   authQueries.getUserByUsername(username, (err, results) => {
@@ -81,6 +85,13 @@ app.post('/api/login', (req, res) => {
     
     if (user.password !== password || user.username !== username) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Validate that the selected user type matches the account type in database
+    if (user.account_type !== userType) {
+      return res.status(401).json({ 
+        error: 'Invalid credentials' 
+      });
     }
     
     res.json({

@@ -7,10 +7,10 @@ import Login from './components/Login';
 import Navigation from './components/Navigation';
 
 function AppContent() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const isLoginPage = location.pathname === '/login';
 
   // Determine current page type
   const getCurrentPage = () => {
@@ -37,7 +37,6 @@ function AppContent() {
   };
 
   const handleLoginSuccess = () => {
-    setShowLoginModal(false);
     // Refresh user state
     const userId = localStorage.getItem('userId');
     const userType = localStorage.getItem('userType');
@@ -48,25 +47,19 @@ function AppContent() {
 
   return (
     <>
-      <Navigation 
-        onLoginClick={() => setShowLoginModal(true)}
-        isLoggedIn={!!user}
-        onLogout={handleLogout}
-        userType={user?.type}
-        currentPage={getCurrentPage()}
-      />
-      
-      {showLoginModal && (
-        <Login 
-          isModal={true} 
-          onClose={() => setShowLoginModal(false)}
-          onLoginSuccess={handleLoginSuccess}
+      {!isLoginPage && (
+        <Navigation 
+          onLoginClick={() => navigate('/login')}
+          isLoggedIn={!!user}
+          onLogout={handleLogout}
+          userType={user?.type}
+          currentPage={getCurrentPage()}
         />
       )}
       
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />
       </Routes>

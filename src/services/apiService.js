@@ -6,11 +6,12 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:3001/api';  // In development, use localhost
 
 // Login function
-export const login = async (username, password) => {
+export const login = async (username, password, userType) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
       username,
-      password
+      password,
+      userType
     });
     return response.data;
   } catch (error) {
