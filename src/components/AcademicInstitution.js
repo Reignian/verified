@@ -168,8 +168,8 @@ function AcademicInstitution() {
       }
       
       const selectedStudent = students.find(s => s.id === parseInt(formData.studentAccount));
-      if (!selectedStudent || !selectedStudent.public_address) {
-        throw new Error('Selected student does not have a public wallet address.');
+      if (!selectedStudent) {
+        throw new Error('Selected student not found.');
       }
       
       setUploadMessage('Uploading document to IPFS...');
@@ -199,7 +199,7 @@ function AcademicInstitution() {
       
       if (!updateResponse.ok) throw new Error('Database update failed');
 
-      setUploadMessage(`✅ Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
+      setUploadMessage(`âœ… Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
       resetForm();
       setShowModal(false);
 
@@ -258,7 +258,7 @@ function AcademicInstitution() {
       const response = await bulkImportStudents(bulkImportFile);
       
       setBulkImportMessage(
-        `✅ Import completed! 
+        `âœ… Import completed! 
         Successfully imported: ${response.imported_count} students
         Failed: ${response.failed_count} records
         Total processed: ${response.total_processed} records`
@@ -1059,7 +1059,7 @@ function AcademicInstitution() {
                     <option value="">Select Student</option>
                     {students.map((student) => (
                       <option key={student.id} value={student.id}>
-                        {student.first_name} {student.last_name} ({student.public_address?.slice(0, 8)}...)
+                        {student.first_name} {student.last_name} 
                       </option>
                     ))}
                   </select>

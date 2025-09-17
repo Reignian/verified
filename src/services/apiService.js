@@ -6,8 +6,8 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'
   : 'http://localhost:3001/api';
 
-// Login function
-export const login = async (username, password) => {
+// Login function - FIXED: Added userType parameter
+export const login = async (username, password, userType) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
       username,
