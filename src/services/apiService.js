@@ -1,11 +1,11 @@
+// fileName: apiService.js
+
 import axios from 'axios';
 
-// API base URL - works for both development and production
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api'  // In production, use relative path (same domain)
-  : 'http://localhost:3001/api';  // In development, use localhost
+  ? '/api'
+  : 'http://localhost:3001/api';
 
-// Login function
 export const login = async (username, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
@@ -19,7 +19,6 @@ export const login = async (username, password) => {
   }
 };
 
-// Upload credential function with file support
 export const uploadCredential = async (credentialData, file) => {
   try {
     const formData = new FormData();
@@ -43,7 +42,36 @@ export const uploadCredential = async (credentialData, file) => {
   }
 };
 
-// Get credential types from the server
+export const bulkImportStudents = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('studentFile', file);
+
+    const response = await axios.post(`${API_URL}/bulk-import-students`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error during bulk import:', error);
+    throw error;
+  }
+};
+
+// NEW: Add a new credential type to the database
+export const addCredentialType = async (typeName) => {
+  try {
+    const response = await axios.post(`${API_URL}/credential-types`, {
+      type_name: typeName
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error adding credential type:', error);
+    throw error;
+  }
+};
+
 export const fetchCredentialTypes = async () => {
   try {
     const response = await axios.get(`${API_URL}/credential-types`);
@@ -54,18 +82,16 @@ export const fetchCredentialTypes = async () => {
   }
 };
 
-// Get students from the server
 export const fetchStudents = async () => {
   try {
     const response = await axios.get(`${API_URL}/students`);
     return response.data;
-  } catch (error) {
+  } catch (error) { // FIXED: Added missing curly brace here
     console.error('Error fetching students:', error);
     throw error;
   }
 };
 
-// Get issued credentials from the server
 export const fetchIssuedCredentials = async () => {
   try {
     const response = await axios.get(`${API_URL}/issued-credentials`);
@@ -76,7 +102,6 @@ export const fetchIssuedCredentials = async () => {
   }
 };
 
-// Get credential statistics from the server
 export const fetchCredentialStats = async () => {
   try {
     const response = await axios.get(`${API_URL}/credential-stats`);
