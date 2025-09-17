@@ -1,7 +1,7 @@
 // fileName: AcademicInstitution.js
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+
 import {
   fetchCredentialTypes,
   fetchStudents,
@@ -16,6 +16,7 @@ import AcademicInstitutionUI from './AcademicInstitutionUI';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
+
   const [credentialTypes, setCredentialTypes] = useState([]);
   const [students, setStudents] = useState([]);
   const [issuedCredentials, setIssuedCredentials] = useState([]);
@@ -30,7 +31,6 @@ function AcademicInstitution() {
   const [showModal, setShowModal] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Bulk import state
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -44,8 +44,6 @@ function AcademicInstitution() {
   const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
   const [customCredentialType, setCustomCredentialType] = useState('');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     const getAccount = async () => {
@@ -86,11 +84,6 @@ function AcademicInstitution() {
     getAccount();
     loadData();
   }, []);
-  
-  const handleLogout = () => {
-    localStorage.removeItem('userId');
-    navigate('/');
-  };
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
@@ -326,9 +319,7 @@ function AcademicInstitution() {
       showErrorPopup={showErrorPopup}
       setShowErrorPopup={setShowErrorPopup}
       errorMessage={errorMessage}
-      showMobileMenu={showMobileMenu}
-      setShowMobileMenu={setShowMobileMenu}
-      
+
       // Bulk import props
       showBulkImportModal={showBulkImportModal}
       setShowBulkImportModal={setShowBulkImportModal}
@@ -338,14 +329,13 @@ function AcademicInstitution() {
       importSuccess={importSuccess}
       showFormatInfo={showFormatInfo}
       setShowFormatInfo={setShowFormatInfo}
-      
+
       // Enhanced modal props
       showCustomTypeInput={showCustomTypeInput}
       customCredentialType={customCredentialType}
       studentSearchTerm={studentSearchTerm}
-      
+
       // Event handlers
-      handleLogout={handleLogout}
       handleInputChange={handleInputChange}
       handleCustomTypeChange={handleCustomTypeChange}
       handleStudentSearchChange={handleStudentSearchChange}
@@ -354,7 +344,6 @@ function AcademicInstitution() {
       handleBulkImportFileChange={handleBulkImportFileChange}
       handleBulkImportSubmit={handleBulkImportSubmit}
       handleCloseBulkImportModal={handleCloseBulkImportModal}
-      resetBulkImportForm={resetBulkImportForm}
       formatDate={formatDate}
     />
   );

@@ -18,15 +18,12 @@ const AcademicInstitutionUI = ({
   showErrorPopup,
   setShowErrorPopup,
   errorMessage,
-  showMobileMenu,
-  setShowMobileMenu,
   // Bulk import props
   showBulkImportModal,
   setShowBulkImportModal,
   bulkImportFile,
   bulkImporting,
   bulkImportMessage,
-  handleLogout,
   handleInputChange,
   handleSubmit,
   handleViewCredential,
@@ -704,38 +701,7 @@ const AcademicInstitutionUI = ({
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       />
 
-      {/* Navbar */}
-      <nav className="navbar navbar-expand-lg navbar-custom">
-        <div className="container">
-          <a className="navbar-brand" href="/">
-            Verifi<span>ED</span>
-          </a>
-          
-          <button 
-            className="navbar-toggler" 
-            type="button"
-            onClick={() => setShowMobileMenu(!showMobileMenu)}
-            aria-label="Toggle navigation"
-          >
-            <span className="navbar-toggler-icon"></span>
-          </button>
-          
-          <div className={`collapse navbar-collapse ${showMobileMenu ? 'show' : ''}`}>
-            <ul className="navbar-nav ms-auto">
-              <li className="nav-item">
-                <button 
-                  className="btn btn-primary-custom ms-2"
-                  style={{padding: '12px 24px', fontSize: '1rem'}}
-                  onClick={handleLogout}
-                >
-                  <i className="fas fa-sign-out-alt me-2"></i>
-                  Logout
-                </button>
-              </li>
-            </ul>
-          </div>
-        </div>
-      </nav>
+      {/* Navbar removed - using global Navigation from App.js */}
 
       {/* Header Section */}
       <div className="dashboard-header">
