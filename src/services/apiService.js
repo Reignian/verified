@@ -6,11 +6,13 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'
   : 'http://localhost:3001/api';
 
+// Login function
 export const login = async (username, password) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
       username,
-      password
+      password,
+      userType
     });
     return response.data;
   } catch (error) {
@@ -108,6 +110,38 @@ export const fetchCredentialStats = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching credential stats:', error);
+    throw error;
+  }
+};
+
+// Get student name by ID
+export const fetchStudentName = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/name`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student name:', error);
+    throw error;
+  }
+};
+
+// Get student credential count
+export const fetchStudentCredentialCount = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/credential-count`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student credential count:', error);
+    throw error;
+  }
+};
+
+export const fetchStudentCredentials = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/credentials`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student credentials:', error);
     throw error;
   }
 };

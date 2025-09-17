@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import Navigation from './Navigation';
-import Login from './Login';
+import './Navigation.css';
 
 function HomePage() {
-  const [showLoginModal, setShowLoginModal] = useState(false);
   const [showVerificationResult, setShowVerificationResult] = useState(false);
 
   useEffect(() => {
@@ -34,48 +32,6 @@ function HomePage() {
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif" }}>
       <style>{`
-        :root {
-          --primary-color: #4050b5;
-          --secondary-color: #7986cb;
-          --accent-color: #3d5afe;
-          --success-color: #4caf50;
-          --danger-color: #f44336;
-          --text-dark: #333;
-          --text-light: #666;
-          --text-lightest: #999;
-          --background-light: #f9f9f9;
-          --background-white: #ffffff;
-          --background-dark: #212121;
-          --border-color: #e0e0e0;
-          --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-          --transition: all 0.3s ease;
-        }
-
-        body {
-          background-color: var(--background-light);
-          color: var(--text-dark);
-        }
-
-        .btn-primary-custom {
-          background-color: var(--primary-color);
-          border-color: var(--primary-color);
-          color: white;
-          padding: 12px 24px;
-          border-radius: 4px;
-          font-weight: 600;
-          transition: var(--transition);
-          border: none;
-          text-decoration: none;
-        }
-
-        .btn-primary-custom:hover {
-          background-color: var(--accent-color);
-          border-color: var(--accent-color);
-          transform: translateY(-2px);
-          box-shadow: var(--shadow);
-          color: white;
-        }
-
         .btn-secondary-custom {
           background-color: transparent;
           color: var(--primary-color);
@@ -95,7 +51,7 @@ function HomePage() {
         }
 
         .hero-section {
-          padding-top: 160px;
+          padding-top: 180px;
           padding-bottom: 80px;
           background: linear-gradient(to right, #f5f7ff, #e8eaff);
         }
@@ -330,9 +286,6 @@ function HomePage() {
         rel="stylesheet" 
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       />
-
-      {/* Navigation */}
-      <Navigation onLoginClick={() => setShowLoginModal(true)} />
 
       {/* Hero Section */}
       <section id="home" className="hero-section">
@@ -801,13 +754,6 @@ function HomePage() {
         </div>
       </footer>
 
-      {/* Login Modal */}
-      {showLoginModal && (
-        <Login 
-          isModal={true} 
-          onClose={() => setShowLoginModal(false)} 
-        />
-      )}
     </div>
   );
 }

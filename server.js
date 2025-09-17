@@ -10,6 +10,7 @@ const fs = require('fs');
 const { ethers } = require('ethers');
 const academicQueries = require('./src/queries/academicInstitutionQueries');
 const authQueries = require('./src/queries/authQueries');
+const myVerifiEDQueries = require('./src/queries/MyVerifiEDQueries');
 const pinataService = require('./src/services/pinataService');
 
 const XLSX = require('xlsx');
@@ -215,10 +216,14 @@ function normalizeStudentData(rawData) {
 }
 
 app.post('/api/login', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, userType } = req.body;
   
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password required' });
+  }
+  
+  if (!userType) {
+    return res.status(400).json({ error: 'User type selection required' });
   }
   
   authQueries.getUserByUsername(username, (err, results) => {
@@ -234,6 +239,13 @@ app.post('/api/login', (req, res) => {
     
     if (user.password !== password || user.username !== username) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Validate that the selected user type matches the account type in database
+    if (user.account_type !== userType) {
+      return res.status(401).json({ 
+        error: 'Invalid credentials' 
+      });
     }
     
     res.json({
@@ -411,6 +423,49 @@ app.get('/api/contract-abi', (req, res) => {
     return res.status(404).json({ error: 'Contract not deployed' });
   }
   res.json({ abi: contractData.abi });
+});
+
+// Get student name
+app.get('/api/student/:studentId/name', (req, res) => {
+  const { studentId } = req.params;
+  
+  myVerifiEDQueries.getStudentName(studentId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Student not found' });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
+// Get student credential count
+app.get('/api/student/:studentId/credential-count', (req, res) => {
+  const { studentId } = req.params;
+  
+  myVerifiEDQueries.getStudentCredentialCount(studentId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json(results[0] || { total_credentials: 0 });
+  });
+});
+
+// Get student credentials
+app.get('/api/student/:studentId/credentials', (req, res) => {
+  const { studentId } = req.params;
+  
+  myVerifiEDQueries.getStudentCredentials(studentId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json(results || []);
+  });
 });
 
 app.post('/api/update-blockchain-id', (req, res) => {

@@ -1,156 +1,230 @@
 import React, { useState, useEffect } from 'react';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './MyVerifiED.css';
+import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../services/apiService';
 
 function MyVerifiED() {
   const [credentials, setCredentials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [credentialCount, setCredentialCount] = useState(0);
 
   useEffect(() => {
-    // Get user info from localStorage
-    const userId = localStorage.getItem('userId');
-    const userType = localStorage.getItem('userType');
-    
-    if (userId && userType === 'student') {
-      setUser({ id: userId, type: userType });
-      // TODO: Fetch student's credentials from API
-      setTimeout(() => {
-        setCredentials([
-          {
-            id: 1,
-            type: 'Bachelor of Science',
-            subject: 'Computer Science',
-            issuer: 'Western Mindanao State University',
-            date: '2024-05-15',
-            status: 'Verified',
-            ipfs_hash: 'QmX7Y8Z9...',
-            blockchain_id: '12345'
-          }
+    const loadStudentData = async () => {
+      try {
+        // Get user info from localStorage
+        const userId = localStorage.getItem('userId');
+        const userType = localStorage.getItem('userType');
+        
+        if (!userId || userType !== 'student') {
+          setLoading(false);
+          return;
+        }
+
+        // Fetch student data, credential count, and actual credentials
+        const [studentData, credentialData, credentialsData] = await Promise.all([
+          fetchStudentName(userId),
+          fetchStudentCredentialCount(userId),
+          fetchStudentCredentials(userId)
         ]);
+        
+        setUser({ 
+          id: userId, 
+          type: userType,
+          student_id: studentData.student_id,
+          first_name: studentData.first_name,
+          middle_name: studentData.middle_name,
+          last_name: studentData.last_name
+        });
+        
+        setCredentialCount(credentialData.total_credentials);
+        setCredentials(credentialsData);
         setLoading(false);
-      }, 1000);
-    } else {
-      setLoading(false);
-    }
+
+      } catch (error) {
+        console.error('Error loading student data:', error);
+        setLoading(false);
+      }
+    };
+
+    loadStudentData();
   }, []);
 
   const handleShareCredential = (credentialId) => {
     alert(`Sharing credential ${credentialId} - Feature coming soon!`);
   };
 
+  const handleViewCredential = (ipfsHash) => {
+    const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsHash}`;
+    window.open(ipfsUrl, '_blank');
+  };
+
+  const formatDate = (dateString) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
   if (loading) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>Loading your credentials...</h2>
+      <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-6 text-center" style={{ paddingTop: '100px' }}>
+              <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <h3 className="mt-3" style={{ color: '#4050b5' }}>Loading your credentials...</h3>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   if (!user) {
     return (
-      <div style={{ padding: '20px', textAlign: 'center' }}>
-        <h2>Please log in as a student to view your credentials</h2>
+      <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
+        <div className="container">
+          <div className="row justify-content-center">
+            <div className="col-md-8 text-center" style={{ paddingTop: '100px' }}>
+              <div className="card shadow-lg border-0" style={{ borderRadius: '12px' }}>
+                <div className="card-body p-5">
+                  <i className="fas fa-user-lock fa-4x text-warning mb-4"></i>
+                  <h2 className="mb-3" style={{ color: '#4050b5' }}>Access Required</h2>
+                  <p className="text-muted mb-4">Please log in as a student to view your credentials</p>
+                  <button className="btn btn-primary" style={{ backgroundColor: '#4050b5', borderColor: '#4050b5' }}>
+                    <i className="fas fa-sign-in-alt me-2"></i>
+                    Go to Login
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <div style={{ padding: '20px', maxWidth: '800px', margin: '0 auto' }}>
-      <h1>My VerifiED Dashboard</h1>
-      <p>Welcome to your credential management portal</p>
-      
-      <div style={{ marginBottom: '30px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-        <h3>Account Information</h3>
-        <p><strong>User ID:</strong> {user.id}</p>
-        <p><strong>Account Type:</strong> Student</p>
+    <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
+
+      {/* Header Section */}
+      <div className="dashboard-header">
+        <div className="container">
+          <div className="row align-items-center">
+            <div className="col-lg-8">
+              <h1 className="dashboard-title">
+                <i className="fas fa-user-graduate me-3"></i>
+                My VerifiED Dashboard
+              </h1>
+              <p className="dashboard-subtitle">
+                View and manage your blockchain-verified academic credentials
+              </p>
+            </div>
+            <div className="col-lg-4">
+              <div className="user-info">
+                <p className="m-0 fw-semibold">{user.first_name} {user.middle_name} {user.last_name}</p>
+                <div className="fs-6 opacity-75 mb-1">Student ID: {user.student_id}</div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div>
-        <h2>My Credentials ({credentials.length})</h2>
-        
-        {credentials.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
-            <p>No credentials found. Your verified credentials will appear here once issued by institutions.</p>
+      {/* Main Content */}
+      <div className="main-content">
+        {/* Stats Section */}
+        <div className="stats-grid">
+          <div className="stat-card">
+            <div className="stat-number">{credentialCount}</div>
+            <p className="stat-label">Total Credentials</p>
           </div>
-        ) : (
-          <div style={{ display: 'grid', gap: '20px' }}>
-            {credentials.map((credential) => (
-              <div key={credential.id} style={{
-                border: '1px solid #ddd',
-                borderRadius: '8px',
-                padding: '20px',
-                backgroundColor: 'white',
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start' }}>
-                  <div>
-                    <h3 style={{ margin: '0 0 10px 0', color: '#4050b5' }}>
-                      {credential.type}
-                    </h3>
-                    <p style={{ margin: '5px 0', color: '#666' }}>
-                      <strong>Subject:</strong> {credential.subject}
-                    </p>
-                    <p style={{ margin: '5px 0', color: '#666' }}>
-                      <strong>Issued by:</strong> {credential.issuer}
-                    </p>
-                    <p style={{ margin: '5px 0', color: '#666' }}>
-                      <strong>Date:</strong> {credential.date}
-                    </p>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <span style={{
-                      padding: '4px 12px',
-                      backgroundColor: '#4caf50',
-                      color: 'white',
-                      borderRadius: '20px',
-                      fontSize: '12px',
-                      fontWeight: 'bold'
-                    }}>
-                      {credential.status}
-                    </span>
-                  </div>
-                </div>
-                
-                <div style={{ marginTop: '15px', paddingTop: '15px', borderTop: '1px solid #eee' }}>
-                  <p style={{ margin: '5px 0', fontSize: '12px', color: '#888' }}>
-                    <strong>IPFS Hash:</strong> {credential.ipfs_hash}
-                  </p>
-                  <p style={{ margin: '5px 0', fontSize: '12px', color: '#888' }}>
-                    <strong>Blockchain ID:</strong> {credential.blockchain_id}
-                  </p>
-                </div>
-                
-                <div style={{ marginTop: '15px' }}>
-                  <button
-                    onClick={() => handleShareCredential(credential.id)}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#4050b5',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      marginRight: '10px'
-                    }}
-                  >
-                    Share Credential
-                  </button>
-                  <button
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: '#6c757d',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '4px',
-                      cursor: 'pointer'
-                    }}
-                  >
-                    View Details
-                  </button>
-                </div>
+          <div className="stat-card">
+            <div className="stat-number">
+            </div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-number">
+            </div>
+          </div>
+        </div>
+
+        {/* Credentials Section */}
+        <div className="row">
+          <div className="col-12">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+              <h2 style={{ color: '#4050b5', fontWeight: '600', margin: '0' }}>
+                <i className="fas fa-certificate me-2"></i>
+                My Credentials
+              </h2>
+            </div>
+
+            {credentials.length === 0 ? (
+              <div className="empty-state">
+                <i className="fas fa-inbox empty-state-icon"></i>
+                <h3 className="empty-state-title">No Credentials Yet</h3>
+                <p className="empty-state-text">
+                  Your verified credentials will appear here once issued by institutions.<br />
+                  Contact your academic institution to request credential verification.
+                </p>
               </div>
-            ))}
+            ) : (
+              <div className="row">
+                {credentials.map((credential) => (
+                  <div key={credential.id} className="col-12 mb-4">
+                    <div className="credential-card">
+                      <div className="credential-header">
+                        <div>
+                          <h3 className="credential-title">
+                            <i className="fas fa-award me-2"></i>
+                            {credential.type}
+                          </h3>
+                          <p className="credential-info">
+                            <i className="fas fa-book me-2"></i>
+                            <strong>Subject:</strong>
+                          </p>
+                          <p className="credential-info">
+                            <i className="fas fa-university me-2"></i>
+                            <strong>Issued by:</strong> {credential.issuer}
+                          </p>
+                          <p className="credential-info">
+                            <i className="fas fa-calendar me-2"></i>
+                            <strong>Date:</strong> {formatDate(credential.date)}
+                          </p>
+                        </div>
+                        <div>
+                          <span className={`status-badge status-${credential.status.toLowerCase()}`}>
+                            {credential.status}
+                          </span>
+                        </div>
+                      </div>
+                      
+                      <div className="d-flex flex-wrap gap-2 mt-3">
+                        <button
+                          onClick={() => handleViewCredential(credential.ipfs_hash)}
+                          className="btn-primary-custom"
+                        >
+                          <i className="fas fa-eye me-2"></i>
+                          View Document
+                        </button>
+                        <button
+                          onClick={() => handleShareCredential(credential.id)}
+                          className="btn-secondary-custom"
+                        >
+                          <i className="fas fa-share-alt me-2"></i>
+                          Share Credential
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
