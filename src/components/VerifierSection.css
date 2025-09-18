@@ -1,0 +1,41 @@
+/* VerifierSection Component Styles */
+
+/* VerifierSection specific styles can be added here as needed */
+
+.verifier-ui {
+  background-color: var(--background-light);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+.ui-header {
+  background-color: var(--primary-color);
+  color: white;
+  padding: 15px 20px;
+}
+
+.verification-result-box {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  margin-top: 20px;
+}
+
+/* Responsive adjustments for verifier section */
+@media (max-width: 768px) {
+  .verifier-ui {
+    margin-bottom: 2rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .ui-header h3 {
+    font-size: 1.2rem;
+  }
+  
+  .verification-result-box {
+    padding: 15px;
+  }
+}

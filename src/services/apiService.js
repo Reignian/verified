@@ -145,3 +145,16 @@ export const fetchStudentCredentials = async (studentId) => {
     throw error;
   }
 };
+
+// Verify credential by access code
+export const verifyCredential = async (accessCode) => {
+  try {
+    const response = await axios.post(`${API_URL}/verify-credential`, {
+      accessCode
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying credential:', error);
+    throw error;
+  }
+};
