@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 09, 2025 at 06:25 PM
+-- Generation Time: Sep 19, 2025 at 06:16 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -43,7 +43,13 @@ CREATE TABLE `account` (
 
 INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `public_address`, `created_at`) VALUES
 (1, 'institution', 'wmsu', 'wmsu', 'wmsu@gmail.com', '0x852A8e5c3D309626810944b1a520Dd81B3B5A7fA', '2025-09-06 17:20:14'),
-(2, 'student', 'reign', 'reign', 'reign@gmail.com', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6', '2025-09-06 17:20:56');
+(2, 'student', 'reign', 'reign', 'reign@gmail.com', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6', '2025-09-06 17:20:56'),
+(18, 'student', 'gerby', 'gerby', 'gerby@gmail.com', '', '2025-09-06 17:20:56'),
+(19, 'student', 'alicejohnson716', 'password123', 'alicejohnson716@student.edu', '', '2025-09-17 16:31:58'),
+(20, 'student', 'bobwilliams488', 'securepass!', 'bobwilliams488@student.edu', '', '2025-09-17 16:31:58'),
+(21, 'student', 'charliedavis863', 'mysecretpass', 'charliedavis863@student.edu', '', '2025-09-17 16:31:58'),
+(22, 'student', 'dianamiller768', 'studentpass', 'dianamiller768@student.edu', '', '2025-09-17 16:31:58'),
+(23, 'student', 'ethanbrown852', 'p@ssw0rd4u', 'ethanbrown852@student.edu', '', '2025-09-17 16:31:58');
 
 -- --------------------------------------------------------
 
@@ -53,17 +59,26 @@ INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `p
 
 CREATE TABLE `credential` (
   `id` int(11) NOT NULL,
-  `credential_type_id` int(11) NOT NULL,
+  `credential_type_id` int(11) DEFAULT NULL,
   `custom_type` varchar(100) DEFAULT NULL,
   `owner_id` int(11) NOT NULL,
   `sender_id` int(11) NOT NULL,
   `ipfs_cid` varchar(255) NOT NULL,
   `ipfs_cid_hash` varchar(100) NOT NULL,
   `status` varchar(50) DEFAULT NULL,
-  `blockchain_id` bigint(20) NOT NULL,
+  `blockchain_id` varchar(255) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `credential`
+--
+
+INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `ipfs_cid`, `ipfs_cid_hash`, `status`, `blockchain_id`, `created_at`, `updated_at`) VALUES
+(25, 2, NULL, 18, 1, 'QmQdgoQZihyr2AqZ4Z2fRMwzB5L181R4wJdiKLMZppzrL4', '024a443c445fcd9ea8c1b472316ef2fab101c38f1a523b0e449403fc9a57b66f', 'blockchain_verified', '10', '2025-09-19 15:35:43', '2025-09-19 15:35:46'),
+(27, NULL, 'nc2', 21, 1, 'QmPxDVKfUt1WWZZ87Y1iFAVxFbvmxSy646U7zuUAEubJDz', '8013e65028c2afe030d11a9cd18fbb13011cca41235af6e7eb42a6150a0f2dcf', 'blockchain_verified', '11', '2025-09-19 16:13:57', '2025-09-19 16:14:00'),
+(28, 5, NULL, 2, 1, 'QmQdgoQZihyr2AqZ4Z2fRMwzB5L181R4wJdiKLMZppzrL4', '024a443c445fcd9ea8c1b472316ef2fab101c38f1a523b0e449403fc9a57b66f', 'blockchain_verified', '12', '2025-09-19 16:14:31', '2025-09-19 16:14:38');
 
 -- --------------------------------------------------------
 
@@ -81,7 +96,11 @@ CREATE TABLE `credential_types` (
 --
 
 INSERT INTO `credential_types` (`id`, `type_name`) VALUES
-(1, 'Diploma');
+(1, 'High School Diploma'),
+(2, 'Associate Degree'),
+(3, 'Bachelor\'s Degree'),
+(4, 'Master\'s Degree'),
+(5, 'Doctorate (PhD)');
 
 -- --------------------------------------------------------
 
@@ -120,7 +139,13 @@ CREATE TABLE `student` (
 --
 
 INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_name`) VALUES
-(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno');
+(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno'),
+(18, '2022-01085', 'gerby', 'gerby', 'gerby'),
+(19, '1001', 'Alice', NULL, 'Johnson'),
+(20, '1002', 'Bob', NULL, 'Williams'),
+(21, '1003', 'Charlie', NULL, 'Davis'),
+(22, '1004', 'Diana', NULL, 'Miller'),
+(23, '1005', 'Ethan', NULL, 'Brown');
 
 --
 -- Indexes for dumped tables
@@ -168,25 +193,25 @@ ALTER TABLE `student`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=29;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
 --
 ALTER TABLE `credential_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
 
 --
 -- Constraints for dumped tables
