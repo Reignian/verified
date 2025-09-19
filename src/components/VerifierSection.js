@@ -9,13 +9,107 @@ function VerifierSection() {
   const [verificationInput, setVerificationInput] = useState('');
   const [credentialData, setCredentialData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [onChainData, setOnChainData] = useState(null);
-  const [onChainVerification, setOnChainVerification] = useState(null);
-  const [onChainError, setOnChainError] = useState('');
-  const [issuerAddressMatch, setIssuerAddressMatch] = useState(null);
-  const [credentialIdMatch, setCredentialIdMatch] = useState(null);
-  const [studentIdMatch, setStudentIdMatch] = useState(null);
-  const [cidHashMatch, setCidHashMatch] = useState(null);
+  // All on-chain integrity checks will be computed and logged to console only.
+
+  const runOnChainIntegrityChecks = async (credential) => {
+    const blockchainId = credential?.blockchain_id;
+    if (!blockchainId) {
+      console.warn('[Verifier] No blockchain_id on credential. Skipping on-chain checks.');
+      return;
+    }
+    try {
+      const chainData = await blockchainService.fetchOnChainCredential(blockchainId);
+      const chainVerify = await blockchainService.verifyOnChainCredential(blockchainId);
+
+      const exists = !!chainVerify?.exists;
+
+      const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase();
+      const chainIssuer = (chainData.issuer || '').trim().toLowerCase();
+      const issuerMatch = exists && dbIssuer && chainIssuer ? dbIssuer === chainIssuer : null;
+
+      const idMatch = typeof chainVerify?.exists === 'boolean' ? chainVerify.exists : null;
+
+      const dbStudentId = (credential.student_id ?? '').toString().trim();
+      const chainStudentId = (chainData.studentId ?? '').toString().trim();
+      const studentIdMatch = exists && dbStudentId && chainStudentId ? dbStudentId === chainStudentId : null;
+
+      const dbCid = (credential.ipfs_cid ?? '').toString().trim();
+      const chainCidHashHex = (chainData.ipfsCidHashHex ?? '').toString().trim();
+      let cidHashMatch = null;
+      let computedCidHashHex = null;
+      if (exists && dbCid && chainCidHashHex) {
+        try {
+          computedCidHashHex = ethers.sha256(ethers.toUtf8Bytes(dbCid));
+          cidHashMatch = computedCidHashHex.toLowerCase() === chainCidHashHex.toLowerCase();
+        } catch {
+          cidHashMatch = null;
+        }
+      }
+
+      let dateMatch = null;
+      let dbDayForMatch = null;
+      let chainDayForMatch = null;
+      try {
+        const dbDate = new Date(credential.date_issued);
+        dbDayForMatch = isNaN(dbDate.getTime()) ? null : dbDate.toISOString().slice(0, 10);
+        chainDayForMatch = exists && chainData.createdAt
+          ? new Date(chainData.createdAt * 1000).toISOString().slice(0, 10)
+          : null;
+        dateMatch = dbDayForMatch && chainDayForMatch ? dbDayForMatch === chainDayForMatch : null;
+      } catch {
+        dateMatch = null;
+      }
+
+      const indicators = {
+        issuerMatch,
+        idMatch,
+        studentIdMatch,
+        cidHashMatch,
+        dateMatch,
+        details: {
+          blockchainId,
+          onChainIssuer: chainData.issuer,
+          onChainStudentId: chainData.studentId ?? null,
+          onChainCidHashHex: chainCidHashHex,
+          onChainCreatedAt: chainData.createdAt ?? null,
+          expectedCidHashHex: computedCidHashHex,
+          expectedIssueDateUTC: dbDayForMatch,
+          onChainIssueDateUTC: chainDayForMatch,
+          expectedIssuer: dbIssuer,
+          expectedStudentId: dbStudentId,
+        }
+      };
+
+      const allTrue = [issuerMatch, idMatch, studentIdMatch, cidHashMatch, dateMatch]
+        .every(v => v === true);
+
+      if (allTrue) {
+        console.log('[Verifier] Blockchain verified');
+      } else {
+        console.group('[Verifier] Verification mismatches');
+        if (idMatch !== true) {
+          console.warn('[Verifier] Credential ID mismatch');
+        }
+        if (issuerMatch !== true) {
+          console.warn('[Verifier] Issuer address mismatch');
+        }
+        if (studentIdMatch !== true) {
+          console.warn('[Verifier] Student ID mismatch');
+        }
+        if (cidHashMatch !== true) {
+          console.warn('[Verifier] CID hash mismatch');
+        }
+        if (dateMatch !== true) {
+          console.warn('[Verifier] Issue date mismatch');
+        }
+        console.groupEnd();
+      }
+
+      return indicators;
+    } catch (err) {
+      console.error('[Verifier] On-chain checks failed:', err);
+    }
+  };
 
   const handleVerify = async () => {
     if (verificationInput.trim()) {
@@ -27,66 +121,8 @@ function VerifierSection() {
         if (response.success && response.credential) {
           setCredentialData(response.credential);
           setShowVerificationResult(true);
-
-          // Also fetch on-chain data using blockchain_id from DB
-          setOnChainData(null);
-          setOnChainVerification(null);
-          setOnChainError('');
-          setIssuerAddressMatch(null);
-          setCredentialIdMatch(null);
-          setStudentIdMatch(null);
-          setCidHashMatch(null);
-          const blockchainId = response.credential.blockchain_id;
-          if (blockchainId) {
-            try {
-              const chainData = await blockchainService.fetchOnChainCredential(blockchainId);
-              setOnChainData(chainData);
-              const chainVerify = await blockchainService.verifyOnChainCredential(blockchainId);
-              setOnChainVerification(chainVerify);
-
-              // Compare DB institution public address vs on-chain issuer
-              const dbAddr = (response.credential.issuer_public_address || '').trim().toLowerCase();
-              const chainAddr = (chainData.issuer || '').trim().toLowerCase();
-              if (chainVerify?.exists && dbAddr && chainAddr) {
-                setIssuerAddressMatch(dbAddr === chainAddr);
-              } else {
-                setIssuerAddressMatch(null);
-              }
-
-              // Credential ID match: we treat 'exists on-chain for this ID' as a match
-              if (typeof chainVerify?.exists === 'boolean') {
-                setCredentialIdMatch(chainVerify.exists);
-              } else {
-                setCredentialIdMatch(null);
-              }
-
-              // Student ID match (DB vs on-chain decoded string)
-              const dbStudentId = (response.credential.student_id ?? '').toString().trim();
-              const chainStudentId = (chainData.studentId ?? '').toString().trim();
-              if (chainVerify?.exists && dbStudentId && chainStudentId) {
-                setStudentIdMatch(dbStudentId === chainStudentId);
-              } else {
-                setStudentIdMatch(null);
-              }
-
-              // CID hash match (compute SHA-256 of DB ipfs_cid and compare to on-chain bytes32)
-              const dbCid = (response.credential.ipfs_cid ?? '').toString().trim();
-              const chainCidHash = (chainData.ipfsCidHashHex ?? '').toString().trim();
-              if (chainVerify?.exists && dbCid && chainCidHash) {
-                try {
-                  const computedCidHashHex = ethers.sha256(ethers.toUtf8Bytes(dbCid));
-                  setCidHashMatch(computedCidHashHex.toLowerCase() === chainCidHash.toLowerCase());
-                } catch (e) {
-                  setCidHashMatch(null);
-                }
-              } else {
-                setCidHashMatch(null);
-              }
-            } catch (chainErr) {
-              console.warn('On-chain fetch failed:', chainErr);
-              setOnChainError(chainErr?.message || 'Failed to fetch on-chain data');
-            }
-          }
+          // Run all on-chain integrity checks and log indicators to console
+          runOnChainIntegrityChecks(response.credential);
         } else {
           alert('No credential found with this access code.');
           setShowVerificationResult(false);
@@ -157,26 +193,6 @@ function VerifierSection() {
                     <div className="d-flex align-items-center mb-3">
                       <i className="fas fa-check-circle text-success me-2"></i>
                       <span className="fw-bold text-success">Verified</span>
-                      {issuerAddressMatch !== null && (
-                        <span className={`badge ms-2 ${issuerAddressMatch ? 'bg-success' : 'bg-danger'}`}>
-                          {issuerAddressMatch ? 'Issuer match' : 'Issuer mismatch'}
-                        </span>
-                      )}
-                      {credentialIdMatch !== null && (
-                        <span className={`badge ms-2 ${credentialIdMatch ? 'bg-success' : 'bg-danger'}`}>
-                          {credentialIdMatch ? 'ID match' : 'ID not found'}
-                        </span>
-                      )}
-                      {studentIdMatch !== null && (
-                        <span className={`badge ms-2 ${studentIdMatch ? 'bg-success' : 'bg-danger'}`}>
-                          {studentIdMatch ? 'Student ID match' : 'Student ID mismatch'}
-                        </span>
-                      )}
-                      {cidHashMatch !== null && (
-                        <span className={`badge ms-2 ${cidHashMatch ? 'bg-success' : 'bg-danger'}`}>
-                          {cidHashMatch ? 'CID hash match' : 'CID hash mismatch'}
-                        </span>
-                      )}
                     </div>
                     <div>
                       <div className="d-flex justify-content-between py-2 border-bottom">
@@ -191,93 +207,29 @@ function VerifierSection() {
                         <span className="fw-bold">Credential Type:</span>
                         <span>{credentialData.credential_type}</span>
                       </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Issuer (on-chain):</span>
-                        <span>{onChainData?.issuer}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Credential ID Match:</span>
-                        <span className={credentialIdMatch === true ? 'text-success' : credentialIdMatch === false ? 'text-danger' : ''}>
-                          {credentialIdMatch === true ? 'Yes' : credentialIdMatch === false ? 'No' : 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Student ID (on-chain):</span>
-                        <span>{onChainData?.studentId || onChainData?.studentIdBytes}</span>
-                      </div>
                       <div className="d-flex justify-content-between py-2">
                         <span className="fw-bold">Issue Date:</span>
                         <span>{new Date(credentialData.date_issued).toLocaleDateString()}</span>
                       </div>
-                    </div>
-                  </div>
-                )}
-                
-                {onChainError && (
-                  <div className="alert alert-danger mt-3" role="alert">
-                    {onChainError}
-                  </div>
-                )}
-                
-                {onChainData && (
-                  <div className="verification-result-box mt-3">
-                    <div className="d-flex align-items-center mb-3">
-                      {onChainVerification?.exists ? (
-                        <>
-                          <i className="fas fa-check-circle text-success me-2"></i>
-                          <span className="fw-bold text-success">On-Chain Record Found</span>
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-times-circle text-danger me-2"></i>
-                          <span className="fw-bold text-danger">On-Chain Record Not Found</span>
-                        </>
+                      {credentialData?.ipfs_cid && (
+                        <div className="d-flex justify-content-between py-2">
+                          <span className="fw-bold">Credential File:</span>
+                          <span>
+                            <a 
+                              href={`https://gateway.pinata.cloud/ipfs/${credentialData.ipfs_cid}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="me-2"
+                            >
+                              View
+                            </a>
+                          </span>
+                        </div>
                       )}
                     </div>
-                    <div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Credential ID:</span>
-                        <span>{credentialData?.blockchain_id ?? 'N/A'}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Issuer Address (DB):</span>
-                        <span>{credentialData?.issuer_public_address || 'N/A'}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Issuer (on-chain):</span>
-                        <span>{onChainData.issuer}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Issuer Address Match:</span>
-                        <span className={issuerAddressMatch === true ? 'text-success' : issuerAddressMatch === false ? 'text-danger' : ''}>
-                          {issuerAddressMatch === true ? 'Yes' : issuerAddressMatch === false ? 'No' : 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Student ID (DB):</span>
-                        <span>{credentialData?.student_id || 'N/A'}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Student ID Match:</span>
-                        <span className={studentIdMatch === true ? 'text-success' : studentIdMatch === false ? 'text-danger' : ''}>
-                          {studentIdMatch === true ? 'Yes' : studentIdMatch === false ? 'No' : 'Unknown'}
-                        </span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Student ID (on-chain):</span>
-                        <span>{onChainData.studentId || onChainData.studentIdBytes}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">CID Hash (SHA-256 bytes32):</span>
-                        <span>{onChainData.ipfsCidHashHex || 'N/A'}</span>
-                      </div>
-                      <div className="d-flex justify-content-between py-2">
-                        <span className="fw-bold">Created At (on-chain):</span>
-                        <span>{onChainData.createdAt ? new Date(onChainData.createdAt * 1000).toLocaleString() : 'N/A'}</span>
-                      </div>
-                    </div>
                   </div>
                 )}
+                
               </div>
             </div>
           </div>
