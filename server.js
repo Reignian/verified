@@ -451,6 +451,43 @@ app.get('/api/student/:studentId/credentials', (req, res) => {
   });
 });
 
+// Generate and store a new access code for a credential
+app.post('/api/generate-access-code', (req, res) => {
+  const { credential_id } = req.body;
+
+  if (!credential_id) {
+    return res.status(400).json({ error: 'Missing credential_id' });
+  }
+
+  // Generate a random 6-character alphanumeric code (avoids ambiguous chars)
+  const generateCode = () => {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+  };
+
+  const tryInsert = (attemptsLeft = 5) => {
+    const newCode = generateCode();
+
+    myVerifiEDQueries.upsertCredentialAccessCode(credential_id, newCode, (err) => {
+      if (err) {
+        // Retry on duplicate access_code collisions if unique constraint exists
+        if (err.code === 'ER_DUP_ENTRY' && attemptsLeft > 1) {
+          return tryInsert(attemptsLeft - 1);
+        }
+        return res.status(500).json({ error: 'Database error' });
+      }
+
+      return res.json({ success: true, credential_id, access_code: newCode });
+    });
+  };
+
+  tryInsert();
+});
+
 app.post('/api/update-blockchain-id', (req, res) => {
   const { credential_id, blockchain_id } = req.body;
   

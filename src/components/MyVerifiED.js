@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './MyVerifiED.css';
-import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../services/apiService';
+import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials, generateCredentialAccessCode } from '../services/apiService';
 
 function MyVerifiED() {
   const [credentials, setCredentials] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [credentialCount, setCredentialCount] = useState(0);
+  const [generatingId, setGeneratingId] = useState(null);
 
   useEffect(() => {
     const loadStudentData = async () => {
@@ -38,7 +39,12 @@ function MyVerifiED() {
         });
         
         setCredentialCount(credentialData.total_credentials);
-        setCredentials(credentialsData);
+        // Transform access_codes (comma-separated string) to an array for UI
+        const transformed = (credentialsData || []).map(c => ({
+          ...c,
+          codes: c.access_codes ? c.access_codes.split(',').filter(Boolean) : []
+        }));
+        setCredentials(transformed);
         setLoading(false);
 
       } catch (error) {
@@ -50,8 +56,30 @@ function MyVerifiED() {
     loadStudentData();
   }, []);
 
-  const handleShareCredential = (credentialId) => {
-    alert(`Sharing credential ${credentialId} - Feature coming soon!`);
+  const handleGenerateAccessCode = async (credentialId) => {
+    try {
+      setGeneratingId(credentialId);
+      const result = await generateCredentialAccessCode(credentialId);
+      if (result && result.access_code) {
+        setCredentials(prev => prev.map(c => {
+          if (c.id !== credentialId) return c;
+          const nextCodes = Array.isArray(c.codes) ? [...c.codes] : [];
+          nextCodes.push(result.access_code);
+          return { ...c, codes: nextCodes };
+        }));
+        try {
+          await navigator.clipboard.writeText(result.access_code);
+          alert(`New access code generated and copied to clipboard: ${result.access_code}`);
+        } catch (copyErr) {
+          alert(`New access code generated: ${result.access_code}`);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to generate access code:', error);
+      alert('Failed to generate access code. Please try again.');
+    } finally {
+      setGeneratingId(null);
+    }
   };
 
   const handleViewCredential = (ipfsHash) => {
@@ -196,7 +224,14 @@ function MyVerifiED() {
                           </p>
                           <p className="credential-info">
                             <i className="fas fa-key me-2"></i>
-                            <strong>Access Code:</strong> {credential.access_code || '—'}
+                            <strong>Access Codes:</strong>{' '}
+                            {credential.codes && credential.codes.length > 0 ? (
+                              credential.codes.map((code, idx) => (
+                                <span key={`${credential.id}-code-${idx}`} className="badge bg-light text-dark ms-2">{code}</span>
+                              ))
+                            ) : (
+                              '—'
+                            )}
                           </p>
                         </div>
                         <div>
@@ -215,11 +250,12 @@ function MyVerifiED() {
                           View Document
                         </button>
                         <button
-                          onClick={() => handleShareCredential(credential.id)}
+                          onClick={() => handleGenerateAccessCode(credential.id)}
                           className="btn-secondary-custom"
+                          disabled={generatingId === credential.id}
                         >
-                          <i className="fas fa-share-alt me-2"></i>
-                          Share Credential
+                          <i className="fas fa-key me-2"></i>
+                          {generatingId === credential.id ? 'Generating...' : 'Generate Access Code'}
                         </button>
                       </div>
                     </div>

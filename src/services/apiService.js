@@ -154,6 +154,19 @@ export const fetchStudentCredentials = async (studentId) => {
   }
 };
 
+// Generate a new access code for a credential
+export const generateCredentialAccessCode = async (credentialId) => {
+  try {
+    const response = await axios.post(`${API_URL}/generate-access-code`, {
+      credential_id: credentialId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error generating access code:', error);
+    throw error;
+  }
+};
+
 // Verify credential by access code
 export const verifyCredential = async (accessCode) => {
   try {
