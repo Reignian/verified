@@ -35,7 +35,7 @@ const AcademicInstitutionUI = ({
   importSuccess,
   showFormatInfo,
   setShowFormatInfo,
-  resetBulkImportForm,
+  resetBulkImportForm, // UPDATED: Added this prop
   handleCloseBulkImportModal,
   // NEW props for enhanced modal
   showCustomTypeInput,
@@ -1028,11 +1028,7 @@ const AcademicInstitutionUI = ({
                   <button 
                     type="button" 
                     className="btn-secondary-custom mt-4" 
-                    onClick={resetBulkImportForm || (() => {
-                      // Fallback reset function if not provided
-                      const fileInput = document.getElementById('bulkImportFile');
-                      if (fileInput) fileInput.value = '';
-                    })}
+                    onClick={resetBulkImportForm} // Using the passed prop
                   >
                     <i className="fas fa-plus me-2"></i>
                     Import Another File

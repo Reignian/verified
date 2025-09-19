@@ -296,17 +296,18 @@ app.post('/api/bulk-import-students', upload.single('studentFile'), async (req, 
 });
 
 app.post('/api/upload-credential', upload.single('credentialFile'), async (req, res) => {
-  const { credential_type_id, owner_id, sender_id } = req.body;
+  const { credential_type_id, owner_id, sender_id, custom_type } = req.body;
   
-  if (!credential_type_id || !owner_id || !sender_id || !req.file) {
+  // Either credential_type_id OR custom_type must be provided
+  if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !req.file) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
   try {
     const metadata = {
-      name: `Credential_${credential_type_id}_${Date.now()}`,
+      name: `Credential_${custom_type || credential_type_id}_${Date.now()}`,
       uploadedBy: `User_${sender_id}`,
-      credentialType: credential_type_id
+      credentialType: custom_type || credential_type_id
     };
 
     const pinataResult = await pinataService.uploadBufferToPinata(
@@ -316,7 +317,8 @@ app.post('/api/upload-credential', upload.single('credentialFile'), async (req, 
     );
 
     const credentialData = {
-      credential_type_id,
+      credential_type_id: custom_type ? null : credential_type_id,
+      custom_type: custom_type || null,
       owner_id,
       sender_id,
       ipfs_cid: pinataResult.ipfsHash,
@@ -343,37 +345,16 @@ app.post('/api/upload-credential', upload.single('credentialFile'), async (req, 
   }
 });
 
-// NEW ENDPOINT: Add a new credential type
-app.post('/api/credential-types', (req, res) => {
-  const { type_name } = req.body;
-
-  if (!type_name || type_name.trim() === '') {
-    return res.status(400).json({ error: 'Credential type name is required' });
-  }
-  
-  const trimmedTypeName = type_name.trim();
-
-  academicQueries.findCredentialTypeByName(trimmedTypeName, (err, existingType) => {
+// NEW: Get recent custom credential type
+app.get('/api/recent-custom-type', (req, res) => {
+  academicQueries.getRecentCustomType((err, customType) => {
     if (err) {
-      console.error('Error finding credential type:', err);
       return res.status(500).json({ error: 'Database error' });
     }
-
-    // If type already exists, just return it without creating a new one
-    if (existingType) {
-      return res.status(200).json(existingType);
-    }
-
-    // Otherwise, create the new type
-    academicQueries.createCredentialType(trimmedTypeName, (err, result) => {
-      if (err) {
-        console.error('Error creating credential type:', err);
-        return res.status(500).json({ error: 'Database error while creating type' });
-      }
-      res.status(201).json({ id: result.insertId, type_name: trimmedTypeName });
-    });
+    res.json({ custom_type: customType });
   });
 });
+
 
 app.get('/api/credential-types', (req, res) => {
   academicQueries.getCredentialTypes((err, results) => {

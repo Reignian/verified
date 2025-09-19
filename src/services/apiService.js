@@ -6,7 +6,7 @@ const API_URL = process.env.NODE_ENV === 'production'
   ? '/api'
   : 'http://localhost:3001/api';
 
-// Login function - FIXED: Added userType parameter
+// Login function
 export const login = async (username, password, userType) => {
   try {
     const response = await axios.post(`${API_URL}/login`, {
@@ -21,10 +21,18 @@ export const login = async (username, password, userType) => {
   }
 };
 
+// UPDATED: Upload credential to handle custom types
 export const uploadCredential = async (credentialData, file) => {
   try {
     const formData = new FormData();
-    formData.append('credential_type_id', credentialData.credential_type_id);
+    
+    // Handle either standard or custom credential type
+    if (credentialData.custom_type) {
+      formData.append('custom_type', credentialData.custom_type);
+    } else {
+      formData.append('credential_type_id', credentialData.credential_type_id);
+    }
+    
     formData.append('owner_id', credentialData.owner_id);
     formData.append('sender_id', credentialData.sender_id);
     
@@ -61,18 +69,7 @@ export const bulkImportStudents = async (file) => {
   }
 };
 
-// NEW: Add a new credential type to the database
-export const addCredentialType = async (typeName) => {
-  try {
-    const response = await axios.post(`${API_URL}/credential-types`, {
-      type_name: typeName
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error adding credential type:', error);
-    throw error;
-  }
-};
+// REMOVED: addCredentialType function (no longer needed)
 
 export const fetchCredentialTypes = async () => {
   try {
@@ -84,11 +81,22 @@ export const fetchCredentialTypes = async () => {
   }
 };
 
+// NEW: Fetch recent custom credential type
+export const fetchRecentCustomType = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/recent-custom-type`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching recent custom type:', error);
+    throw error;
+  }
+};
+
 export const fetchStudents = async () => {
   try {
     const response = await axios.get(`${API_URL}/students`);
     return response.data;
-  } catch (error) { // FIXED: Added missing curly brace here
+  } catch (error) {
     console.error('Error fetching students:', error);
     throw error;
   }

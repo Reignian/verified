@@ -6,6 +6,21 @@ const getCredentialTypes = (callback) => {
   connection.query('SELECT id, type_name FROM credential_types', callback);
 };
 
+// NEW: Get the most recent custom credential type
+const getRecentCustomType = (callback) => {
+  const query = `
+    SELECT custom_type 
+    FROM credential 
+    WHERE custom_type IS NOT NULL AND custom_type != '' 
+    ORDER BY created_at DESC 
+    LIMIT 1
+  `;
+  connection.query(query, (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0] ? results[0].custom_type : null);
+  });
+};
+
 const getStudents = (callback) => {
   const query = `
     SELECT s.id, s.student_id, s.first_name, s.last_name, a.public_address 
@@ -16,9 +31,11 @@ const getStudents = (callback) => {
   connection.query(query, callback);
 };
 
+// UPDATED: Handle custom types without creating new credential types
 const createCredential = (credentialData, callback) => {
   const { 
     credential_type_id, 
+    custom_type,
     owner_id, 
     sender_id, 
     ipfs_cid = 'default_cid', 
@@ -27,14 +44,19 @@ const createCredential = (credentialData, callback) => {
     status = 'pending' 
   } = credentialData;
   
+  // If it's a custom type, set credential_type_id to NULL and use custom_type
+  const finalCredentialTypeId = custom_type ? null : credential_type_id;
+  const finalCustomType = custom_type || null;
+  
   const query = `
     INSERT INTO credential 
-    (credential_type_id, owner_id, sender_id, ipfs_cid, ipfs_cid_hash, blockchain_id, status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, ipfs_cid_hash, blockchain_id, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   connection.query(query, [
-    credential_type_id, 
+    finalCredentialTypeId, 
+    finalCustomType,
     owner_id, 
     sender_id, 
     ipfs_cid, 
@@ -44,19 +66,20 @@ const createCredential = (credentialData, callback) => {
   ], callback);
 };
 
+// UPDATED: Handle both standard and custom credential types in display
 const getIssuedCredentials = (callback) => {
   const query = `
     SELECT 
       c.id,
       CONCAT(s.first_name, ' ', s.last_name) as student_name,
-      ct.type_name as credential_type,
+      COALESCE(ct.type_name, c.custom_type) as credential_type,
       c.ipfs_cid,
       c.status,
       c.created_at as date_issued,
       c.blockchain_id
     FROM credential c
     JOIN student s ON c.owner_id = s.id
-    JOIN credential_types ct ON c.credential_type_id = ct.id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     ORDER BY c.created_at DESC
   `;
   connection.query(query, callback);
@@ -72,20 +95,9 @@ const getCredentialStats = (callback) => {
   connection.query(query, callback);
 };
 
-// NEW: Create a new credential type
-const createCredentialType = (typeName, callback) => {
-  const query = 'INSERT INTO credential_types (type_name) VALUES (?)';
-  connection.query(query, [typeName], callback);
-};
+// REMOVED: createCredentialType function (no longer needed)
 
-// NEW: Find a credential type by name to avoid duplicates
-const findCredentialTypeByName = (typeName, callback) => {
-  const query = 'SELECT * FROM credential_types WHERE LOWER(type_name) = LOWER(?) LIMIT 1';
-  connection.query(query, [typeName], (err, results) => {
-    if (err) return callback(err);
-    callback(null, results[0]); // Returns the first match or undefined
-  });
-};
+// REMOVED: findCredentialTypeByName function (no longer needed)
 
 const bulkCreateStudents = async (studentsData) => {
   return new Promise((resolve, reject) => {
@@ -233,6 +245,7 @@ const getBulkImportStats = (callback) => {
 
 module.exports = {
   getCredentialTypes,
+  getRecentCustomType,
   getStudents,
   createCredential,
   getIssuedCredentials,
@@ -240,7 +253,5 @@ module.exports = {
   bulkCreateStudents,
   checkStudentIdExists,
   checkUsernameExists,
-  getBulkImportStats,
-  createCredentialType,
-  findCredentialTypeByName
+  getBulkImportStats
 };

@@ -8,8 +8,8 @@ import {
   uploadCredential,
   fetchIssuedCredentials,
   fetchCredentialStats,
-  bulkImportStudents,
-  addCredentialType
+  bulkImportStudents
+  // REMOVED: addCredentialType is no longer imported
 } from '../services/apiService';
 import blockchainService from '../services/blockchainService';
 import AcademicInstitutionUI from './AcademicInstitutionUI';
@@ -154,30 +154,26 @@ function AcademicInstitution() {
     setUploadMessage('Processing credential details...');
 
     try {
-      let finalCredentialTypeId = formData.credentialType;
-
-      // Handle custom credential type
-      if (isCustomType) {
-        setUploadMessage('Creating new credential type...');
-        const newType = await addCredentialType(customCredentialType.trim());
-        finalCredentialTypeId = newType.id;
-        
-        // Refresh credential types list
-        const updatedTypes = await fetchCredentialTypes();
-        setCredentialTypes(updatedTypes);
-      }
-      
+      // MODIFIED: This block is streamlined
       const selectedStudent = students.find(s => s.id === parseInt(formData.studentAccount));
       if (!selectedStudent) {
         throw new Error('Selected student not found.');
       }
       
       setUploadMessage('Uploading document to IPFS...');
+      
+      // Prepare data for the API. It will have either a 'credential_type_id'
+      // or a 'custom_type' string, but not both.
       const credentialData = {
-        credential_type_id: parseInt(finalCredentialTypeId),
         owner_id: parseInt(formData.studentAccount),
         sender_id: parseInt(loggedInUserId)
       };
+      
+      if (isCustomType) {
+        credentialData.custom_type = customCredentialType.trim();
+      } else {
+        credentialData.credential_type_id = parseInt(formData.credentialType);
+      }
       
       const response = await uploadCredential(credentialData, formData.credentialFile);
       
@@ -203,13 +199,11 @@ function AcademicInstitution() {
       resetForm();
       setShowModal(false);
 
-      // Refresh data
-      const [types, credentials, stats] = await Promise.all([
-        fetchCredentialTypes(),
+      // Refresh data - no longer need to refresh credential types
+      const [credentials, stats] = await Promise.all([
         fetchIssuedCredentials(),
         fetchCredentialStats()
       ]);
-      setCredentialTypes(types);
       setIssuedCredentials(credentials);
       setCredentialStats(stats);
 
@@ -329,6 +323,7 @@ function AcademicInstitution() {
       importSuccess={importSuccess}
       showFormatInfo={showFormatInfo}
       setShowFormatInfo={setShowFormatInfo}
+      resetBulkImportForm={resetBulkImportForm}
 
       // Enhanced modal props
       showCustomTypeInput={showCustomTypeInput}
