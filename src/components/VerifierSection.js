@@ -1,12 +1,16 @@
 import React, { useState } from 'react';
 import './VerifierSection.css';
 import { verifyCredential } from '../services/apiService';
+import blockchainService from '../services/blockchainService';
 
 function VerifierSection() {
   const [showVerificationResult, setShowVerificationResult] = useState(false);
   const [verificationInput, setVerificationInput] = useState('');
   const [credentialData, setCredentialData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [onChainData, setOnChainData] = useState(null);
+  const [onChainVerification, setOnChainVerification] = useState(null);
+  const [onChainError, setOnChainError] = useState('');
 
   const handleVerify = async () => {
     if (verificationInput.trim()) {
@@ -18,6 +22,23 @@ function VerifierSection() {
         if (response.success && response.credential) {
           setCredentialData(response.credential);
           setShowVerificationResult(true);
+
+          // Also fetch on-chain data using blockchain_id from DB
+          setOnChainData(null);
+          setOnChainVerification(null);
+          setOnChainError('');
+          const blockchainId = response.credential.blockchain_id;
+          if (blockchainId) {
+            try {
+              const chainData = await blockchainService.fetchOnChainCredential(blockchainId);
+              setOnChainData(chainData);
+              const chainVerify = await blockchainService.verifyOnChainCredential(blockchainId);
+              setOnChainVerification(chainVerify);
+            } catch (chainErr) {
+              console.warn('On-chain fetch failed:', chainErr);
+              setOnChainError(chainErr?.message || 'Failed to fetch on-chain data');
+            }
+          }
         } else {
           alert('No credential found with this access code.');
           setShowVerificationResult(false);
@@ -105,6 +126,52 @@ function VerifierSection() {
                       <div className="d-flex justify-content-between py-2">
                         <span className="fw-bold">Issue Date:</span>
                         <span>{new Date(credentialData.date_issued).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                {onChainError && (
+                  <div className="alert alert-danger mt-3" role="alert">
+                    {onChainError}
+                  </div>
+                )}
+                
+                {onChainData && (
+                  <div className="verification-result-box mt-3">
+                    <div className="d-flex align-items-center mb-3">
+                      {onChainVerification?.exists ? (
+                        <>
+                          <i className="fas fa-check-circle text-success me-2"></i>
+                          <span className="fw-bold text-success">On-Chain Record Found</span>
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-times-circle text-danger me-2"></i>
+                          <span className="fw-bold text-danger">On-Chain Record Not Found</span>
+                        </>
+                      )}
+                    </div>
+                    <div>
+                      <div className="d-flex justify-content-between py-2 border-bottom">
+                        <span className="fw-bold">Credential ID:</span>
+                        <span>{credentialData?.blockchain_id ?? 'N/A'}</span>
+                      </div>
+                      <div className="d-flex justify-content-between py-2 border-bottom">
+                        <span className="fw-bold">Issuer (on-chain):</span>
+                        <span>{onChainData.issuer}</span>
+                      </div>
+                      <div className="d-flex justify-content-between py-2 border-bottom">
+                        <span className="fw-bold">Student ID (on-chain):</span>
+                        <span>{onChainData.studentId || onChainData.studentIdBytes}</span>
+                      </div>
+                      <div className="d-flex justify-content-between py-2 border-bottom">
+                        <span className="fw-bold">IPFS Prefix (bytes32):</span>
+                        <span>{onChainData.ipfsCidPrefix || 'N/A'}</span>
+                      </div>
+                      <div className="d-flex justify-content-between py-2">
+                        <span className="fw-bold">Created At (on-chain):</span>
+                        <span>{onChainData.createdAt ? new Date(onChainData.createdAt * 1000).toLocaleString() : 'N/A'}</span>
                       </div>
                     </div>
                   </div>

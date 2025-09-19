@@ -15,10 +15,6 @@ class BlockchainService {
 
   async initialize() {
     try {
-      if (!window.ethereum) {
-        throw new Error('MetaMask not found');
-      }
-
       // Get contract address and ABI from backend
       const [addressResponse, abiResponse] = await Promise.all([
         fetch(`${API_URL}/contract-address`),
@@ -35,8 +31,12 @@ class BlockchainService {
       this.contractAddress = addressData.address;
       this.contractABI = abiData.abi;
 
-      // Create provider using MetaMask
-      this.provider = new ethers.BrowserProvider(window.ethereum);
+      // Create provider: prefer MetaMask, fallback to local JSON-RPC
+      if (typeof window !== 'undefined' && window.ethereum) {
+        this.provider = new ethers.BrowserProvider(window.ethereum);
+      } else {
+        this.provider = new ethers.JsonRpcProvider('http://127.0.0.1:7545');
+      }
 
       console.log('Frontend blockchain service initialized');
       console.log('Contract address:', this.contractAddress);
@@ -106,6 +106,71 @@ class BlockchainService {
 
     } catch (error) {
       console.error('Error issuing credential:', error);
+      throw error;
+    }
+  }
+
+  async getContract(useSigner = false) {
+    try {
+      if (!this.provider || !this.contractAddress || !this.contractABI) {
+        await this.initialize();
+      }
+      if (useSigner) {
+        const signer = await this.provider.getSigner();
+        return new ethers.Contract(this.contractAddress, this.contractABI, signer);
+      }
+      // Read-only contract instance using provider
+      return new ethers.Contract(this.contractAddress, this.contractABI, this.provider);
+    } catch (error) {
+      console.error('Failed to get contract instance:', error);
+      throw error;
+    }
+  }
+
+  async fetchOnChainCredential(credentialId) {
+    try {
+      const contract = await this.getContract(false);
+      const result = await contract.getCredential(credentialId);
+      // result: [ipfsCidHash, issuer, studentId, createdAt]
+      const ipfsCidHash = result[0];
+      const issuer = result[1];
+      const studentIdBytes = result[2];
+      const createdAt = result[3];
+
+      let ipfsCidPrefix = '';
+      let studentIdStr = '';
+      try {
+        ipfsCidPrefix = ethers.decodeBytes32String(ipfsCidHash);
+      } catch {}
+      try {
+        studentIdStr = ethers.decodeBytes32String(studentIdBytes);
+      } catch {}
+
+      return {
+        ipfsCidHash,
+        ipfsCidPrefix, // truncated prefix stored on-chain
+        issuer,
+        studentIdBytes,
+        studentId: studentIdStr,
+        createdAt: Number(createdAt),
+        createdAtDate: new Date(Number(createdAt) * 1000)
+      };
+    } catch (error) {
+      console.error('Error fetching on-chain credential:', error);
+      throw error;
+    }
+  }
+
+  async verifyOnChainCredential(credentialId) {
+    try {
+      const contract = await this.getContract(false);
+      const result = await contract.verifyCredential(credentialId);
+      // result: [exists, issuer]
+      const exists = result[0];
+      const issuer = result[1];
+      return { exists, issuer };
+    } catch (error) {
+      console.error('Error verifying on-chain credential:', error);
       throw error;
     }
   }
