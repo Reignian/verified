@@ -179,8 +179,8 @@ function AcademicInstitution() {
       
       setUploadMessage('Issuing credential on the blockchain...');
       const blockchainResult = await blockchainService.issueCredential(
-        response.ipfs_hash,
-        selectedStudent.public_address
+        response.ipfs_cid_hash,
+        selectedStudent.student_id
       );
 
       setUploadMessage('Updating database with blockchain info...');

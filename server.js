@@ -336,6 +336,7 @@ app.post('/api/upload-credential', upload.single('credentialFile'), async (req, 
         message: 'Credential uploaded successfully',
         credential_id: results.insertId,
         ipfs_hash: pinataResult.ipfsHash,
+        ipfs_cid_hash: credentialData.ipfs_cid_hash,
         ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
         status: 'Uploaded to IPFS only'
       });

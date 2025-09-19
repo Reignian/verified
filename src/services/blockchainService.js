@@ -64,14 +64,31 @@ class BlockchainService {
       );
 
       console.log('Issuing credential on blockchain...');
-      console.log('IPFS Hash:', ipfsHash);
-      console.log('Student ID:', studentId);
+      console.log('IPFS input (CID or sha256 hex):', ipfsHash);
+      console.log('Student ID (string input):', studentId);
 
-      // Convert IPFS hash and student ID to bytes32 for gas optimization
-      const ipfsHashBytes32 = ethers.encodeBytes32String(ipfsHash.slice(0, 31)); // Take first 31 chars to fit in bytes32
+      // Prepare IPFS hash as raw bytes32 (sha256 of the CID)
+      let ipfsHashBytes32;
+      if (typeof ipfsHash === 'string') {
+        const trimmed = ipfsHash.trim();
+        if (trimmed.startsWith('0x') && trimmed.length === 66) {
+          // Already a 32-byte hex with 0x prefix
+          ipfsHashBytes32 = trimmed.toLowerCase();
+        } else if (/^[0-9a-fA-F]{64}$/.test(trimmed)) {
+          // 64-char hex without 0x
+          ipfsHashBytes32 = '0x' + trimmed.toLowerCase();
+        } else {
+          // Fallback: compute sha256 over the provided CID string
+          ipfsHashBytes32 = ethers.sha256(ethers.toUtf8Bytes(trimmed));
+        }
+      } else {
+        throw new Error('Invalid ipfsHash parameter; expected a hex string or CID string');
+      }
+
+      // Student identifier: still encoded as bytes32 string (truncated to 31 chars to fit)
       const studentIdBytes32 = ethers.encodeBytes32String(String(studentId).slice(0, 31));
       
-      console.log('IPFS Hash as bytes32:', ipfsHashBytes32);
+      console.log('IPFS SHA-256 (bytes32):', ipfsHashBytes32);
       console.log('Student ID as bytes32:', studentIdBytes32);
 
       // Send transaction with bytes32 parameters
@@ -132,23 +149,21 @@ class BlockchainService {
       const contract = await this.getContract(false);
       const result = await contract.getCredential(credentialId);
       // result: [ipfsCidHash, issuer, studentId, createdAt]
-      const ipfsCidHash = result[0];
+      const ipfsCidHashBytes32 = result[0];
       const issuer = result[1];
       const studentIdBytes = result[2];
       const createdAt = result[3];
-
-      let ipfsCidPrefix = '';
+      
       let studentIdStr = '';
-      try {
-        ipfsCidPrefix = ethers.decodeBytes32String(ipfsCidHash);
-      } catch {}
       try {
         studentIdStr = ethers.decodeBytes32String(studentIdBytes);
       } catch {}
 
       return {
-        ipfsCidHash,
-        ipfsCidPrefix, // truncated prefix stored on-chain
+        // bytes32 SHA-256 of original CID as hex string
+        ipfsCidHashHex: typeof ipfsCidHashBytes32 === 'string' 
+          ? ipfsCidHashBytes32 
+          : ethers.hexlify(ipfsCidHashBytes32),
         issuer,
         studentIdBytes,
         studentId: studentIdStr,
