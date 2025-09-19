@@ -194,6 +194,10 @@ function MyVerifiED() {
                             <i className="fas fa-calendar me-2"></i>
                             <strong>Date:</strong> {formatDate(credential.date)}
                           </p>
+                          <p className="credential-info">
+                            <i className="fas fa-key me-2"></i>
+                            <strong>Access Code:</strong> {credential.access_code || '—'}
+                          </p>
                         </div>
                         <div>
                           <span className={`status-badge status-${credential.status.toLowerCase()}`}>

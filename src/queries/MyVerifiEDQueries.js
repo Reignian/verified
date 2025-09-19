@@ -36,11 +36,13 @@ const getStudentCredentials = (studentId, callback) => {
       c.status,
       c.ipfs_cid as ipfs_hash,
       c.blockchain_id,
-      i.institution_name as issuer
+      i.institution_name as issuer,
+      ca.access_code as access_code
     FROM credential c
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     LEFT JOIN account sender_acc ON c.sender_id = sender_acc.id
     LEFT JOIN institution i ON sender_acc.id = i.id
+    LEFT JOIN credential_access ca ON ca.credential_id = c.id AND ca.is_active = TRUE
     WHERE c.owner_id = ?
     ORDER BY c.created_at DESC
   `;

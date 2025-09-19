@@ -11,6 +11,7 @@ const { ethers } = require('ethers');
 const academicQueries = require('./src/queries/academicInstitutionQueries');
 const authQueries = require('./src/queries/authQueries');
 const myVerifiEDQueries = require('./src/queries/MyVerifiEDQueries');
+const verificationQueries = require('./src/queries/verificationQueries');
 const pinataService = require('./src/services/pinataService');
 
 const XLSX = require('xlsx');
@@ -478,6 +479,31 @@ app.post('/api/update-blockchain-id', (req, res) => {
   } catch (error) {
     res.status(500).json({ error: 'Update failed' });
   }
+});
+
+// Verify credential by access code
+app.post('/api/verify-credential', (req, res) => {
+  const { accessCode } = req.body;
+  
+  if (!accessCode) {
+    return res.status(400).json({ error: 'Access code is required' });
+  }
+  
+  verificationQueries.getCredentialData(accessCode.trim(), (err, result) => {
+    if (err) {
+      console.error('Verification error:', err);
+      return res.status(500).json({ error: 'Database error occurred' });
+    }
+    
+    if (!result) {
+      return res.status(404).json({ error: 'No credential found with this access code' });
+    }
+    
+    res.json({
+      success: true,
+      credential: result
+    });
+  });
 });
 
 app.listen(PORT, () => {
