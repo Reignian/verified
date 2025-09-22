@@ -45,7 +45,7 @@ const getStudentCredentials = (studentId, callback) => {
     LEFT JOIN (
       SELECT credential_id, GROUP_CONCAT(access_code SEPARATOR ',') AS access_codes
       FROM credential_access
-      WHERE is_active = 1
+      WHERE is_active = 1 AND is_deleted = 0
       GROUP BY credential_id
     ) ac ON ac.credential_id = c.id
     WHERE c.owner_id = ?
@@ -63,9 +63,23 @@ const upsertCredentialAccessCode = (credentialId, accessCode, callback) => {
   });
 };
 
+// Update access code status
+const updateAccessCodeStatus = (accessCode, isActive, callback) => {
+  const query = 'UPDATE credential_access SET is_active = ? WHERE access_code = ? AND is_deleted = 0';
+  connection.query(query, [isActive ? 1 : 0, accessCode], callback);
+};
+
+// Delete access code (mark as deleted)
+const deleteAccessCode = (accessCode, callback) => {
+  const query = 'UPDATE credential_access SET is_deleted = 1 WHERE access_code = ? AND is_deleted = 0';
+  connection.query(query, [accessCode], callback);
+};
+
 module.exports = {
   getStudentName,
   getStudentCredentialCount,
   getStudentCredentials,
-  upsertCredentialAccessCode
+  upsertCredentialAccessCode,
+  updateAccessCodeStatus,
+  deleteAccessCode
 };

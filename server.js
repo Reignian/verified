@@ -544,6 +544,56 @@ app.post('/api/verify-credential', (req, res) => {
   });
 });
 
+// Update access code status
+app.put('/api/update-access-code-status', (req, res) => {
+  const { access_code, is_active } = req.body;
+  
+  if (!access_code || is_active === undefined) {
+    return res.status(400).json({ error: 'Access code and status are required' });
+  }
+  
+  myVerifiEDQueries.updateAccessCodeStatus(access_code, is_active, (err, result) => {
+    if (err) {
+      console.error('Error updating access code status:', err);
+      return res.status(500).json({ error: 'Database error occurred' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Access code not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Access code status updated successfully'
+    });
+  });
+});
+
+// Delete access code (mark as deleted)
+app.delete('/api/delete-access-code', (req, res) => {
+  const { access_code } = req.body;
+  
+  if (!access_code) {
+    return res.status(400).json({ error: 'Access code is required' });
+  }
+  
+  myVerifiEDQueries.deleteAccessCode(access_code, (err, result) => {
+    if (err) {
+      console.error('Error deleting access code:', err);
+      return res.status(500).json({ error: 'Database error occurred' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Access code not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Access code deleted successfully'
+    });
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

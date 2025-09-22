@@ -179,3 +179,30 @@ export const verifyCredential = async (accessCode) => {
     throw error;
   }
 };
+
+// Update access code status (active/inactive)
+export const updateAccessCodeStatus = async (accessCode, isActive) => {
+  try {
+    const response = await axios.put(`${API_URL}/update-access-code-status`, {
+      access_code: accessCode,
+      is_active: isActive
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating access code status:', error);
+    throw error;
+  }
+};
+
+// Delete access code (mark as deleted)
+export const deleteAccessCode = async (accessCode) => {
+  try {
+    const response = await axios.delete(`${API_URL}/delete-access-code`, {
+      data: { access_code: accessCode }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting access code:', error);
+    throw error;
+  }
+};

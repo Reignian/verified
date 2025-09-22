@@ -1,0 +1,256 @@
+/* Access Codes Section Specific Styles */
+
+.empty-state {
+  text-align: center;
+  padding: 60px 40px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.empty-state-icon {
+  font-size: 4rem;
+  color: #999;
+  margin-bottom: 20px;
+}
+
+.empty-state-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 10px;
+}
+
+.empty-state-text {
+  color: #666;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+/* Access Codes Container */
+.access-codes-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Access Code Card */
+.access-code-card {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  padding: 20px;
+  transition: all 0.3s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.access-code-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  transform: translateY(-1px);
+}
+
+/* Access Code Header */
+.access-code-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.access-code-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.access-code-value {
+  font-family: 'Courier New', Monaco, monospace;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #333;
+  letter-spacing: 1px;
+}
+
+.access-code-status {
+  display: flex;
+  align-items: center;
+}
+
+.status-badge-small {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: lowercase;
+  border: 1px solid #c3e6cb;
+}
+
+.status-badge-small.active {
+  background-color: #d4edda;
+  color: #155724;
+  border-color: #c3e6cb;
+}
+
+.status-badge-small.inactive {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Access Code Actions */
+.access-code-actions {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+/* Toggle Switch */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+}
+
+.toggle-input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+
+.toggle-label {
+  display: block;
+  width: 44px;
+  height: 24px;
+  background-color: #ccc;
+  border-radius: 24px;
+  cursor: pointer;
+  position: relative;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-label::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background-color: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.toggle-input:checked + .toggle-label {
+  background-color: #4050b5;
+}
+
+.toggle-input:checked + .toggle-label::after {
+  transform: translateX(20px);
+}
+
+.toggle-label.loading {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.toggle-loading {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: #4050b5;
+  font-size: 0.8rem;
+  pointer-events: none;
+}
+
+/* Menu Button */
+.menu-dropdown {
+  position: relative;
+}
+
+.menu-button {
+  background-color: #f8f9fa;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 6px 8px;
+  border-radius: 4px;
+  transition: all 0.3s ease;
+  font-size: 1rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+}
+
+.menu-button:hover {
+  background-color: #dc3545;
+  color: white;
+  border-color: #dc3545;
+}
+
+.menu-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.menu-button:disabled:hover {
+  background-color: transparent;
+  color: #999;
+}
+
+.delete-icon {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1;
+  font-family: Arial, sans-serif;
+}
+
+/* Access Code Details */
+.access-code-details {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.credential-reference,
+.creation-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #888;
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+  .access-code-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .access-code-actions {
+    align-self: flex-end;
+  }
+  
+  .access-code-details {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .access-code-card {
+    padding: 16px;
+  }
+}
