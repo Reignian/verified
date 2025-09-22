@@ -19,7 +19,7 @@ const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.BACKEND_PORT;
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -593,6 +593,17 @@ app.delete('/api/delete-access-code', (req, res) => {
     });
   });
 });
+
+// Serve React build (same-origin deployment) only in production when build output exists
+const clientBuildPath = path.join(__dirname, 'build');
+const clientIndexPath = path.join(clientBuildPath, 'index.html');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
+  app.use(express.static(clientBuildPath));
+  // SPA Fallback: send index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(clientIndexPath);
+  });
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

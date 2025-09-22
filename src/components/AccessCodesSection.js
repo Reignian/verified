@@ -10,7 +10,7 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
       status: 'active',
       credentialType: credential.type || 'Computer Science Diploma',
       credentialId: credential.id,
-      createdDate: new Date(credential.date).toLocaleDateString('en-US', {
+      createdDate: new Date(credential.access_code_date).toLocaleDateString('en-US', {
         month: 'numeric',
         day: 'numeric', 
         year: 'numeric'
@@ -22,6 +22,43 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
   const [accessCodes, setAccessCodes] = useState(initialAccessCodes);
   const [loadingStates, setLoadingStates] = useState({});
   const [deleteLoadingStates, setDeleteLoadingStates] = useState({});
+
+  // Build a shareable verification URL with the code prefilled and auto-verify enabled
+  const buildShareUrl = (code, { autoVerify = true } = {}) => {
+    const origin = window.location.origin;
+    // Always use homepage path, where VerifierSection is rendered
+    const path = '/';
+    const params = new URLSearchParams({ code });
+    if (autoVerify) params.set('verify', '1');
+    return `${origin}${path}?${params.toString()}#verifier`;
+  };
+
+  // Copy the share link to clipboard
+  const handleCopyShareLink = async (index) => {
+    const accessCode = accessCodes[index];
+    const url = buildShareUrl(accessCode.code, { autoVerify: true });
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(url);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = url;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      alert('Share link copied to clipboard!');
+    } catch (err) {
+      console.error('Failed to copy share link:', err);
+      // As a last resort, show the URL to copy manually
+      window.prompt('Copy this verification link:', url);
+    }
+  };
 
   // Toggle function to switch between active/inactive
   const handleToggleStatus = async (index) => {
@@ -85,7 +122,7 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2 style={{ color: '#4050b5', fontWeight: '600', margin: '0' }}>
             <i className="fas fa-key me-2"></i>
-            Access Codes Dashboard
+            Access Codes
           </h2>
         </div>
 
@@ -99,7 +136,7 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
             </p>
           </div>
         ) : (
-          <div className="access-codes-container">
+          <div className="access-codes-container mb-5">
             {accessCodes.map((accessCode, index) => (
               <div key={`${accessCode.credentialId}-${index}`} className="access-code-card">
                 <div className="access-code-header">
@@ -128,6 +165,15 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
                           <i className="fas fa-spinner fa-spin"></i>
                         </div>
                       )}
+                    </div>
+                    <div className="menu-dropdown">
+                      <button 
+                        className="menu-button"
+                        onClick={() => handleCopyShareLink(index)}
+                        title="Copy verification link"
+                      >
+                        <i className="fas fa-link"></i>
+                      </button>
                     </div>
                     <div className="menu-dropdown">
                       <button 

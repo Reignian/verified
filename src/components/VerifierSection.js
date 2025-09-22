@@ -1,15 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './VerifierSection.css';
 import { verifyCredential } from '../services/apiService';
 import blockchainService from '../services/blockchainService';
 import { ethers } from 'ethers';
 
+// Enable reading URL params to prefill the access code
 function VerifierSection() {
   const [showVerificationResult, setShowVerificationResult] = useState(false);
   const [verificationInput, setVerificationInput] = useState('');
   const [credentialData, setCredentialData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   // All on-chain integrity checks will be computed and logged to console only.
+
+  // Prefill access code from URL (?code=XXXXXX) and optionally auto-verify
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const codeParam = params.get('code') || params.get('access_code') || params.get('accessCode');
+      if (codeParam && typeof codeParam === 'string') {
+        setVerificationInput(codeParam);
+
+        const auto = (params.get('verify') || params.get('auto') || '').toLowerCase();
+        if (auto === '1' || auto === 'true' || auto === 'yes') {
+          // Defer to next tick and pass code directly to avoid state race
+          setTimeout(() => {
+            handleVerify(codeParam);
+          }, 0);
+        }
+
+        // Clean the URL to remove query params, keep anchor for smooth scroll
+        const { origin, pathname, hash } = window.location;
+        const newUrl = `${origin}${pathname}${hash || '#verifier'}`;
+        window.history.replaceState({}, '', newUrl);
+
+        // Ensure verifier section is visible
+        setTimeout(() => {
+          const section = document.getElementById('verifier');
+          if (section && section.scrollIntoView) {
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 100);
+      }
+    } catch (e) {
+      // no-op
+    }
+  }, []);
 
   const runOnChainIntegrityChecks = async (credential) => {
     const blockchainId = credential?.blockchain_id;
@@ -111,12 +146,13 @@ function VerifierSection() {
     }
   };
 
-  const handleVerify = async () => {
-    if (verificationInput.trim()) {
+  const handleVerify = async (codeArg) => {
+    const code = (typeof codeArg === 'string' ? codeArg : verificationInput).trim();
+    if (code) {
       setIsLoading(true);
       
       try {
-        const response = await verifyCredential(verificationInput.trim());
+        const response = await verifyCredential(code);
         
         if (response.success && response.credential) {
           setCredentialData(response.credential);

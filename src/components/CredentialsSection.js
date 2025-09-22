@@ -109,14 +109,9 @@ function CredentialsSection({
                         )}
                       </p>
                     </div>
-                    <div>
-                      <span className={`status-badge status-${credential.status.toLowerCase()}`}>
-                        {credential.status}
-                      </span>
-                    </div>
                   </div>
                   
-                  <div className="d-flex flex-wrap gap-2 mt-3">
+                  <div className="credential-actions d-flex gap-2 mt-3">
                     <button
                       onClick={() => handleViewCredential(credential.ipfs_hash)}
                       className="btn-primary-custom"

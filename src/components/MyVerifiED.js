@@ -150,7 +150,6 @@ function MyVerifiED() {
             style={{ cursor: 'pointer' }}
           >
             <div className="stat-number">
-              <i className="fas fa-certificate me-2"></i>
               {credentialCount}
             </div>
             <p className="stat-label">Total Credentials</p>
@@ -161,7 +160,6 @@ function MyVerifiED() {
             style={{ cursor: 'pointer' }}
           >
             <div className="stat-number">
-              <i className="fas fa-key me-2"></i>
               {totalAccessCodes}
             </div>
             <p className="stat-label">Total Access Codes</p>

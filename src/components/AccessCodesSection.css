@@ -169,6 +169,7 @@
 /* Menu Button */
 .menu-dropdown {
   position: relative;
+  
 }
 
 .menu-button {
@@ -234,20 +235,8 @@
 
 /* Mobile Responsiveness */
 @media (max-width: 768px) {
-  .access-code-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 12px;
-  }
-  
   .access-code-actions {
     align-self: flex-end;
-  }
-  
-  .access-code-details {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
   }
   
   .access-code-card {

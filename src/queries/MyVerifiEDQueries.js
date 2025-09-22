@@ -37,13 +37,15 @@ const getStudentCredentials = (studentId, callback) => {
       c.ipfs_cid AS ipfs_hash,
       c.blockchain_id,
       i.institution_name AS issuer,
-      ac.access_codes
+      ac.access_codes,
+      ac.access_code_date
     FROM credential c
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     LEFT JOIN account sender_acc ON c.sender_id = sender_acc.id
     LEFT JOIN institution i ON sender_acc.id = i.id
     LEFT JOIN (
-      SELECT credential_id, GROUP_CONCAT(access_code SEPARATOR ',') AS access_codes
+      SELECT credential_id, GROUP_CONCAT(access_code SEPARATOR ',') AS access_codes,
+      MAX(created_at) AS access_code_date 
       FROM credential_access
       WHERE is_active = 1 AND is_deleted = 0
       GROUP BY credential_id

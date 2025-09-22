@@ -72,7 +72,7 @@
   gap: 8px;
 }
 
-.btn-primary-custom {
+.login-page .btn-primary-custom {
   background-color: var(--primary-color, #4F46E5);
   border-color: var(--primary-color, #4F46E5);
   color: #fff;
@@ -84,14 +84,14 @@
   transition: var(--transition, all 0.2s ease);
 }
 
-.btn-primary-custom:hover {
+.login-page .btn-primary-custom:hover {
   background-color: var(--accent-color, #7C3AED);
   border-color: var(--accent-color, #7C3AED);
   transform: translateY(-1px);
   box-shadow: 0 14px 28px rgba(2, 6, 23, 0.12);
 }
 
-.btn-primary-custom:disabled {
+.login-page .btn-primary-custom:disabled {
   opacity: 0.7;
   cursor: not-allowed;
 }
