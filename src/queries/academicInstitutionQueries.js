@@ -21,14 +21,25 @@ const getRecentCustomType = (callback) => {
   });
 };
 
-const getStudents = (callback) => {
+// UPDATED: Get students filtered by institution
+const getStudents = (institutionId, callback) => {
   const query = `
     SELECT s.id, s.student_id, s.first_name, s.last_name, a.public_address 
     FROM student s 
     JOIN account a ON s.id = a.id 
-    WHERE a.account_type = 'student'
+    WHERE a.account_type = 'student' AND s.institution_id = ?
   `;
-  connection.query(query, callback);
+  connection.query(query, [institutionId], callback);
+};
+
+// NEW: Get institution name by account ID
+const getInstitutionName = (accountId, callback) => {
+  const query = `
+    SELECT i.institution_name 
+    FROM institution i 
+    WHERE i.id = ?
+  `;
+  connection.query(query, [accountId], callback);
 };
 
 // UPDATED: Handle custom types without creating new credential types
@@ -66,8 +77,8 @@ const createCredential = (credentialData, callback) => {
   ], callback);
 };
 
-// UPDATED: Handle both standard and custom credential types in display
-const getIssuedCredentials = (callback) => {
+// UPDATED: Get issued credentials filtered by institution (sender_id is the institution)
+const getIssuedCredentials = (institutionId, callback) => {
   const query = `
     SELECT 
       c.id,
@@ -80,29 +91,34 @@ const getIssuedCredentials = (callback) => {
     FROM credential c
     JOIN student s ON c.owner_id = s.id
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    WHERE c.sender_id = ? AND s.institution_id = ?
     ORDER BY c.created_at DESC
   `;
-  connection.query(query, callback);
+  connection.query(query, [institutionId, institutionId], callback);
 };
 
-const getCredentialStats = (callback) => {
+// UPDATED: Get credential stats filtered by institution
+const getCredentialStats = (institutionId, callback) => {
   const query = `
     SELECT 
       COUNT(*) as total_credentials,
       COUNT(CASE WHEN c.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_credentials_week
     FROM credential c
+    JOIN student s ON c.owner_id = s.id
+    WHERE c.sender_id = ? AND s.institution_id = ?
   `;
-  connection.query(query, callback);
+  connection.query(query, [institutionId, institutionId], callback);
 };
 
-// REMOVED: createCredentialType function (no longer needed)
-
-// REMOVED: findCredentialTypeByName function (no longer needed)
-
-const bulkCreateStudents = async (studentsData) => {
+// UPDATED: Bulk create students with institution assignment
+const bulkCreateStudents = async (studentsData, institutionId) => {
   return new Promise((resolve, reject) => {
     if (!studentsData || studentsData.length === 0) {
       return reject(new Error('No student data provided'));
+    }
+
+    if (!institutionId) {
+      return reject(new Error('Institution ID is required'));
     }
 
     let successful = 0;
@@ -138,14 +154,15 @@ const bulkCreateStudents = async (studentsData) => {
         }
 
         const accountQuery = `
-          INSERT INTO account (account_type, username, password, email, public_address) 
-          VALUES ('student', ?, ?, ?, '')
+          INSERT INTO account (account_type, username, password, email, public_address, institution_id) 
+          VALUES ('student', ?, ?, ?, '', ?)
         `;
         
         const accountValues = [
           student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
           student.password || 'student123',
-          student.email || `${student.username || student.first_name}@student.edu`
+          student.email || `${student.username || student.first_name}@student.edu`,
+          institutionId
         ];
 
         connection.query(accountQuery, accountValues, (err, accountResult) => {
@@ -164,8 +181,8 @@ const bulkCreateStudents = async (studentsData) => {
           const accountId = accountResult.insertId;
 
           const studentQuery = `
-            INSERT INTO student (id, student_id, first_name, middle_name, last_name) 
-            VALUES (?, ?, ?, ?, ?)
+            INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
+            VALUES (?, ?, ?, ?, ?, ?)
           `;
           
           const studentValues = [
@@ -173,7 +190,8 @@ const bulkCreateStudents = async (studentsData) => {
             student.student_id,
             student.first_name,
             student.middle_name || null,
-            student.last_name || ''
+            student.last_name || '',
+            institutionId
           ];
 
           connection.query(studentQuery, studentValues, (err, studentResult) => {
@@ -230,7 +248,8 @@ const checkUsernameExists = (username, callback) => {
   });
 };
 
-const getBulkImportStats = (callback) => {
+// UPDATED: Get bulk import stats filtered by institution
+const getBulkImportStats = (institutionId, callback) => {
   const query = `
     SELECT 
       COUNT(*) as total_students,
@@ -238,15 +257,16 @@ const getBulkImportStats = (callback) => {
       COUNT(CASE WHEN a.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY) THEN 1 END) as new_students_week
     FROM student s
     JOIN account a ON s.id = a.id
-    WHERE a.account_type = 'student'
+    WHERE a.account_type = 'student' AND s.institution_id = ?
   `;
-  connection.query(query, callback);
+  connection.query(query, [institutionId], callback);
 };
 
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
   getStudents,
+  getInstitutionName,
   createCredential,
   getIssuedCredentials,
   getCredentialStats,

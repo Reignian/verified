@@ -8,14 +8,16 @@ import {
   uploadCredential,
   fetchIssuedCredentials,
   fetchCredentialStats,
-  bulkImportStudents
-  // REMOVED: addCredentialType is no longer imported
+  bulkImportStudents,
+  fetchInstitutionName
 } from '../services/apiService';
 import blockchainService from '../services/blockchainService';
 import AcademicInstitutionUI from './AcademicInstitutionUI';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
+  const [institutionName, setInstitutionName] = useState('');
+  const [institutionId, setInstitutionId] = useState(null);
 
   const [credentialTypes, setCredentialTypes] = useState([]);
   const [students, setStudents] = useState([]);
@@ -64,19 +66,37 @@ function AcademicInstitution() {
 
     const loadData = async () => {
       try {
+        // Get logged-in user info
+        const loggedInUserId = localStorage.getItem('userId');
+        
+        if (!loggedInUserId) {
+          setErrorMessage('Please log in again');
+          setShowErrorPopup(true);
+          return;
+        }
+
+        // Set institution ID from logged-in user
+        setInstitutionId(parseInt(loggedInUserId));
+
+        // Fetch institution name
+        const institutionData = await fetchInstitutionName(loggedInUserId);
+        setInstitutionName(institutionData.institution_name);
+
+        // Load institution-specific data
         const [types, studentData, credentials, stats] = await Promise.all([
           fetchCredentialTypes(),
-          fetchStudents(),
-          fetchIssuedCredentials(),
-          fetchCredentialStats()
+          fetchStudents(loggedInUserId), // Pass institution ID
+          fetchIssuedCredentials(loggedInUserId), // Pass institution ID
+          fetchCredentialStats(loggedInUserId) // Pass institution ID
         ]);
+        
         setCredentialTypes(types);
         setStudents(studentData);
         setIssuedCredentials(credentials);
         setCredentialStats(stats);
       } catch (error) {
         console.error('Data loading failed:', error);
-        setErrorMessage('Failed to load data. Please refresh the page.');
+        setErrorMessage('Failed to load institution data. Please refresh the page.');
         setShowErrorPopup(true);
       }
     };
@@ -144,7 +164,7 @@ function AcademicInstitution() {
     }
 
     const loggedInUserId = localStorage.getItem('userId');
-    if (!loggedInUserId) {
+    if (!loggedInUserId || !institutionId) {
       setErrorMessage('Please log in again');
       setShowErrorPopup(true);
       return;
@@ -201,8 +221,8 @@ function AcademicInstitution() {
 
       // Refresh data - no longer need to refresh credential types
       const [credentials, stats] = await Promise.all([
-        fetchIssuedCredentials(),
-        fetchCredentialStats()
+        fetchIssuedCredentials(institutionId),
+        fetchCredentialStats(institutionId)
       ]);
       setIssuedCredentials(credentials);
       setCredentialStats(stats);
@@ -246,11 +266,17 @@ function AcademicInstitution() {
       return;
     }
 
+    if (!institutionId) {
+      setErrorMessage('Institution ID not found. Please log in again.');
+      setShowErrorPopup(true);
+      return;
+    }
+
     setBulkImporting(true);
     setBulkImportMessage('Processing file and importing students...');
 
     try {
-      const response = await bulkImportStudents(bulkImportFile);
+      const response = await bulkImportStudents(bulkImportFile, institutionId);
       
       setBulkImportMessage(
         `✅ Import completed! 
@@ -261,7 +287,8 @@ function AcademicInstitution() {
       
       setImportSuccess(true);
       
-      const studentData = await fetchStudents();
+      // Refresh students data with institution filter
+      const studentData = await fetchStudents(institutionId);
       setStudents(studentData);
       
       if (response.failed_count > 0 && response.failed_records?.length > 0) {
@@ -278,7 +305,55 @@ function AcademicInstitution() {
       }
       
     } catch (error) {
-      setErrorMessage(`Bulk import failed: ${error.message}`);
+      console.error('Bulk import error:', error);
+      
+      // Create user-friendly error messages
+      let userFriendlyMessage = '';
+      
+      if (error.response) {
+        // Server responded with an error status
+        const status = error.response.status;
+        const serverMessage = error.response.data?.error || '';
+        
+        switch (status) {
+          case 400:
+            if (serverMessage.includes('No file uploaded')) {
+              userFriendlyMessage = 'Please select a file to upload before clicking Import.';
+            } else if (serverMessage.includes('No student data found')) {
+              userFriendlyMessage = 'The file you selected appears to be empty or doesn\'t contain student data. Please check your file and try again.';
+            } else if (serverMessage.includes('No valid student records')) {
+              userFriendlyMessage = 'The file doesn\'t contain properly formatted student information. Please make sure your file has the required fields like student ID and name.';
+            } else if (serverMessage.includes('Institution ID required')) {
+              userFriendlyMessage = 'There was a problem identifying your institution. Please log out and log back in, then try again.';
+            } else {
+              userFriendlyMessage = `There's an issue with the file format or data: ${serverMessage}`;
+            }
+            break;
+          case 500:
+            if (serverMessage.includes('Import failed')) {
+              userFriendlyMessage = 'Something went wrong while processing your file. This might be due to the file format or corrupted data. Please check your file and try again.';
+            } else {
+              userFriendlyMessage = 'A server error occurred while importing students. Please try again in a few moments.';
+            }
+            break;
+          default:
+            userFriendlyMessage = `Upload failed (Error ${status}): ${serverMessage || 'Please try again or contact support if the problem continues.'}`;
+        }
+      } else if (error.request) {
+        // Network error - no response received
+        userFriendlyMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else {
+        // Something else went wrong
+        if (error.message.includes('Network Error')) {
+          userFriendlyMessage = 'Network connection problem. Please check your internet connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          userFriendlyMessage = 'The upload is taking too long. Please try with a smaller file or check your internet connection.';
+        } else {
+          userFriendlyMessage = `Import failed: ${error.message}`;
+        }
+      }
+      
+      setErrorMessage(userFriendlyMessage);
       setShowErrorPopup(true);
     } finally {
       setBulkImporting(false);
@@ -301,6 +376,7 @@ function AcademicInstitution() {
     <AcademicInstitutionUI
       // Core state
       account={account}
+      institutionName={institutionName}
       credentialTypes={credentialTypes}
       students={students}
       issuedCredentials={issuedCredentials}

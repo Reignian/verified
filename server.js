@@ -262,9 +262,15 @@ app.post('/api/login', (req, res) => {
   });
 });
 
-app.post('/api/bulk-import-students', upload.single('studentFile'), async (req, res) => {
+app.post('/api/bulk-import-students/:institutionId', upload.single('studentFile'), async (req, res) => {
+  const { institutionId } = req.params;
+  
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
+  }
+
+  if (!institutionId) {
+    return res.status(400).json({ error: 'Institution ID is required' });
   }
 
   try {
@@ -280,7 +286,7 @@ app.post('/api/bulk-import-students', upload.single('studentFile'), async (req, 
       return res.status(400).json({ error: 'No valid student records found after normalization' });
     }
 
-    const results = await academicQueries.bulkCreateStudents(normalizedData);
+    const results = await academicQueries.bulkCreateStudents(normalizedData, institutionId);
     
     res.json({
       message: 'Students imported successfully',
@@ -294,6 +300,35 @@ app.post('/api/bulk-import-students', upload.single('studentFile'), async (req, 
     console.error('Bulk import error:', error);
     res.status(500).json({ error: `Import failed: ${error.message}` });
   }
+});
+
+app.get('/api/students', (req, res) => {
+  // This could return all students or redirect to require institution ID
+  res.status(400).json({ 
+    error: 'Institution ID required. Use /api/students/:institutionId instead.',
+    deprecated: true 
+  });
+});
+
+app.get('/api/issued-credentials', (req, res) => {
+  res.status(400).json({ 
+    error: 'Institution ID required. Use /api/issued-credentials/:institutionId instead.',
+    deprecated: true 
+  });
+});
+
+app.get('/api/credential-stats', (req, res) => {
+  res.status(400).json({ 
+    error: 'Institution ID required. Use /api/credential-stats/:institutionId instead.',
+    deprecated: true 
+  });
+});
+
+app.post('/api/bulk-import-students', upload.single('studentFile'), async (req, res) => {
+  res.status(400).json({ 
+    error: 'Institution ID required. Use /api/bulk-import-students/:institutionId instead.',
+    deprecated: true 
+  });
 });
 
 app.post('/api/upload-credential', upload.single('credentialFile'), async (req, res) => {
@@ -367,8 +402,26 @@ app.get('/api/credential-types', (req, res) => {
   });
 });
 
-app.get('/api/students', (req, res) => {
-  academicQueries.getStudents((err, results) => {
+app.get('/api/institution/:accountId/name', (req, res) => {
+  const { accountId } = req.params;
+  
+  academicQueries.getInstitutionName(accountId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
+app.get('/api/students/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getStudents(institutionId, (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
@@ -376,8 +429,10 @@ app.get('/api/students', (req, res) => {
   });
 });
 
-app.get('/api/issued-credentials', (req, res) => {
-  academicQueries.getIssuedCredentials((err, results) => {
+app.get('/api/issued-credentials/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getIssuedCredentials(institutionId, (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
@@ -385,8 +440,10 @@ app.get('/api/issued-credentials', (req, res) => {
   });
 });
 
-app.get('/api/credential-stats', (req, res) => {
-  academicQueries.getCredentialStats((err, results) => {
+app.get('/api/credential-stats/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getCredentialStats(institutionId, (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
