@@ -21,6 +21,17 @@ export const login = async (username, password, userType) => {
   }
 };
 
+// NEW: Get institution name by account ID
+export const fetchInstitutionName = async (accountId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/${accountId}/name`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching institution name:', error);
+    throw error;
+  }
+};
+
 // UPDATED: Upload credential to handle custom types
 export const uploadCredential = async (credentialData, file) => {
   try {
@@ -52,12 +63,13 @@ export const uploadCredential = async (credentialData, file) => {
   }
 };
 
-export const bulkImportStudents = async (file) => {
+// UPDATED: Bulk import students with institution ID
+export const bulkImportStudents = async (file, institutionId) => {
   try {
     const formData = new FormData();
     formData.append('studentFile', file);
 
-    const response = await axios.post(`${API_URL}/bulk-import-students`, formData, {
+    const response = await axios.post(`${API_URL}/bulk-import-students/${institutionId}`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data',
       },
@@ -68,8 +80,6 @@ export const bulkImportStudents = async (file) => {
     throw error;
   }
 };
-
-// REMOVED: addCredentialType function (no longer needed)
 
 export const fetchCredentialTypes = async () => {
   try {
@@ -92,9 +102,10 @@ export const fetchRecentCustomType = async () => {
   }
 };
 
-export const fetchStudents = async () => {
+// UPDATED: Fetch students filtered by institution
+export const fetchStudents = async (institutionId) => {
   try {
-    const response = await axios.get(`${API_URL}/students`);
+    const response = await axios.get(`${API_URL}/students/${institutionId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching students:', error);
@@ -102,9 +113,10 @@ export const fetchStudents = async () => {
   }
 };
 
-export const fetchIssuedCredentials = async () => {
+// UPDATED: Fetch issued credentials filtered by institution
+export const fetchIssuedCredentials = async (institutionId) => {
   try {
-    const response = await axios.get(`${API_URL}/issued-credentials`);
+    const response = await axios.get(`${API_URL}/issued-credentials/${institutionId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching issued credentials:', error);
@@ -112,9 +124,10 @@ export const fetchIssuedCredentials = async () => {
   }
 };
 
-export const fetchCredentialStats = async () => {
+// UPDATED: Fetch credential stats filtered by institution
+export const fetchCredentialStats = async (institutionId) => {
   try {
-    const response = await axios.get(`${API_URL}/credential-stats`);
+    const response = await axios.get(`${API_URL}/credential-stats/${institutionId}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching credential stats:', error);

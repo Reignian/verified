@@ -6,6 +6,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 // The UI component receives all state and handlers as props
 const AcademicInstitutionUI = ({
   account,
+  institutionName,
   credentialTypes,
   students,
   issuedCredentials,
@@ -35,7 +36,7 @@ const AcademicInstitutionUI = ({
   importSuccess,
   showFormatInfo,
   setShowFormatInfo,
-  resetBulkImportForm, // UPDATED: Added this prop
+  resetBulkImportForm,
   handleCloseBulkImportModal,
   // NEW props for enhanced modal
   showCustomTypeInput,
@@ -57,7 +58,7 @@ const AcademicInstitutionUI = ({
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
       <style>{`
-        /* All CSS styles */
+        /* All CSS styles remain the same */
         :root {
           --primary-color: #4050b5;
           --secondary-color: #7986cb;
@@ -701,8 +702,6 @@ const AcademicInstitutionUI = ({
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
       />
 
-      {/* Navbar removed - using global Navigation from App.js */}
-
       {/* Header Section */}
       <div className="dashboard-header">
         <div className="container">
@@ -710,7 +709,7 @@ const AcademicInstitutionUI = ({
             <div className="col-lg-8">
               <h1 className="dashboard-title">
                 <i className="fas fa-university me-3"></i>
-                Academic Institution Dashboard
+                {institutionName ? `${institutionName} Dashboard` : 'Academic Institution Dashboard'}
               </h1>
               <p className="dashboard-subtitle">
                 Issue and manage blockchain-verified academic credentials
@@ -1028,7 +1027,7 @@ const AcademicInstitutionUI = ({
                   <button 
                     type="button" 
                     className="btn-secondary-custom mt-4" 
-                    onClick={resetBulkImportForm} // Using the passed prop
+                    onClick={resetBulkImportForm}
                   >
                     <i className="fas fa-plus me-2"></i>
                     Import Another File

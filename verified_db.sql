@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 19, 2025 at 06:16 PM
+-- Generation Time: Sep 22, 2025 at 10:15 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -34,6 +34,7 @@ CREATE TABLE `account` (
   `password` varchar(100) NOT NULL,
   `email` varchar(100) NOT NULL,
   `public_address` varchar(100) NOT NULL,
+  `institution_id` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -41,15 +42,21 @@ CREATE TABLE `account` (
 -- Dumping data for table `account`
 --
 
-INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `public_address`, `created_at`) VALUES
-(1, 'institution', 'wmsu', 'wmsu', 'wmsu@gmail.com', '0x852A8e5c3D309626810944b1a520Dd81B3B5A7fA', '2025-09-06 17:20:14'),
-(2, 'student', 'reign', 'reign', 'reign@gmail.com', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6', '2025-09-06 17:20:56'),
-(18, 'student', 'gerby', 'gerby', 'gerby@gmail.com', '', '2025-09-06 17:20:56'),
-(19, 'student', 'alicejohnson716', 'password123', 'alicejohnson716@student.edu', '', '2025-09-17 16:31:58'),
-(20, 'student', 'bobwilliams488', 'securepass!', 'bobwilliams488@student.edu', '', '2025-09-17 16:31:58'),
-(21, 'student', 'charliedavis863', 'mysecretpass', 'charliedavis863@student.edu', '', '2025-09-17 16:31:58'),
-(22, 'student', 'dianamiller768', 'studentpass', 'dianamiller768@student.edu', '', '2025-09-17 16:31:58'),
-(23, 'student', 'ethanbrown852', 'p@ssw0rd4u', 'ethanbrown852@student.edu', '', '2025-09-17 16:31:58');
+INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `public_address`, `institution_id`, `created_at`) VALUES
+(1, 'institution', 'wmsu', 'wmsu', 'wmsu@gmail.com', '0x852A8e5c3D309626810944b1a520Dd81B3B5A7fA', 1, '2025-09-06 17:20:14'),
+(2, 'student', 'reign', 'reign', 'reign@gmail.com', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6', 1, '2025-09-06 17:20:56'),
+(18, 'student', 'gerby', 'gerby', 'gerby@gmail.com', '', 1, '2025-09-06 17:20:56'),
+(19, 'student', 'alicejohnson716', 'password123', 'alicejohnson716@student.edu', '', 1, '2025-09-17 16:31:58'),
+(20, 'student', 'bobwilliams488', 'securepass!', 'bobwilliams488@student.edu', '', 1, '2025-09-17 16:31:58'),
+(21, 'student', 'charliedavis863', 'mysecretpass', 'charliedavis863@student.edu', '', 1, '2025-09-17 16:31:58'),
+(22, 'student', 'dianamiller768', 'studentpass', 'dianamiller768@student.edu', '', 1, '2025-09-17 16:31:58'),
+(23, 'student', 'ethanbrown852', 'p@ssw0rd4u', 'ethanbrown852@student.edu', '', 1, '2025-09-17 16:31:58'),
+(99, 'institution', 'bnhs', 'bnhs', '', '', 99, '2025-09-06 17:20:14'),
+(100, 'student', 'alicejohnson333', 'password123', 'alicejohnson333@student.edu', '', 99, '2025-09-22 20:14:41'),
+(101, 'student', 'bobwilliams412', 'securepass!', 'bobwilliams412@student.edu', '', 99, '2025-09-22 20:14:41'),
+(102, 'student', 'charliedavis800', 'mysecretpass', 'charliedavis800@student.edu', '', 99, '2025-09-22 20:14:41'),
+(103, 'student', 'dianamiller170', 'studentpass', 'dianamiller170@student.edu', '', 99, '2025-09-22 20:14:41'),
+(104, 'student', 'ethanbrown265', 'p@ssw0rd4u', 'ethanbrown265@student.edu', '', 99, '2025-09-22 20:14:41');
 
 -- --------------------------------------------------------
 
@@ -118,7 +125,8 @@ CREATE TABLE `institution` (
 --
 
 INSERT INTO `institution` (`id`, `institution_name`) VALUES
-(1, 'WMSU');
+(1, 'WMSU'),
+(99, 'bnhs');
 
 -- --------------------------------------------------------
 
@@ -131,21 +139,27 @@ CREATE TABLE `student` (
   `student_id` varchar(50) NOT NULL,
   `first_name` varchar(50) NOT NULL,
   `middle_name` varchar(50) DEFAULT NULL,
-  `last_name` varchar(50) NOT NULL
+  `last_name` varchar(50) NOT NULL,
+  `institution_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `student`
 --
 
-INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_name`) VALUES
-(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno'),
-(18, '2022-01085', 'gerby', 'gerby', 'gerby'),
-(19, '1001', 'Alice', NULL, 'Johnson'),
-(20, '1002', 'Bob', NULL, 'Williams'),
-(21, '1003', 'Charlie', NULL, 'Davis'),
-(22, '1004', 'Diana', NULL, 'Miller'),
-(23, '1005', 'Ethan', NULL, 'Brown');
+INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
+(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1),
+(18, '2022-01085', 'gerby', 'gerby', 'gerby', 1),
+(19, '1001', 'Alice', NULL, 'Johnson', 1),
+(20, '1002', 'Bob', NULL, 'Williams', 1),
+(21, '1003', 'Charlie', NULL, 'Davis', 1),
+(22, '1004', 'Diana', NULL, 'Miller', 1),
+(23, '1005', 'Ethan', NULL, 'Brown', 1),
+(100, '1001', 'Alice', NULL, 'Johnson', 99),
+(101, '1002', 'Bob', NULL, 'Williams', 99),
+(102, '1003', 'Charlie', NULL, 'Davis', 99),
+(103, '1004', 'Diana', NULL, 'Miller', 99),
+(104, '1005', 'Ethan', NULL, 'Brown', 99);
 
 --
 -- Indexes for dumped tables
@@ -155,7 +169,8 @@ INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_na
 -- Indexes for table `account`
 --
 ALTER TABLE `account`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `account_institution_fk` (`institution_id`);
 
 --
 -- Indexes for table `credential`
@@ -183,7 +198,8 @@ ALTER TABLE `institution`
 -- Indexes for table `student`
 --
 ALTER TABLE `student`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `idx_institution_id` (`institution_id`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -193,7 +209,7 @@ ALTER TABLE `student`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- AUTO_INCREMENT for table `credential`
@@ -211,11 +227,17 @@ ALTER TABLE `credential_types`
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=24;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
 
 --
 -- Constraints for dumped tables
 --
+
+--
+-- Constraints for table `account`
+--
+ALTER TABLE `account`
+  ADD CONSTRAINT `account_institution_fk` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `credential`
@@ -235,7 +257,8 @@ ALTER TABLE `institution`
 -- Constraints for table `student`
 --
 ALTER TABLE `student`
-  ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`id`) REFERENCES `account` (`id`);
+  ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`id`) REFERENCES `account` (`id`),
+  ADD CONSTRAINT `student_institution_fk` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE SET NULL;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
