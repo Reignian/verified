@@ -651,6 +651,19 @@ app.delete('/api/delete-access-code', (req, res) => {
   });
 });
 
+app.get('/api/student/:studentId/credentials-management', (req, res) => {
+  const { studentId } = req.params;
+  
+  myVerifiEDQueries.getStudentCredentialsForManagement(studentId, (err, results) => {
+    if (err) {
+      console.error('Error fetching student credentials for management:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json(results || []);
+  });
+});
+
 // Serve React build (same-origin deployment) only in production when build output exists
 const clientBuildPath = path.join(__dirname, 'build');
 const clientIndexPath = path.join(clientBuildPath, 'index.html');

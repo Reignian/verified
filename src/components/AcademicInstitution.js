@@ -13,6 +13,7 @@ import {
 } from '../services/apiService';
 import blockchainService from '../services/blockchainService';
 import AcademicInstitutionUI from './AcademicInstitutionUI';
+import StudentManagement from './StudentManagement';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -46,6 +47,9 @@ function AcademicInstitution() {
   const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
   const [customCredentialType, setCustomCredentialType] = useState('');
   const [studentSearchTerm, setStudentSearchTerm] = useState('');
+
+  // NEW: Student Management state
+  const [showStudentManagement, setShowStudentManagement] = useState(false);
 
   useEffect(() => {
     const getAccount = async () => {
@@ -215,7 +219,7 @@ function AcademicInstitution() {
       
       if (!updateResponse.ok) throw new Error('Database update failed');
 
-      setUploadMessage(`✅ Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
+      setUploadMessage(`âœ… Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
       resetForm();
       setShowModal(false);
 
@@ -279,7 +283,7 @@ function AcademicInstitution() {
       const response = await bulkImportStudents(bulkImportFile, institutionId);
       
       setBulkImportMessage(
-        `✅ Import completed! 
+        `âœ… Import completed! 
         Successfully imported: ${response.imported_count} students
         Failed: ${response.failed_count} records
         Total processed: ${response.total_processed} records`
@@ -371,52 +375,73 @@ function AcademicInstitution() {
     });
   };
 
-  // Render the UI component with all props
+  // NEW: Student Management handlers
+  const handleShowStudentManagement = () => {
+    setShowStudentManagement(true);
+  };
+
+  const handleBackToDashboard = () => {
+    setShowStudentManagement(false);
+  };
+
+  // Conditional rendering based on current view
   return (
-    <AcademicInstitutionUI
-      // Core state
-      account={account}
-      institutionName={institutionName}
-      credentialTypes={credentialTypes}
-      students={students}
-      issuedCredentials={issuedCredentials}
-      credentialStats={credentialStats}
-      formData={formData}
-      uploading={uploading}
-      uploadMessage={uploadMessage}
-      showModal={showModal}
-      setShowModal={setShowModal}
-      showErrorPopup={showErrorPopup}
-      setShowErrorPopup={setShowErrorPopup}
-      errorMessage={errorMessage}
+    <>
+      {showStudentManagement ? (
+        <StudentManagement 
+          institutionId={institutionId}
+          onBack={handleBackToDashboard}
+        />
+      ) : (
+        <AcademicInstitutionUI
+          // Core state
+          account={account}
+          institutionName={institutionName}
+          credentialTypes={credentialTypes}
+          students={students}
+          issuedCredentials={issuedCredentials}
+          credentialStats={credentialStats}
+          formData={formData}
+          uploading={uploading}
+          uploadMessage={uploadMessage}
+          showModal={showModal}
+          setShowModal={setShowModal}
+          showErrorPopup={showErrorPopup}
+          setShowErrorPopup={setShowErrorPopup}
+          errorMessage={errorMessage}
 
-      // Bulk import props
-      showBulkImportModal={showBulkImportModal}
-      setShowBulkImportModal={setShowBulkImportModal}
-      bulkImportFile={bulkImportFile}
-      bulkImporting={bulkImporting}
-      bulkImportMessage={bulkImportMessage}
-      importSuccess={importSuccess}
-      showFormatInfo={showFormatInfo}
-      setShowFormatInfo={setShowFormatInfo}
-      resetBulkImportForm={resetBulkImportForm}
+          // Bulk import props
+          showBulkImportModal={showBulkImportModal}
+          setShowBulkImportModal={setShowBulkImportModal}
+          bulkImportFile={bulkImportFile}
+          bulkImporting={bulkImporting}
+          bulkImportMessage={bulkImportMessage}
+          importSuccess={importSuccess}
+          showFormatInfo={showFormatInfo}
+          setShowFormatInfo={setShowFormatInfo}
+          resetBulkImportForm={resetBulkImportForm}
 
-      // Enhanced modal props
-      showCustomTypeInput={showCustomTypeInput}
-      customCredentialType={customCredentialType}
-      studentSearchTerm={studentSearchTerm}
+          // Enhanced modal props
+          showCustomTypeInput={showCustomTypeInput}
+          customCredentialType={customCredentialType}
+          studentSearchTerm={studentSearchTerm}
 
-      // Event handlers
-      handleInputChange={handleInputChange}
-      handleCustomTypeChange={handleCustomTypeChange}
-      handleStudentSearchChange={handleStudentSearchChange}
-      handleSubmit={handleSubmit}
-      handleViewCredential={handleViewCredential}
-      handleBulkImportFileChange={handleBulkImportFileChange}
-      handleBulkImportSubmit={handleBulkImportSubmit}
-      handleCloseBulkImportModal={handleCloseBulkImportModal}
-      formatDate={formatDate}
-    />
+          // Event handlers
+          handleInputChange={handleInputChange}
+          handleCustomTypeChange={handleCustomTypeChange}
+          handleStudentSearchChange={handleStudentSearchChange}
+          handleSubmit={handleSubmit}
+          handleViewCredential={handleViewCredential}
+          handleBulkImportFileChange={handleBulkImportFileChange}
+          handleBulkImportSubmit={handleBulkImportSubmit}
+          handleCloseBulkImportModal={handleCloseBulkImportModal}
+          formatDate={formatDate}
+          
+          // NEW: Student management handler
+          handleShowStudentManagement={handleShowStudentManagement}
+        />
+      )}
+    </>
   );
 }
 

@@ -25,7 +25,7 @@ const getStudentCredentialCount = (studentId, callback) => {
   connection.query(query, [studentId], callback);
 };
 
-// Get student credentials with all active access codes aggregated
+// EXISTING: Get student credentials with all active access codes aggregated
 const getStudentCredentials = (studentId, callback) => {
   const query = `
     SELECT 
@@ -50,6 +50,24 @@ const getStudentCredentials = (studentId, callback) => {
       WHERE is_active = 1 AND is_deleted = 0
       GROUP BY credential_id
     ) ac ON ac.credential_id = c.id
+    WHERE c.owner_id = ?
+    ORDER BY c.created_at DESC
+  `;
+  connection.query(query, [studentId], callback);
+};
+
+// NEW: Get student credentials for Student Management page (simplified view)
+const getStudentCredentialsForManagement = (studentId, callback) => {
+  const query = `
+    SELECT 
+      c.id,
+      c.ipfs_cid,
+      c.status,
+      c.created_at as date_issued,
+      c.blockchain_id,
+      COALESCE(ct.type_name, c.custom_type) as credential_type
+    FROM credential c
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     WHERE c.owner_id = ?
     ORDER BY c.created_at DESC
   `;
@@ -81,6 +99,7 @@ module.exports = {
   getStudentName,
   getStudentCredentialCount,
   getStudentCredentials,
+  getStudentCredentialsForManagement, // NEW function for Student Management page
   upsertCredentialAccessCode,
   updateAccessCodeStatus,
   deleteAccessCode

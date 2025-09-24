@@ -1,4 +1,4 @@
-// fileName: apiService.js
+// fileName: apiService.js (Updated with new function)
 
 import axios from 'axios';
 
@@ -157,12 +157,24 @@ export const fetchStudentCredentialCount = async (studentId) => {
   }
 };
 
+// EXISTING: Get student credentials (for MyVerifiED page)
 export const fetchStudentCredentials = async (studentId) => {
   try {
     const response = await axios.get(`${API_URL}/student/${studentId}/credentials`);
     return response.data;
   } catch (error) {
     console.error('Error fetching student credentials:', error);
+    throw error;
+  }
+};
+
+// NEW: Get student credentials for management page (simplified view)
+export const fetchStudentCredentialsForManagement = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/credentials-management`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student credentials for management:', error);
     throw error;
   }
 };

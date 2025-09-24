@@ -43,7 +43,9 @@ const AcademicInstitutionUI = ({
   customCredentialType,
   handleCustomTypeChange,
   studentSearchTerm,
-  handleStudentSearchChange
+  handleStudentSearchChange,
+  // NEW: Student management handler
+  handleShowStudentManagement
 }) => {
   // Filter students based on the search term for the new input
   const filteredStudents = useMemo(() => {
@@ -58,7 +60,6 @@ const AcademicInstitutionUI = ({
   return (
     <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
       <style>{`
-        /* All CSS styles remain the same */
         :root {
           --primary-color: #4050b5;
           --secondary-color: #7986cb;
@@ -139,6 +140,21 @@ const AcademicInstitutionUI = ({
           margin: 0 5px;
         }
 
+        .btn-success-custom {
+          background: linear-gradient(135deg, var(--success-color), #388e3c);
+          border: none;
+          color: white;
+          padding: 14px 30px;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 1.1rem;
+          transition: var(--transition);
+          cursor: pointer;
+          min-width: 200px;
+          text-decoration: none;
+          margin: 0 5px;
+        }
+
         .btn-primary-custom:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(64, 80, 181, 0.3);
@@ -150,6 +166,12 @@ const AcademicInstitutionUI = ({
         .btn-secondary-custom:hover:not(:disabled) {
           transform: translateY(-2px);
           box-shadow: 0 8px 25px rgba(121, 134, 203, 0.3);
+          color: white;
+        }
+
+        .btn-success-custom:hover:not(:disabled) {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(76, 175, 80, 0.3);
           color: white;
         }
 
@@ -688,7 +710,7 @@ const AcademicInstitutionUI = ({
             align-items: center;
           }
 
-          .btn-primary-custom, .btn-secondary-custom {
+          .btn-primary-custom, .btn-secondary-custom, .btn-success-custom {
             width: 100%;
             max-width: 300px;
             margin: 5px 0;
@@ -766,6 +788,15 @@ const AcademicInstitutionUI = ({
           >
             <i className="fas fa-users me-2"></i>
             Bulk Import Students
+          </button>
+          
+          {/* NEW: Student Management Button */}
+          <button 
+            className="btn btn-success-custom"
+            onClick={handleShowStudentManagement}
+          >
+            <i className="fas fa-user-cog me-2"></i>
+            Manage Students
           </button>
         </div>
 
