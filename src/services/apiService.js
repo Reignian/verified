@@ -274,3 +274,20 @@ export const fetchLinkedAccounts = async (accountId) => {
     throw error;
   }
 };
+
+// Unlink a target account from the current user's link group
+export const unlinkAccount = async (currentAccountId, targetAccountId, currentPassword) => {
+  try {
+    const response = await axios.delete(`${API_URL}/unlink-account`, {
+      data: {
+        current_account_id: currentAccountId,
+        target_account_id: targetAccountId,
+        current_password: currentPassword
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error unlinking account:', error);
+    throw error;
+  }
+};

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './StudentAccountSettingsSection.css';
-import { linkAccount, fetchLinkedAccounts } from '../services/apiService';
+import { linkAccount, fetchLinkedAccounts, unlinkAccount } from '../services/apiService';
 
 function StudentAccountSettingsSection({ user }) {
   const [activeTab, setActiveTab] = useState('profile');
@@ -17,6 +17,12 @@ function StudentAccountSettingsSection({ user }) {
   const [linkedAccounts, setLinkedAccounts] = useState([]);
   const [linkedLoading, setLinkedLoading] = useState(false);
   const [linkedError, setLinkedError] = useState('');
+  const [unlinkingId, setUnlinkingId] = useState(null);
+  const [showUnlinkModal, setShowUnlinkModal] = useState(false);
+  const [unlinkPassword, setUnlinkPassword] = useState('');
+  const [unlinkTargetId, setUnlinkTargetId] = useState(null);
+  const [unlinkModalError, setUnlinkModalError] = useState('');
+  const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
 
   const loadLinkedAccounts = async () => {
     if (!user?.id) return;
@@ -30,6 +36,45 @@ function StudentAccountSettingsSection({ user }) {
       setLinkedError(serverMsg || err.message || 'Failed to load linked accounts.');
     } finally {
       setLinkedLoading(false);
+    }
+  };
+
+  const openUnlinkModal = (targetAccountId) => {
+    setUnlinkTargetId(targetAccountId);
+    setUnlinkPassword('');
+    setUnlinkModalError('');
+    setShowUnlinkModal(true);
+  };
+
+  const closeUnlinkModal = () => {
+    if (unlinkSubmitting) return;
+    setShowUnlinkModal(false);
+    setUnlinkTargetId(null);
+    setUnlinkPassword('');
+    setUnlinkModalError('');
+  };
+
+  const submitUnlink = async (e) => {
+    e.preventDefault();
+    if (!user?.id || !unlinkTargetId) return;
+    if (!String(unlinkPassword).trim()) {
+      setUnlinkModalError('Password is required.');
+      return;
+    }
+    setUnlinkModalError('');
+    setLinkedError('');
+    try {
+      setUnlinkSubmitting(true);
+      setUnlinkingId(unlinkTargetId);
+      await unlinkAccount(user.id, unlinkTargetId, unlinkPassword);
+      await loadLinkedAccounts();
+      closeUnlinkModal();
+    } catch (err) {
+      const serverMsg = err?.response?.data?.error || err?.response?.data?.message;
+      setUnlinkModalError(serverMsg || err.message || 'Failed to unlink account.');
+    } finally {
+      setUnlinkingId(null);
+      setUnlinkSubmitting(false);
     }
   };
 
@@ -112,7 +157,7 @@ function StudentAccountSettingsSection({ user }) {
                     <i className="fas fa-user-circle"></i>
                   </div>
                   <div className="profile-info">
-                    <h4 className="profile-name">{user?.first_name} {user?.middle_name} {user?.last_name}</h4>
+                    <h4 className="profile-name">{user?.first_name} {user?.middle_name} {user?.last_name} {user?.email}</h4>
                     <p className="profile-institution">{user?.institution_name || 'Current Institution'}</p>
                   </div>
                 </div>
@@ -256,14 +301,28 @@ function StudentAccountSettingsSection({ user }) {
                       {displayed.map(acc => (
                         <div className="account-card" key={acc.account_id}>
                           <div className="account-info">
+                            
                             <div className="account-header">
                               <div className="account-icon"><i className="fas fa-user"></i></div>
                               <div className="account-details">
                                 <h6 className="account-name">{acc.first_name} {acc.middle_name || ''} {acc.last_name}</h6>
                                 <p className="account-school">Email: {acc.email}</p>
+                                <p className="account-school">Institution: {acc.institution_name || 'N/A'}</p>
                                 <p className="account-id">Student ID: {acc.student_id}</p>
                               </div>
                             </div>
+
+                            <div className="account-actions">
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-danger btn-sm"
+                                  onClick={() => openUnlinkModal(acc.account_id)}
+                                  disabled={unlinkingId === acc.account_id || linkedLoading}
+                                >
+                                  {unlinkingId === acc.account_id ? 'Unlinking…' : 'Unlink'}
+                                </button>
+                              </div>
+
                           </div>
                         </div>
                       ))}
@@ -272,6 +331,40 @@ function StudentAccountSettingsSection({ user }) {
                 })()
               )}
             </div>
+            {/* Unlink confirmation modal */}
+            {showUnlinkModal && (
+              <div className="unlink-modal-overlay show" role="dialog" aria-modal="true">
+                <div className="unlink-modal">
+                  <div className="modal-header">
+                    <h5 className="modal-title">Confirm Unlink</h5>
+                    <button type="button" className="btn-close" aria-label="Close" onClick={closeUnlinkModal} disabled={unlinkSubmitting}></button>
+                  </div>
+                  <form onSubmit={submitUnlink}>
+                    <div className="modal-body">
+                      <p className="text-muted">Please enter your password to confirm unlinking this account.</p>
+                      {unlinkModalError && (
+                        <div className="alert alert-danger" role="alert">{unlinkModalError}</div>
+                      )}
+                      <label className="form-label">Password</label>
+                      <input
+                        type="password"
+                        className="form-control"
+                        value={unlinkPassword}
+                        onChange={(e) => setUnlinkPassword(e.target.value)}
+                        autoFocus
+                        disabled={unlinkSubmitting}
+                      />
+                    </div>
+                    <div className="modal-footer">
+                      <button type="button" className="btn btn-secondary" onClick={closeUnlinkModal} disabled={unlinkSubmitting}>Cancel</button>
+                      <button type="submit" className="btn btn-danger" disabled={unlinkSubmitting}>
+                        {unlinkSubmitting ? 'Unlinking…' : 'Confirm Unlink'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

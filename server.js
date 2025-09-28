@@ -769,6 +769,41 @@ app.get('/api/linked-accounts', (req, res) => {
   });
 });
 
+// Unlink a target account from the current user's link group
+app.delete('/api/unlink-account', (req, res) => {
+  const { current_account_id, target_account_id, current_password } = req.body;
+
+  if (!current_account_id || !target_account_id || !current_password) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    const db = require('./src/config/database');
+    const pwSql = 'SELECT 1 FROM account WHERE id = ? AND password = ? LIMIT 1';
+    db.query(pwSql, [Number(current_account_id), String(current_password)], (pwErr, pwRows) => {
+      if (pwErr) {
+        return res.status(500).json({ error: 'Database error' });
+      }
+      if (!pwRows || pwRows.length === 0) {
+        return res.status(401).json({ error: 'Invalid password' });
+      }
+
+      myVerifiEDQueries.unlinkAccount(
+        Number(current_account_id),
+        Number(target_account_id),
+        (err, result) => {
+          if (err) {
+            return res.status(400).json({ error: err.message || 'Unlink failed' });
+          }
+          res.json({ success: true, ...result });
+        }
+      );
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Server error' });
+  }
+});
+
 app.post('/api/update-blockchain-id', (req, res) => {
   const { credential_id, blockchain_id } = req.body;
   

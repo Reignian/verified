@@ -7,8 +7,10 @@ const getStudentName = (studentId, callback) => {
       s.student_id,
       s.first_name,
       s.middle_name,
-      s.last_name
+      s.last_name,
+      a.email
     FROM student s
+    INNER JOIN account a ON a.id = s.id
     WHERE s.id = ?
   `;
   connection.query(query, [studentId], callback);
@@ -24,17 +26,18 @@ const getLinkedAccounts = (accountId, callback) => {
       s.first_name,
       s.middle_name,
       s.last_name,
-      a.email
+      a.email,
+      i.institution_name
     FROM linked_accounts la1
     INNER JOIN linked_accounts la2 ON la2.group_id = la1.group_id
     INNER JOIN student s ON s.id = la2.student_id
     INNER JOIN account a ON a.id = s.id
+    LEFT JOIN institution i ON s.institution_id = i.id
     WHERE la1.student_id = ?
     ORDER BY s.last_name, s.first_name
   `;
   connection.query(sql, [accountId], callback);
 };
-
 // Get student's credential count
 const getStudentCredentialCount = (studentId, callback) => {
   const query = `
@@ -114,6 +117,34 @@ const updateAccessCodeStatus = (accessCode, isActive, callback) => {
 const deleteAccessCode = (accessCode, callback) => {
   const query = 'UPDATE credential_access SET is_deleted = 1 WHERE access_code = ? AND is_deleted = 0';
   connection.query(query, [accessCode], callback);
+};
+
+// Unlink target account from the current user's link group
+const unlinkAccount = (currentAccountId, targetAccountId, callback) => {
+  if (!currentAccountId || !targetAccountId) return callback(new Error('Missing account IDs'));
+  if (Number(currentAccountId) === Number(targetAccountId)) return callback(new Error('Cannot unlink the same account'));
+
+  const lookupSql = 'SELECT student_id, group_id FROM linked_accounts WHERE student_id IN (?, ?)';
+  connection.query(lookupSql, [currentAccountId, targetAccountId], (err, rows) => {
+    if (err) return callback(err);
+
+    let currentGroup = null;
+    let targetGroup = null;
+    for (const r of rows || []) {
+      if (Number(r.student_id) === Number(currentAccountId)) currentGroup = r.group_id;
+      if (Number(r.student_id) === Number(targetAccountId)) targetGroup = r.group_id;
+    }
+
+    if (!currentGroup || !targetGroup || currentGroup !== targetGroup) {
+      return callback(new Error('Accounts are not linked in the same group'));
+    }
+
+    const delSql = 'DELETE FROM linked_accounts WHERE student_id = ? AND group_id = ?';
+    connection.query(delSql, [targetAccountId, currentGroup], (delErr, result) => {
+      if (delErr) return callback(delErr);
+      callback(null, { success: true, group_id: currentGroup, removed_account_id: targetAccountId, affected: result.affectedRows });
+    });
+  });
 };
 
 // Link two student accounts into a shared group in linked_accounts
@@ -202,5 +233,6 @@ module.exports = {
   upsertCredentialAccessCode,
   updateAccessCodeStatus,
   deleteAccessCode,
+  unlinkAccount,
   linkAccounts
 };
