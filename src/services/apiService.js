@@ -244,3 +244,33 @@ export const deleteAccessCode = async (accessCode) => {
     throw error;
   }
 };
+
+// Link student accounts into a single group
+export const linkAccount = async (currentAccountId, targetEmail, targetPassword, targetStudentId) => {
+  try {
+    const response = await axios.post(`${API_URL}/link-account`, {
+      current_account_id: currentAccountId,
+      target_email: targetEmail,
+      target_password: targetPassword,
+      target_student_id: targetStudentId
+    });
+    return response.data;
+  } catch (error) {
+    // Surface server error messages to caller
+    if (error.response?.data) throw error;
+    throw error;
+  }
+};
+
+// Fetch linked accounts list for a given account ID
+export const fetchLinkedAccounts = async (accountId) => {
+  try {
+    const response = await axios.get(`${API_URL}/linked-accounts`, {
+      params: { accountId }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching linked accounts:', error);
+    throw error;
+  }
+};

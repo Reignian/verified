@@ -4,6 +4,7 @@ import './MyVerifiED.css';
 import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../services/apiService';
 import CredentialsSection from './CredentialsSection';
 import AccessCodesSection from './AccessCodesSection';
+import StudentAccountSettingsSection from './StudentAccountSettingsSection';
 
 function MyVerifiED() {
   const [credentials, setCredentials] = useState([]);
@@ -164,9 +165,16 @@ function MyVerifiED() {
             </div>
             <p className="stat-label">Total Access Codes</p>
           </div>
-          <div className="stat-card empty">
+
+          <div 
+            className={`stat-card ${activeSection === 'account-settings' ? 'active' : ''}`}
+            onClick={() => handleSectionChange('account-settings')}
+            style={{ cursor: 'pointer' }}
+          >
             <div className="stat-number">
+              <i className="fas fa-cog" style={{ fontSize: '1.5rem' }}></i>
             </div>
+            <p className="stat-label">Account Settings</p>
           </div>
         </div>
 
@@ -189,6 +197,14 @@ function MyVerifiED() {
             totalAccessCodes={totalAccessCodes}
           />
         )}
+
+        {/* Account Settings Section */}
+        {activeSection === 'account-settings' && (
+          <StudentAccountSettingsSection
+            user={user}
+          />
+        )}
+        
       </div>
     </div>
   );

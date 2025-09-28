@@ -600,6 +600,33 @@ app.post('/api/upload-credential', upload.single('credentialFile'), async (req, 
   }
 });
 
+// Link student accounts into a single group
+app.post('/api/link-account', (req, res) => {
+  const { current_account_id, target_email, target_password, target_student_id } = req.body;
+
+  if (!current_account_id || !target_email || !target_password || !target_student_id) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  myVerifiEDQueries.linkAccounts(
+    Number(current_account_id),
+    String(target_email).trim(),
+    String(target_password),
+    String(target_student_id).trim(),
+    (err, result) => {
+      if (err) {
+        return res.status(400).json({ error: err.message || 'Linking failed' });
+      }
+      res.json({
+        success: true,
+        message: 'Accounts linked successfully',
+        group_id: result.group_id,
+        target_account_id: result.target_account_id
+      });
+    }
+  );
+});
+
 // NEW: Get recent custom credential type
 app.get('/api/recent-custom-type', (req, res) => {
   academicQueries.getRecentCustomType((err, customType) => {
@@ -726,41 +753,20 @@ app.get('/api/student/:studentId/credentials', (req, res) => {
   });
 });
 
-// Generate and store a new access code for a credential
-app.post('/api/generate-access-code', (req, res) => {
-  const { credential_id } = req.body;
+// Get linked accounts for a given account ID
+app.get('/api/linked-accounts', (req, res) => {
+  const { accountId } = req.query;
 
-  if (!credential_id) {
-    return res.status(400).json({ error: 'Missing credential_id' });
+  if (!accountId) {
+    return res.status(400).json({ error: 'accountId is required' });
   }
 
-  // Generate a random 6-character alphanumeric code (avoids ambiguous chars)
-  const generateCode = () => {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+  myVerifiEDQueries.getLinkedAccounts(Number(accountId), (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
     }
-    return code;
-  };
-
-  const tryInsert = (attemptsLeft = 5) => {
-    const newCode = generateCode();
-
-    myVerifiEDQueries.upsertCredentialAccessCode(credential_id, newCode, (err) => {
-      if (err) {
-        // Retry on duplicate access_code collisions if unique constraint exists
-        if (err.code === 'ER_DUP_ENTRY' && attemptsLeft > 1) {
-          return tryInsert(attemptsLeft - 1);
-        }
-        return res.status(500).json({ error: 'Database error' });
-      }
-
-      return res.json({ success: true, credential_id, access_code: newCode });
-    });
-  };
-
-  tryInsert();
+    return res.json(results || []);
+  });
 });
 
 app.post('/api/update-blockchain-id', (req, res) => {
