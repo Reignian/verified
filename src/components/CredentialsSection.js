@@ -8,7 +8,7 @@ function CredentialsSection({
   generatingId, 
   setGeneratingId,
   calculateTotalAccessCodes,
-  setTotalAccessCodes 
+  setTotalAccessCodes
 }) {
   
   const handleGenerateAccessCode = async (credentialId) => {

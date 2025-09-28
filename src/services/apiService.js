@@ -181,6 +181,17 @@ export const fetchStudentCredentials = async (studentId) => {
   }
 };
 
+// Get student's access codes with active status (non-deleted)
+export const fetchStudentAccessCodes = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/access-codes`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student access codes:', error);
+    throw error;
+  }
+};
+
 // NEW: Get student credentials for management page (simplified view)
 export const fetchStudentCredentialsForManagement = async (studentId) => {
   try {

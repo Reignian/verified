@@ -38,23 +38,29 @@ const getLinkedAccounts = (accountId, callback) => {
   `;
   connection.query(sql, [accountId], callback);
 };
-// Get student's credential count
+// Get student's credential count (including linked accounts in same group)
 const getStudentCredentialCount = (studentId, callback) => {
   const query = `
     SELECT 
       COUNT(*) as total_credentials
     FROM credential c
-    WHERE c.owner_id = ?
+    WHERE c.owner_id IN (
+      SELECT la2.student_id
+      FROM linked_accounts la1
+      JOIN linked_accounts la2 ON la2.group_id = la1.group_id
+      WHERE la1.student_id = ?
+      UNION SELECT ?
+    )
   `;
-  connection.query(query, [studentId], callback);
+  connection.query(query, [studentId, studentId], callback);
 };
 
-// EXISTING: Get student credentials with all active access codes aggregated
+// Get student credentials (including linked accounts) with aggregated active access codes
 const getStudentCredentials = (studentId, callback) => {
   const query = `
     SELECT 
       c.id,
-      ct.type_name AS type,
+      COALESCE(ct.type_name, c.custom_type) AS type,
       c.custom_type,
       c.created_at AS date,
       c.status,
@@ -62,22 +68,34 @@ const getStudentCredentials = (studentId, callback) => {
       c.blockchain_id,
       i.institution_name AS issuer,
       ac.access_codes,
-      ac.access_code_date
+      ac.access_code_date,
+      owner.student_id AS owner_student_id,
+      owner.first_name AS owner_first_name,
+      owner.last_name AS owner_last_name,
+      owner_acc.email AS owner_email
     FROM credential c
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     LEFT JOIN account sender_acc ON c.sender_id = sender_acc.id
     LEFT JOIN institution i ON sender_acc.id = i.id
+    LEFT JOIN student owner ON owner.id = c.owner_id
+    LEFT JOIN account owner_acc ON owner_acc.id = owner.id
     LEFT JOIN (
       SELECT credential_id, GROUP_CONCAT(access_code SEPARATOR ',') AS access_codes,
-      MAX(created_at) AS access_code_date 
+             MAX(created_at) AS access_code_date 
       FROM credential_access
-      WHERE is_active = 1 AND is_deleted = 0
+      WHERE is_deleted = 0
       GROUP BY credential_id
     ) ac ON ac.credential_id = c.id
-    WHERE c.owner_id = ?
+    WHERE c.owner_id IN (
+      SELECT la2.student_id
+      FROM linked_accounts la1
+      JOIN linked_accounts la2 ON la2.group_id = la1.group_id
+      WHERE la1.student_id = ?
+      UNION SELECT ?
+    )
     ORDER BY c.created_at DESC
   `;
-  connection.query(query, [studentId], callback);
+  connection.query(query, [studentId, studentId], callback);
 };
 
 // NEW: Get student credentials for Student Management page (simplified view)
@@ -117,6 +135,30 @@ const updateAccessCodeStatus = (accessCode, isActive, callback) => {
 const deleteAccessCode = (accessCode, callback) => {
   const query = 'UPDATE credential_access SET is_deleted = 1 WHERE access_code = ? AND is_deleted = 0';
   connection.query(query, [accessCode], callback);
+};
+
+// Fetch all non-deleted access codes for the student's linked group with active status
+const getStudentAccessCodes = (studentId, callback) => {
+  const sql = `
+    SELECT 
+      ca.access_code,
+      ca.is_active,
+      ca.created_at,
+      ca.credential_id,
+      COALESCE(ct.type_name, c.custom_type) AS credential_type
+    FROM credential_access ca
+    INNER JOIN credential c ON c.id = ca.credential_id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    WHERE ca.is_deleted = 0 AND c.owner_id IN (
+      SELECT la2.student_id
+      FROM linked_accounts la1
+      JOIN linked_accounts la2 ON la2.group_id = la1.group_id
+      WHERE la1.student_id = ?
+      UNION SELECT ?
+    )
+    ORDER BY ca.created_at DESC
+  `;
+  connection.query(sql, [studentId, studentId], callback);
 };
 
 // Unlink target account from the current user's link group
@@ -229,10 +271,11 @@ module.exports = {
   getLinkedAccounts,
   getStudentCredentialCount,
   getStudentCredentials,
-  getStudentCredentialsForManagement, // NEW function for Student Management page
+  getStudentCredentialsForManagement,
   upsertCredentialAccessCode,
   updateAccessCodeStatus,
   deleteAccessCode,
   unlinkAccount,
-  linkAccounts
+  linkAccounts,
+  getStudentAccessCodes
 };

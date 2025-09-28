@@ -753,6 +753,19 @@ app.get('/api/student/:studentId/credentials', (req, res) => {
   });
 });
 
+// Get student's access codes with active status
+app.get('/api/student/:studentId/access-codes', (req, res) => {
+  const { studentId } = req.params;
+  
+  myVerifiEDQueries.getStudentAccessCodes(studentId, (err, results) => {
+    if (err) {
+      console.error('Error fetching student access codes:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results || []);
+  });
+});
+
 // Get linked accounts for a given account ID
 app.get('/api/linked-accounts', (req, res) => {
   const { accountId } = req.query;
@@ -882,6 +895,31 @@ app.post('/api/verify-credential', (req, res) => {
   });
 });
 
+// Delete access code (mark as deleted)
+app.delete('/api/delete-access-code', (req, res) => {
+  const { access_code } = req.body;
+  
+  if (!access_code) {
+    return res.status(400).json({ error: 'Access code is required' });
+  }
+  
+  myVerifiEDQueries.deleteAccessCode(access_code, (err, result) => {
+    if (err) {
+      console.error('Error deleting access code:', err);
+      return res.status(500).json({ error: 'Database error occurred' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Access code not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Access code deleted successfully'
+    });
+  });
+});
+
 // Update access code status
 app.put('/api/update-access-code-status', (req, res) => {
   const { access_code, is_active } = req.body;
@@ -907,29 +945,57 @@ app.put('/api/update-access-code-status', (req, res) => {
   });
 });
 
-// Delete access code (mark as deleted)
-app.delete('/api/delete-access-code', (req, res) => {
-  const { access_code } = req.body;
-  
-  if (!access_code) {
-    return res.status(400).json({ error: 'Access code is required' });
+// Generate a new access code for a credential
+app.post('/api/generate-access-code', (req, res) => {
+  const { credential_id } = req.body;
+
+  if (!credential_id) {
+    return res.status(400).json({ error: 'credential_id is required' });
   }
-  
-  myVerifiEDQueries.deleteAccessCode(access_code, (err, result) => {
-    if (err) {
-      console.error('Error deleting access code:', err);
-      return res.status(500).json({ error: 'Database error occurred' });
-    }
-    
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Access code not found' });
-    }
-    
-    res.json({
-      success: true,
-      message: 'Access code deleted successfully'
-    });
-  });
+
+  try {
+    const db = require('./src/config/database');
+
+    // Generate a 6-character alphanumeric code (A-Z, 0-9)
+    const generateRandomCode = (len = 6) => {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+      let out = '';
+      for (let i = 0; i < len; i++) {
+        const idx = crypto.randomInt(0, chars.length);
+        out += chars[idx];
+      }
+      return out;
+    };
+
+    // Ensure uniqueness with a few attempts
+    const ensureUniqueCode = (attempt = 0, maxAttempts = 10) => {
+      const candidate = generateRandomCode(6);
+      db.query('SELECT 1 FROM credential_access WHERE access_code = ? LIMIT 1', [candidate], (chkErr, rows) => {
+        if (chkErr) {
+          console.error('Error checking access code uniqueness:', chkErr);
+          return res.status(500).json({ error: 'Database error occurred' });
+        }
+        if (rows && rows.length > 0) {
+          if (attempt + 1 >= maxAttempts) {
+            return res.status(500).json({ error: 'Failed to generate unique access code' });
+          }
+          return ensureUniqueCode(attempt + 1, maxAttempts);
+        }
+        // Insert when unique
+        myVerifiEDQueries.upsertCredentialAccessCode(Number(credential_id), candidate, (insErr) => {
+          if (insErr) {
+            console.error('Error generating access code:', insErr);
+            return res.status(500).json({ error: 'Database error occurred' });
+          }
+          return res.json({ success: true, access_code: candidate });
+        });
+      });
+    };
+
+    ensureUniqueCode();
+  } catch (e) {
+    return res.status(500).json({ error: 'Server error' });
+  }
 });
 
 app.get('/api/student/:studentId/credentials-management', (req, res) => {

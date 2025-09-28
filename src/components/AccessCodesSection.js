@@ -1,27 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AccessCodesSection.css';
-import { updateAccessCodeStatus, deleteAccessCode } from '../services/apiService';
+import { updateAccessCodeStatus, deleteAccessCode, fetchStudentAccessCodes } from '../services/apiService';
 
-function AccessCodesSection({ credentials, totalAccessCodes }) {
-  // Generate sample access codes for display (matching the design)
-  const initialAccessCodes = credentials.flatMap(credential => 
-    (credential.codes || []).map(code => ({
-      code: code,
-      status: 'active',
-      credentialType: credential.type || 'Computer Science Diploma',
-      credentialId: credential.id,
-      createdDate: new Date(credential.access_code_date).toLocaleDateString('en-US', {
-        month: 'numeric',
-        day: 'numeric', 
-        year: 'numeric'
-      })
-    }))
-  );
-
-  // State to manage access code statuses
-  const [accessCodes, setAccessCodes] = useState(initialAccessCodes);
+function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
+  // State to manage access code list and statuses
+  const [accessCodes, setAccessCodes] = useState([]);
   const [loadingStates, setLoadingStates] = useState({});
   const [deleteLoadingStates, setDeleteLoadingStates] = useState({});
+
+  // Load access codes with accurate active/inactive state from backend
+  const loadCodes = async () => {
+    try {
+      const studentId = localStorage.getItem('userId');
+      if (!studentId) return;
+      const rows = await fetchStudentAccessCodes(studentId);
+      const normalized = (rows || []).map(r => ({
+        code: r.access_code,
+        status: r.is_active ? 'active' : 'inactive',
+        credentialType: r.credential_type || 'Computer Science Diploma',
+        credentialId: r.credential_id,
+        createdDate: new Date(r.created_at).toLocaleDateString('en-US', {
+          month: 'numeric',
+          day: 'numeric',
+          year: 'numeric'
+        })
+      }));
+      setAccessCodes(normalized);
+    } catch (err) {
+      console.error('Error loading access codes:', err);
+    }
+  };
+
+  useEffect(() => {
+    loadCodes();
+  }, []);
 
   // Build a shareable verification URL with the code prefilled and auto-verify enabled
   const buildShareUrl = (code, { autoVerify = true } = {}) => {
@@ -71,15 +83,14 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
     try {
       // Update database first
       await updateAccessCodeStatus(accessCode.code, newStatus === 'active');
-      
-      // If successful, update local state
-      setAccessCodes(prevCodes => 
-        prevCodes.map((code, i) => 
-          i === index 
-            ? { ...code, status: newStatus }
-            : code
-        )
+
+      // Optimistically update local state
+      setAccessCodes(prevCodes =>
+        prevCodes.map((code, i) => (i === index ? { ...code, status: newStatus } : code))
       );
+
+      // Re-fetch to ensure UI reflects server state
+      await loadCodes();
     } catch (error) {
       console.error('Failed to update access code status:', error);
       alert('Failed to update access code status. Please try again.');
@@ -102,11 +113,18 @@ function AccessCodesSection({ credentials, totalAccessCodes }) {
     setDeleteLoadingStates(prev => ({ ...prev, [index]: true }));
     
     try {
-      // Delete from database
       await deleteAccessCode(accessCode.code);
       
       // If successful, remove from local state
       setAccessCodes(prevCodes => prevCodes.filter((_, i) => i !== index));
+
+      // Re-fetch to keep list accurate
+      await loadCodes();
+
+      // Ask parent to refetch and update stats/sections
+      if (typeof onRefresh === 'function') {
+        onRefresh();
+      }
     } catch (error) {
       console.error('Failed to delete access code:', error);
       alert('Failed to delete access code. Please try again.');

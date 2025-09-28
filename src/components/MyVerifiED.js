@@ -15,59 +15,63 @@ function MyVerifiED() {
   const [activeSection, setActiveSection] = useState('credentials');
   const [generatingId, setGeneratingId] = useState(null);
 
-  // Calculate total access codes from all credentials
+  // Calculate total access codes from all credentials (non-deleted only)
   const calculateTotalAccessCodes = (credentialsData) => {
-    return credentialsData.reduce((total, credential) => {
-      return total + (credential.codes ? credential.codes.length : 0);
+    return credentialsData.reduce((total, c) => {
+      if (typeof c.access_codes_non_deleted === 'number') {
+        return total + c.access_codes_non_deleted;
+      }
+      return total + (Array.isArray(c.codes) ? c.codes.length : 0);
     }, 0);
   };
 
-  useEffect(() => {
-    const loadStudentData = async () => {
-      try {
-        // Get user info from localStorage
-        const userId = localStorage.getItem('userId');
-        const userType = localStorage.getItem('userType');
-        
-        if (!userId || userType !== 'student') {
-          setLoading(false);
-          return;
-        }
-
-        // Fetch student data, credential count, and actual credentials
-        const [studentData, credentialData, credentialsData] = await Promise.all([
-          fetchStudentName(userId),
-          fetchStudentCredentialCount(userId),
-          fetchStudentCredentials(userId)
-        ]);
-        
-        setUser({ 
-          id: userId, 
-          type: userType,
-          student_id: studentData.student_id,
-          first_name: studentData.first_name,
-          middle_name: studentData.middle_name,
-          last_name: studentData.last_name,
-          email: studentData.email
-        });
-        
-        setCredentialCount(credentialData.total_credentials);
-        // Transform access_codes (comma-separated string) to an array for UI
-        const transformed = (credentialsData || []).map(c => ({
-          ...c,
-          codes: c.access_codes ? c.access_codes.split(',').filter(Boolean) : []
-        }));
-        setCredentials(transformed);
-        // Calculate and set total access codes
-        setTotalAccessCodes(calculateTotalAccessCodes(transformed));
+  // Expose loader so children can trigger a refetch (e.g., after delete)
+  const loadStudentData = async () => {
+    try {
+      // Get user info from localStorage
+      const userId = localStorage.getItem('userId');
+      const userType = localStorage.getItem('userType');
+      
+      if (!userId || userType !== 'student') {
         setLoading(false);
-
-      } catch (error) {
-        console.error('Error loading student data:', error);
-        setLoading(false);
+        return;
       }
-    };
 
+      // Fetch student data, credential count, and actual credentials
+      const [studentData, credentialData, credentialsData] = await Promise.all([
+        fetchStudentName(userId),
+        fetchStudentCredentialCount(userId),
+        fetchStudentCredentials(userId)
+      ]);
+      
+      setUser({ 
+        id: userId, 
+        type: userType,
+        student_id: studentData.student_id,
+        first_name: studentData.first_name,
+        middle_name: studentData.middle_name,
+        last_name: studentData.last_name,
+        email: studentData.email
+      });
+      
+      setCredentialCount(credentialData.total_credentials);
+      // Transform access_codes (comma-separated string) to an array for UI
+      const transformed = (credentialsData || []).map(c => ({
+        ...c,
+        codes: c.access_codes ? c.access_codes.split(',').filter(Boolean) : []
+      }));
+      setCredentials(transformed);
+      // Calculate and set total access codes
+      setTotalAccessCodes(calculateTotalAccessCodes(transformed));
+      setLoading(false);
+
+    } catch (error) {
+      console.error('Error loading student data:', error);
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     loadStudentData();
   }, []);
 
@@ -196,6 +200,7 @@ function MyVerifiED() {
           <AccessCodesSection
             credentials={credentials}
             totalAccessCodes={totalAccessCodes}
+            onRefresh={loadStudentData}
           />
         )}
 
