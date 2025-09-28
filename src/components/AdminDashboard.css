@@ -1,0 +1,354 @@
+/* fileName: AdminDashboard.css */
+
+.admin-dashboard {
+  padding: 20px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+.admin-header {
+  background: linear-gradient(135deg, #4050b5, #7986cb);
+  color: white;
+  padding: 30px;
+  margin-top: 100px;
+  border-radius: 12px;
+  margin-bottom: 30px;
+  box-shadow: 0 4px 15px rgba(64, 80, 181, 0.3);
+}
+
+.admin-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.admin-header p {
+  margin: 10px 0 0 0;
+  opacity: 0.9;
+}
+
+.admin-nav {
+  margin-bottom: 30px;
+}
+
+.admin-nav .nav-tabs {
+  border: none;
+  background-color: white;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.admin-nav .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+  padding: 12px 20px;
+  margin: 0 5px;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.admin-nav .nav-link:hover {
+  color: #4050b5;
+  background-color: #f8f9fa;
+}
+
+.admin-nav .nav-link.active {
+  color: white;
+  background: linear-gradient(135deg, #4050b5, #7986cb);
+  box-shadow: 0 2px 8px rgba(64, 80, 181, 0.3);
+}
+
+.admin-nav .badge {
+  font-size: 0.7rem;
+  padding: 2px 6px;
+}
+
+.admin-content {
+  background-color: white;
+  border-radius: 12px;
+  padding: 30px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Dashboard Overview Styles */
+.dashboard-overview h2 {
+  color: #333;
+  font-weight: 600;
+  margin-bottom: 30px;
+  font-size: 1.8rem;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  display: flex;
+  align-items: center;
+  transition: all 0.3s ease;
+  border-left: 4px solid #e9ecef;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  opacity: 0.05;
+  transition: opacity 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.stat-card:hover::before {
+  opacity: 0.1;
+}
+
+.stat-card.institutions {
+  border-left-color: #4050b5;
+}
+
+.stat-card.institutions::before {
+  background: linear-gradient(135deg, #4050b5, #7986cb);
+}
+
+.stat-card.institutions .stat-icon {
+  color: #4050b5;
+}
+
+.stat-card.students {
+  border-left-color: #28a745;
+}
+
+.stat-card.students::before {
+  background: linear-gradient(135deg, #28a745, #20c997);
+}
+
+.stat-card.students .stat-icon {
+  color: #28a745;
+}
+
+.stat-card.credentials {
+  border-left-color: #ffc107;
+}
+
+.stat-card.credentials::before {
+  background: linear-gradient(135deg, #ffc107, #fd7e14);
+}
+
+.stat-card.credentials .stat-icon {
+  color: #ffc107;
+}
+
+.stat-card.verified {
+  border-left-color: #17a2b8;
+}
+
+.stat-card.verified::before {
+  background: linear-gradient(135deg, #17a2b8, #6f42c1);
+}
+
+.stat-card.verified .stat-icon {
+  color: #17a2b8;
+}
+
+.stat-card.verifications {
+  border-left-color: #6f42c1;
+}
+
+.stat-card.verifications::before {
+  background: linear-gradient(135deg, #6f42c1, #e83e8c);
+}
+
+.stat-card.verifications .stat-icon {
+  color: #6f42c1;
+}
+
+.stat-card.messages {
+  border-left-color: #dc3545;
+}
+
+.stat-card.messages::before {
+  background: linear-gradient(135deg, #dc3545, #fd7e14);
+}
+
+.stat-card.messages .stat-icon {
+  color: #dc3545;
+}
+
+.stat-icon {
+  font-size: 3rem;
+  margin-right: 20px;
+  width: 80px;
+  text-align: center;
+}
+
+.stat-content {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+}
+
+.stat-content h3 {
+  margin: 0;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+
+.stat-content p {
+  margin: 5px 0 0 0;
+  color: #666;
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.stat-content .badge {
+  margin-left: 10px;
+  font-size: 0.7rem;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(220, 53, 69, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(220, 53, 69, 0);
+  }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 15px;
+  }
+  
+  .admin-header {
+    padding: 20px;
+    text-align: center;
+  }
+  
+  .admin-header h1 {
+    font-size: 1.5rem;
+  }
+  
+  .admin-nav .nav-tabs {
+    flex-direction: column;
+  }
+  
+  .admin-nav .nav-link {
+    margin: 2px 0;
+    text-align: center;
+  }
+  
+  .admin-content {
+    padding: 20px;
+  }
+  
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+    padding: 20px;
+  }
+  
+  .stat-icon {
+    margin-right: 0;
+    margin-bottom: 15px;
+  }
+  
+  .stat-content h3 {
+    font-size: 2rem;
+  }
+}
+
+/* Loading and Error States */
+.spinner-border {
+  color: #4050b5;
+}
+
+.alert {
+  border-radius: 8px;
+  border: none;
+  font-weight: 500;
+}
+
+.alert-danger {
+  background-color: #f8d7da;
+  color: #721c24;
+}
+
+/* Form Styles for Admin Components */
+.form-control, .form-select {
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: #4050b5;
+  box-shadow: 0 0 0 0.2rem rgba(64, 80, 181, 0.25);
+}
+
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #4050b5, #7986cb);
+  border: none;
+}
+
+.btn-primary:hover {
+  background: linear-gradient(135deg, #3542a0, #6c7bb8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 15px rgba(64, 80, 181, 0.3);
+}
+
+.btn-success {
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border: none;
+}
+
+.btn-success:hover {
+  background: linear-gradient(135deg, #218838, #1e7e34);
+  transform: translateY(-1px);
+}
+
+.btn-danger {
+  background: linear-gradient(135deg, #dc3545, #c82333);
+  border: none;
+}
+
+.btn-danger:hover {
+  background: linear-gradient(135deg, #c82333, #bd2130);
+  transform: translateY(-1px);
+}
+
+.btn-warning {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  border: none;
+  color: #333;
+}
+
+.btn-warning:hover {
+  background: linear-gradient(135deg, #e0a800, #d39e00);
+  transform: translateY(-1px);
+  color: #333;
+}

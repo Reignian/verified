@@ -1,10 +1,22 @@
-import React, { useEffect } from 'react';
+// fileName: HomePage.js (Updated with working contact form)
+
+import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './Navigation.css';
 import './HomePage.css';
 import VerifierSection from './VerifierSection';
+import { submitContactForm } from '../services/apiService';
 
 function HomePage() {
+  const [contactForm, setContactForm] = useState({
+    name: '',
+    email: '',
+    user_type: '',
+    message: ''
+  });
+  const [contactSubmitting, setContactSubmitting] = useState(false);
+  const [contactMessage, setContactMessage] = useState('');
+  const [contactMessageType, setContactMessageType] = useState('');
 
   useEffect(() => {
     // Smooth scrolling for anchor links
@@ -23,10 +35,44 @@ function HomePage() {
     return () => document.removeEventListener('click', handleSmoothScroll);
   }, []);
 
-  const handleContactSubmit = (e) => {
+  const handleContactInputChange = (e) => {
+    const { name, value } = e.target;
+    setContactForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleContactSubmit = async (e) => {
     e.preventDefault();
-    alert('Thank you for your message! We will get back to you soon.');
-    e.target.reset();
+    setContactSubmitting(true);
+    setContactMessage('');
+    
+    try {
+      const response = await submitContactForm(contactForm);
+      setContactMessage(response.message || 'Thank you for your message! We will get back to you soon.');
+      setContactMessageType('success');
+      
+      // Reset form
+      setContactForm({
+        name: '',
+        email: '',
+        user_type: '',
+        message: ''
+      });
+    } catch (error) {
+      console.error('Contact form submission failed:', error);
+      setContactMessage(error.response?.data?.error || 'Failed to submit message. Please try again.');
+      setContactMessageType('error');
+    } finally {
+      setContactSubmitting(false);
+      
+      // Clear message after 5 seconds
+      setTimeout(() => {
+        setContactMessage('');
+        setContactMessageType('');
+      }, 5000);
+    }
   };
 
   return (
@@ -318,15 +364,47 @@ function HomePage() {
           <div className="row">
             <div className="col-lg-6 mb-4">
               <form onSubmit={handleContactSubmit} className="bg-white p-4 rounded shadow-sm">
+                {contactMessage && (
+                  <div className={`alert ${contactMessageType === 'success' ? 'alert-success' : 'alert-danger'} mb-3`}>
+                    <i className={`fas ${contactMessageType === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'} me-2`}></i>
+                    {contactMessage}
+                  </div>
+                )}
+                
                 <div className="mb-3">
-                  <input type="text" className="form-control" placeholder="Name" required />
+                  <input 
+                    type="text" 
+                    className="form-control" 
+                    name="name"
+                    placeholder="Name" 
+                    value={contactForm.name}
+                    onChange={handleContactInputChange}
+                    required 
+                    disabled={contactSubmitting}
+                  />
                 </div>
                 <div className="mb-3">
-                  <input type="email" className="form-control" placeholder="Email" required />
+                  <input 
+                    type="email" 
+                    className="form-control" 
+                    name="email"
+                    placeholder="Email" 
+                    value={contactForm.email}
+                    onChange={handleContactInputChange}
+                    required 
+                    disabled={contactSubmitting}
+                  />
                 </div>
                 <div className="mb-3">
-                  <select className="form-select" defaultValue="" required>
-                    <option value="" disabled>I am a...</option>
+                  <select 
+                    className="form-select" 
+                    name="user_type"
+                    value={contactForm.user_type}
+                    onChange={handleContactInputChange}
+                    required
+                    disabled={contactSubmitting}
+                  >
+                    <option value="">I am a...</option>
                     <option value="institution">Academic Institution</option>
                     <option value="employer">Employer/Verifier</option>
                     <option value="student">Student/Graduate</option>
@@ -334,9 +412,34 @@ function HomePage() {
                   </select>
                 </div>
                 <div className="mb-3">
-                  <textarea className="form-control" placeholder="Message" rows="5" required></textarea>
+                  <textarea 
+                    className="form-control" 
+                    name="message"
+                    placeholder="Message" 
+                    rows="5" 
+                    value={contactForm.message}
+                    onChange={handleContactInputChange}
+                    required
+                    disabled={contactSubmitting}
+                  ></textarea>
                 </div>
-                <button type="submit" className="btn btn-primary-custom w-100">Send Message</button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary-custom w-100"
+                  disabled={contactSubmitting}
+                >
+                  {contactSubmitting ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2"></span>
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-paper-plane me-2"></i>
+                      Send Message
+                    </>
+                  )}
+                </button>
               </form>
             </div>
             

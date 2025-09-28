@@ -1,4 +1,4 @@
-// fileName: server.js
+// fileName: server.js (Updated with admin routes)
 
 require('dotenv').config();
 const express = require('express');
@@ -12,6 +12,7 @@ const academicQueries = require('./src/queries/academicInstitutionQueries');
 const authQueries = require('./src/queries/authQueries');
 const myVerifiEDQueries = require('./src/queries/MyVerifiEDQueries');
 const verificationQueries = require('./src/queries/verificationQueries');
+const adminQueries = require('./src/queries/adminQueries'); // NEW
 const pinataService = require('./src/services/pinataService');
 
 const XLSX = require('xlsx');
@@ -223,7 +224,8 @@ app.post('/api/login', (req, res) => {
     return res.status(400).json({ error: 'Username and password required' });
   }
   
-  if (!userType) {
+  // For admin login, userType is not required
+  if (!userType && username !== 'admin') {
     return res.status(400).json({ error: 'User type selection required' });
   }
   
@@ -240,6 +242,19 @@ app.post('/api/login', (req, res) => {
     
     if (user.password !== password || user.username !== username) {
       return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    // Special handling for admin login
+    if (user.account_type === 'admin') {
+      return res.json({
+        message: 'Admin login successful',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          account_type: user.account_type
+        }
+      });
     }
     
     // Validate that the selected user type matches the account type in database
@@ -261,6 +276,209 @@ app.post('/api/login', (req, res) => {
     });
   });
 });
+
+// NEW: Contact form submission
+app.post('/api/contact', (req, res) => {
+  const { name, email, user_type, message } = req.body;
+  
+  if (!name || !email || !user_type || !message) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  
+  adminQueries.createContactMessage({ name, email, user_type, message }, (err, result) => {
+    if (err) {
+      console.error('Error creating contact message:', err);
+      return res.status(500).json({ error: 'Failed to submit message' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Thank you for your message! We will get back to you soon.',
+      id: result.insertId
+    });
+  });
+});
+
+// ================= ADMIN ROUTES =================
+
+// Get system statistics for admin dashboard
+app.get('/api/admin/stats', (req, res) => {
+  adminQueries.getSystemStats((err, stats) => {
+    if (err) {
+      console.error('Error fetching system stats:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(stats);
+  });
+});
+
+// Get all institutions for admin management
+app.get('/api/admin/institutions', (req, res) => {
+  adminQueries.getAllInstitutions((err, results) => {
+    if (err) {
+      console.error('Error fetching institutions:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// Create new institution
+app.post('/api/admin/institutions', (req, res) => {
+  const { username, password, email, institution_name } = req.body;
+  
+  if (!username || !password || !email || !institution_name) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  
+  adminQueries.createInstitution({ username, password, email, institution_name }, (err, result) => {
+    if (err) {
+      console.error('Error creating institution:', err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'Username or email already exists' });
+      }
+      return res.status(500).json({ error: 'Failed to create institution' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Institution created successfully',
+      id: result.insertId
+    });
+  });
+});
+
+// Update institution
+app.put('/api/admin/institutions/:id', (req, res) => {
+  const { id } = req.params;
+  const { username, email, institution_name } = req.body;
+  
+  if (!username || !email || !institution_name) {
+    return res.status(400).json({ error: 'All fields are required' });
+  }
+  
+  adminQueries.updateInstitution(id, { username, email, institution_name }, (err, result) => {
+    if (err) {
+      console.error('Error updating institution:', err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'Username or email already exists' });
+      }
+      return res.status(500).json({ error: 'Failed to update institution' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Institution updated successfully'
+    });
+  });
+});
+
+// Delete institution (soft delete)
+app.delete('/api/admin/institutions/:id', (req, res) => {
+  const { id } = req.params;
+  
+  adminQueries.deleteInstitution(id, (err, result) => {
+    if (err) {
+      console.error('Error deleting institution:', err);
+      return res.status(500).json({ error: 'Failed to delete institution' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Institution deleted successfully'
+    });
+  });
+});
+
+// Get all credentials for admin monitoring
+app.get('/api/admin/credentials', (req, res) => {
+  adminQueries.getAllCredentials((err, results) => {
+    if (err) {
+      console.error('Error fetching all credentials:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// Get credential verification statistics
+app.get('/api/admin/verification-stats', (req, res) => {
+  adminQueries.getCredentialVerificationStats((err, results) => {
+    if (err) {
+      console.error('Error fetching verification stats:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// Get all contact messages
+app.get('/api/admin/contact-messages', (req, res) => {
+  adminQueries.getAllContactMessages((err, results) => {
+    if (err) {
+      console.error('Error fetching contact messages:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// Update contact message status
+app.put('/api/admin/contact-messages/:id', (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+  
+  if (!['unread', 'read', 'replied'].includes(status)) {
+    return res.status(400).json({ error: 'Invalid status' });
+  }
+  
+  adminQueries.updateContactMessageStatus(id, status, (err, result) => {
+    if (err) {
+      console.error('Error updating contact message status:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Message status updated'
+    });
+  });
+});
+
+// Delete contact message
+app.delete('/api/admin/contact-messages/:id', (req, res) => {
+  const { id } = req.params;
+  
+  adminQueries.deleteContactMessage(id, (err, result) => {
+    if (err) {
+      console.error('Error deleting contact message:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Message deleted successfully'
+    });
+  });
+});
+
+// ================= END ADMIN ROUTES =================
 
 app.post('/api/bulk-import-students/:institutionId', upload.single('studentFile'), async (req, res) => {
   const { institutionId } = req.params;
@@ -576,7 +794,7 @@ app.post('/api/update-blockchain-id', (req, res) => {
   }
 });
 
-// Verify credential by access code
+// UPDATED: Verify credential by access code with tracking
 app.post('/api/verify-credential', (req, res) => {
   const { accessCode } = req.body;
   
@@ -591,8 +809,30 @@ app.post('/api/verify-credential', (req, res) => {
     }
     
     if (!result) {
+      // Log failed verification attempt
+      adminQueries.logCredentialVerification({
+        credential_id: null,
+        access_code: accessCode.trim(),
+        verifier_ip: req.ip || req.connection.remoteAddress,
+        verifier_user_agent: req.get('User-Agent'),
+        status: 'failed'
+      }, (logErr) => {
+        if (logErr) console.error('Failed to log verification attempt:', logErr);
+      });
+      
       return res.status(404).json({ error: 'No credential found with this access code' });
     }
+    
+    // Log successful verification
+    adminQueries.logCredentialVerification({
+      credential_id: result.id,
+      access_code: accessCode.trim(),
+      verifier_ip: req.ip || req.connection.remoteAddress,
+      verifier_user_agent: req.get('User-Agent'),
+      status: 'success'
+    }, (logErr) => {
+      if (logErr) console.error('Failed to log verification attempt:', logErr);
+    });
     
     res.json({
       success: true,

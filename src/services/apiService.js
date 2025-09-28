@@ -1,4 +1,4 @@
-// fileName: apiService.js (Updated with new function)
+// fileName: apiService.js (Updated with contact form and admin imports)
 
 import axios from 'axios';
 
@@ -9,14 +9,27 @@ const API_URL = process.env.NODE_ENV === 'production'
 // Login function
 export const login = async (username, password, userType) => {
   try {
-    const response = await axios.post(`${API_URL}/login`, {
-      username,
-      password,
-      userType
-    });
+    const requestData = { username, password };
+    // Only include userType if it's provided (not for admin login)
+    if (userType) {
+      requestData.userType = userType;
+    }
+    
+    const response = await axios.post(`${API_URL}/login`, requestData);
     return response.data;
   } catch (error) {
     console.error('Error during login:', error);
+    throw error;
+  }
+};
+
+// Contact form submission
+export const submitContactForm = async (formData) => {
+  try {
+    const response = await axios.post(`${API_URL}/contact`, formData);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting contact form:', error);
     throw error;
   }
 };

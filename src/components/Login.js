@@ -1,3 +1,5 @@
+// fileName: Login.js (Updated with Admin Support)
+
 import React, { useState } from 'react';
 import { login } from '../services/apiService';
 import { useNavigate } from 'react-router-dom';
@@ -11,6 +13,7 @@ function Login({ onLoginSuccess }) {
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const navigate = useNavigate();
 
   const handleInputChange = (e) => {
@@ -23,13 +26,28 @@ function Login({ onLoginSuccess }) {
     if (error) setError('');
   };
 
+  const handleAdminToggle = () => {
+    setIsAdminLogin(!isAdminLogin);
+    setFormData({
+      username: '',
+      password: '',
+      userType: ''
+    });
+    setError('');
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError('');
     
     try {
-      const response = await login(formData.username, formData.password, formData.userType);
+      // For admin login, don't send userType
+      const loginData = isAdminLogin ? 
+        { username: formData.username, password: formData.password } :
+        { username: formData.username, password: formData.password, userType: formData.userType };
+      
+      const response = await login(loginData.username, loginData.password, loginData.userType);
       console.log('Login successful:', response);
       console.log('User ID from response:', response.user.id);
       console.log('User object:', response.user);
@@ -46,6 +64,8 @@ function Login({ onLoginSuccess }) {
         navigate('/student-dashboard');
       } else if (response.user.account_type === 'institution') {
         navigate('/institution-dashboard');
+      } else if (response.user.account_type === 'admin') {
+        navigate('/admin-dashboard');
       }
       
     } catch (error) {
@@ -60,12 +80,32 @@ function Login({ onLoginSuccess }) {
     }
   };
 
-  
-
   return (
     <div className="login-page">
       <div className="login-card">
-        <h1 className="login-title">Welcome to Verified</h1>
+        <div className="text-center mb-4">
+          <h1 className="login-title">Welcome to VerifiED</h1>
+          <div className="login-toggle">
+            <button
+              type="button"
+              className={`btn ${!isAdminLogin ? 'btn-primary' : 'btn-outline-primary'} me-2`}
+              onClick={() => !isAdminLogin || handleAdminToggle()}
+              disabled={loading}
+            >
+              User Login
+            </button>
+            <button
+              type="button"
+              className={`btn ${isAdminLogin ? 'btn-danger' : 'btn-outline-danger'}`}
+              onClick={() => isAdminLogin || handleAdminToggle()}
+              disabled={loading}
+            >
+              <i className="fas fa-cog me-1"></i>
+              Admin
+            </button>
+          </div>
+        </div>
+
         <form className="login-form" onSubmit={handleSubmit}>
           {error && (
             <div className="login-error" style={{ marginBottom: '12px' }}>
@@ -82,8 +122,9 @@ function Login({ onLoginSuccess }) {
               className="form-control"
               value={formData.username}
               onChange={handleInputChange}
-              placeholder="Enter your username"
+              placeholder={isAdminLogin ? "Enter admin username" : "Enter your username"}
               disabled={loading}
+              required
             />
           </div>
 
@@ -96,48 +137,85 @@ function Login({ onLoginSuccess }) {
               className="form-control"
               value={formData.password}
               onChange={handleInputChange}
-              placeholder="Enter your password"
+              placeholder={isAdminLogin ? "Enter admin password" : "Enter your password"}
               disabled={loading}
+              required
             />
           </div>
 
-          <div className="mb-3">
-            <label className="form-label d-block">User Type</label>
-            <div className="login-radios">
-              <div className="form-check">
-                <input
-                  type="radio"
-                  className="form-check-input"
-                  name="userType"
-                  id="userTypeInstitution"
-                  value="institution"
-                  checked={formData.userType === 'institution'}
-                  onChange={handleInputChange}
-                  disabled={loading}
-                />
-                <label className="form-check-label" htmlFor="userTypeInstitution">Academic Institution</label>
-              </div>
-              <div className="form-check">
-                <input
-                  type="radio"
-                  className="form-check-input"
-                  name="userType"
-                  id="userTypeStudent"
-                  value="student"
-                  checked={formData.userType === 'student'}
-                  onChange={handleInputChange}
-                  required
-                  disabled={loading}
-                />
-                <label className="form-check-label" htmlFor="userTypeStudent">Student/Graduate</label>
+          {!isAdminLogin && (
+            <div className="mb-3">
+              <label className="form-label d-block">User Type</label>
+              <div className="login-radios">
+                <div className="form-check">
+                  <input
+                    type="radio"
+                    className="form-check-input"
+                    name="userType"
+                    id="userTypeInstitution"
+                    value="institution"
+                    checked={formData.userType === 'institution'}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    required
+                  />
+                  <label className="form-check-label" htmlFor="userTypeInstitution">
+                    Academic Institution
+                  </label>
+                </div>
+                <div className="form-check">
+                  <input
+                    type="radio"
+                    className="form-check-input"
+                    name="userType"
+                    id="userTypeStudent"
+                    value="student"
+                    checked={formData.userType === 'student'}
+                    onChange={handleInputChange}
+                    disabled={loading}
+                    required
+                  />
+                  <label className="form-check-label" htmlFor="userTypeStudent">
+                    Student/Graduate
+                  </label>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
-          <button type="submit" className="btn-primary-custom" disabled={loading}>
-            {loading ? 'Logging in...' : 'Login'}
+          {isAdminLogin && (
+            <div className="alert alert-warning d-flex align-items-center">
+              <i className="fas fa-exclamation-triangle me-2"></i>
+              <small>Admin access restricted to authorized personnel only</small>
+            </div>
+          )}
+
+          <button 
+            type="submit" 
+            className={`btn w-100 ${isAdminLogin ? 'btn-danger' : 'btn-primary'}`}
+            disabled={loading}
+          >
+            {loading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Logging in...
+              </>
+            ) : (
+              <>
+                <i className={`fas ${isAdminLogin ? 'fa-shield-alt' : 'fa-sign-in-alt'} me-2`}></i>
+                {isAdminLogin ? 'Admin Login' : 'Login'}
+              </>
+            )}
           </button>
         </form>
+
+        {isAdminLogin && (
+          <div className="text-center mt-3">
+            <small className="text-muted">
+              For support, contact the system administrator
+            </small>
+          </div>
+        )}
       </div>
     </div>
   );

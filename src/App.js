@@ -1,8 +1,11 @@
+// fileName: App.js (Updated with Admin Routes)
+
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import HomePage from './components/HomePage';
 import AcademicInstitution from './components/AcademicInstitution';
 import MyVerifiED from './components/MyVerifiED';
+import AdminDashboard from './components/AdminDashboard'; // NEW
 import Login from './components/Login';
 import Navigation from './components/Navigation';
 
@@ -16,6 +19,7 @@ function AppContent() {
   const getCurrentPage = () => {
     if (location.pathname === '/institution-dashboard') return 'institution';
     if (location.pathname === '/student-dashboard') return 'student';
+    if (location.pathname === '/admin-dashboard') return 'admin'; // NEW
     return 'home';
   };
 
@@ -62,6 +66,7 @@ function AppContent() {
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />
+        <Route path="/admin-dashboard" element={<AdminDashboard />} /> {/* NEW */}
       </Routes>
     </>
   );
