@@ -82,84 +82,79 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
 
   return (
     <div className="student-management">
+      {/* Actions */}
+      <div className="mb-3">
+        <button
+          className="btn btn-primary-custom"
+          onClick={() => onOpenBulkImport && onOpenBulkImport()}
+        >
+          <i className="fas fa-users me-2"></i>
+          Bulk Import Students
+        </button>
+      </div>
+      {/* Students Table */}
+      <div className="table-card">
+        <h2 className="card-title">
+          <div className="card-icon">
+            <i className="fas fa-user-graduate"></i>
+          </div>
+        </h2>
 
-      {/* Main Content */}
-      <div className="main-content">
-        {/* Actions */}
-        <div className="mb-3">
-          <button
-            className="btn btn-secondary-custom"
-            onClick={() => onOpenBulkImport && onOpenBulkImport()}
-          >
-            <i className="fas fa-users me-2"></i>
-            Bulk Import Students
-          </button>
-        </div>
-        {/* Students Table */}
-        <div className="table-card">
-          <h2 className="card-title">
-            <div className="card-icon">
-              <i className="fas fa-user-graduate"></i>
-            </div>
-            Registered Students
-          </h2>
-
-          {loading ? (
-            <div className="text-center py-5">
-              <div className="loading-spinner"></div>
-              Loading students...
-            </div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Student ID</th>
-                    <th>Full Name</th>
-                    <th>Credentials Issued</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.length > 0 ? (
-                    students.map((student) => (
-                      <tr key={student.id}>
-                        <td>
-                          <strong>{student.student_id}</strong>
-                        </td>
-                        <td>
-                          {student.first_name} {student.middle_name ? student.middle_name + ' ' : ''}{student.last_name}
-                        </td>
-                        <td>
-                          <span className="credential-badge">
-                            {student.credential_count}
-                          </span>
-                        </td>
-                        <td>
-                          <button
-                            className="btn btn-primary-custom btn-sm"
-                            onClick={() => handleViewCredentials(student)}
-                            title="View student credentials"
-                          >
-                            <i className="fas fa-eye me-1"></i>
-                            View Credentials
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="4" className="text-center text-muted py-4">
-                        <i className="fas fa-user-slash fa-2x mb-3 d-block"></i>
-                        No students registered yet
+        {loading ? (
+          <div className="text-center py-5">
+            <div className="loading-spinner"></div>
+            Loading students...
+          </div>
+        ) : (
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Student ID</th>
+                  <th>Full Name</th>
+                  <th>Credentials Issued</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {students.length > 0 ? (
+                  students.map((student) => (
+                    <tr key={student.id}>
+                      <td>
+                        <strong>{student.student_id}</strong>
+                      </td>
+                      <td>
+                        {student.first_name} {student.middle_name ? student.middle_name + ' ' : ''}{student.last_name}
+                      </td>
+                      <td>
+                        <span className="credential-badge">
+                          {student.credential_count}
+                        </span>
+                      </td>
+                      <td>
+                        <button
+                          className="btn btn-primary-custom btn-sm"
+                          onClick={() => handleViewCredentials(student)}
+                          title="View student credentials"
+                        >
+                          <i className="fas fa-eye me-1"></i>
+                          View Credentials
+                        </button>
                       </td>
                     </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan="4" className="text-center text-muted py-4">
+                      <i className="fas fa-user-slash fa-2x mb-3 d-block"></i>
+                      No students registered yet
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Student Credentials Modal */}

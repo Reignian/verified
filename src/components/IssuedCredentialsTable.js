@@ -20,12 +20,6 @@ function IssuedCredentialsTable({ credentials, onView }) {
 
   return (
     <div className="table-card">
-      <h2 className="card-title">
-        <div className="card-icon">
-          <i className="fas fa-list"></i>
-        </div>
-        Issued Credentials
-      </h2>
 
       <div className="table-responsive">
         <table className="table">

@@ -1,4 +1,4 @@
-// fileName: AcademicInstitution.js
+﻿// fileName: AcademicInstitution.js
 
 import React, { useState, useEffect } from 'react';
 
@@ -134,7 +134,7 @@ function AcademicInstitution() {
 
   // Always show header + stats, change only the section content below
   return (
-    <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
+    <div className="ai-page" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
 
       {/* Header Section */}
       <div className="dashboard-header">
@@ -161,33 +161,25 @@ function AcademicInstitution() {
 
       {/* Main Content */}
       <div className="main-content">
-        {/* Stats Section (KPIs only) */}
-        <div className="stats-grid">
-          <div className="stat-card">
-            <div className="stat-number">{credentialStats.total_credentials}</div>
-            <p className="stat-label">Total Credentials</p>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{students.length}</div>
-            <p className="stat-label">Registered Students</p>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">
-              <i className="fas fa-shield-alt text-success"></i>
-            </div>
-            <p className="stat-label">Blockchain Secured</p>
-          </div>
-        </div>
+        {/* Stats removed per request to simplify and maximize content width */}
 
         {/* Section Tabs */}
         <div className="section-tabs" role="tablist" aria-label="Section navigation">
+          <button
+            className={`tab ${activeSection === 'dashboard' ? 'active' : ''}`}
+            onClick={() => setActiveSection('dashboard')}
+            role="tab"
+            aria-selected={activeSection === 'dashboard'}
+          >
+            Dashboard
+          </button>
           <button
             className={`tab ${activeSection === 'issued' ? 'active' : ''}`}
             onClick={() => setActiveSection('issued')}
             role="tab"
             aria-selected={activeSection === 'issued'}
           >
-            Issued Credentials
+            Credentials
           </button>
           <button
             className={`tab ${activeSection === 'students' ? 'active' : ''}`}
@@ -197,12 +189,20 @@ function AcademicInstitution() {
           >
             Students
           </button>
+          <button
+            className={`tab ${activeSection === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveSection('settings')}
+            role="tab"
+            aria-selected={activeSection === 'settings'}
+          >
+            Settings
+          </button>
         </div>
 
         {/* Section Container - content below changes */}
         {activeSection === 'issued' && (
           <>
-            <div className="button-group">
+            <div className="button-group mb-3">
               <button className="btn btn-primary-custom" onClick={() => setShowModal(true)}>
                 <i className="fas fa-plus-circle me-2"></i>
                 Issue Credential
