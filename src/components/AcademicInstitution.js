@@ -12,8 +12,11 @@ import {
   fetchInstitutionName
 } from '../services/apiService';
 import blockchainService from '../services/blockchainService';
-import AcademicInstitutionUI from './AcademicInstitutionUI';
+import 'bootstrap/dist/css/bootstrap.min.css';
+import './AcademicInstitution.css';
 import StudentManagement from './StudentManagement';
+import IssueCredentialModal from './IssueCredentialModal';
+import BulkImportStudentsModal from './BulkImportStudentsModal';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -219,7 +222,7 @@ function AcademicInstitution() {
       
       if (!updateResponse.ok) throw new Error('Database update failed');
 
-      setUploadMessage(`âœ… Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
+      setUploadMessage(`Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`);
       resetForm();
       setShowModal(false);
 
@@ -283,10 +286,7 @@ function AcademicInstitution() {
       const response = await bulkImportStudents(bulkImportFile, institutionId);
       
       setBulkImportMessage(
-        `âœ… Import completed! 
-        Successfully imported: ${response.imported_count} students
-        Failed: ${response.failed_count} records
-        Total processed: ${response.total_processed} records`
+        `Import completed! \nSuccessfully imported: ${response.imported_count} students\nFailed: ${response.failed_count} records\nTotal processed: ${response.total_processed} records`
       );
       
       setImportSuccess(true);
@@ -330,7 +330,7 @@ function AcademicInstitution() {
             } else if (serverMessage.includes('Institution ID required')) {
               userFriendlyMessage = 'There was a problem identifying your institution. Please log out and log back in, then try again.';
             } else {
-              userFriendlyMessage = `There's an issue with the file format or data: ${serverMessage}`;
+              userFriendlyMessage = `There\'s an issue with the file format or data: ${serverMessage}`;
             }
             break;
           case 500:
@@ -393,52 +393,198 @@ function AcademicInstitution() {
           onBack={handleBackToDashboard}
         />
       ) : (
-        <AcademicInstitutionUI
-          // Core state
-          account={account}
-          institutionName={institutionName}
+        <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '80px' }}>
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+          {/* Header Section */}
+          <div className="dashboard-header">
+            <div className="container">
+              <div className="row align-items-center">
+                <div className="col-lg-8">
+                  <h1 className="dashboard-title">
+                    <i className="fas fa-university me-3"></i>
+                    {institutionName ? `${institutionName} Dashboard` : 'Academic Institution Dashboard'}
+                  </h1>
+                  <p className="dashboard-subtitle">Issue and manage blockchain-verified academic credentials</p>
+                </div>
+                {account && (
+                  <div className="col-lg-4">
+                    <div className="wallet-info">
+                      <div className="wallet-label">Connected Wallet</div>
+                      <p className="wallet-address">{account}</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="main-content">
+            {/* Stats Section */}
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-number">{credentialStats.total_credentials}</div>
+                <p className="stat-label">Total Credentials</p>
+                {credentialStats.new_credentials_week > 0 && (
+                  <div className="notification-badge">{credentialStats.new_credentials_week}</div>
+                )}
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">{students.length}</div>
+                <p className="stat-label">Registered Students</p>
+              </div>
+              <div className="stat-card">
+                <div className="stat-number">
+                  <i className="fas fa-shield-alt text-success"></i>
+                </div>
+                <p className="stat-label">Blockchain Secured</p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="button-group">
+              <button className="btn btn-primary-custom" onClick={() => setShowModal(true)}>
+                <i className="fas fa-plus-circle me-2"></i>
+                Issue Credential
+              </button>
+              <button className="btn btn-secondary-custom" onClick={() => setShowBulkImportModal(true)}>
+                <i className="fas fa-users me-2"></i>
+                Bulk Import Students
+              </button>
+              <button className="btn btn-success-custom" onClick={handleShowStudentManagement}>
+                <i className="fas fa-user-cog me-2"></i>
+                Manage Students
+              </button>
+            </div>
+
+            {/* Issued Credentials Table */}
+            <div className="table-card">
+              <h2 className="card-title">
+                <div className="card-icon">
+                  <i className="fas fa-list"></i>
+                </div>
+                Issued Credentials
+              </h2>
+
+              <div className="table-responsive">
+                <table className="table">
+                  <thead>
+                    <tr>
+                      <th>Student Name</th>
+                      <th>Credential Type</th>
+                      <th>Date Issued</th>
+                      <th>Status</th>
+                      <th>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {issuedCredentials.length > 0 ? (
+                      issuedCredentials.map((credential) => (
+                        <tr key={credential.id}>
+                          <td>
+                            <strong>{credential.student_name}</strong>
+                          </td>
+                          <td>{credential.credential_type}</td>
+                          <td>{formatDate(credential.date_issued)}</td>
+                          <td>
+                            <span className={`status-badge status-${credential.status}`}>
+                              {credential.status === 'blockchain_verified' ? 'Verified' : 'Uploaded'}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              className="btn btn-primary-custom btn-sm"
+                              onClick={() => handleViewCredential(credential.ipfs_cid)}
+                              title="View credential document"
+                            >
+                              <i className="fas fa-eye me-1"></i>
+                              View
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan="5" className="text-center text-muted py-4">
+                          <i className="fas fa-inbox fa-2x mb-3 d-block"></i>
+                          No credentials issued yet
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          {/* Error Modal */}
+          {showErrorPopup && (
+            <div className="error-modal">
+              <div className="error-modal-content">
+                <div className="error-modal-header">
+                  <h4 className="error-modal-title">
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    Error
+                  </h4>
+                  <button 
+                    className="error-modal-close"
+                    onClick={() => setShowErrorPopup(false)}
+                  >
+                    <i className="fas fa-times"></i>
+                  </button>
+                </div>
+                <div className="error-modal-body">
+                  <p className="error-message">{errorMessage}</p>
+                  <div className="text-center mt-4">
+                    <button 
+                      className="btn btn-primary-custom"
+                      onClick={() => setShowErrorPopup(false)}
+                      style={{minWidth: '120px'}}
+                    >
+                      <i className="fas fa-check me-2"></i>
+                      OK
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!showStudentManagement && (
+        <IssueCredentialModal
+          show={showModal}
+          onClose={() => setShowModal(false)}
           credentialTypes={credentialTypes}
-          students={students}
-          issuedCredentials={issuedCredentials}
-          credentialStats={credentialStats}
-          formData={formData}
-          uploading={uploading}
-          uploadMessage={uploadMessage}
-          showModal={showModal}
-          setShowModal={setShowModal}
-          showErrorPopup={showErrorPopup}
-          setShowErrorPopup={setShowErrorPopup}
-          errorMessage={errorMessage}
-
-          // Bulk import props
-          showBulkImportModal={showBulkImportModal}
-          setShowBulkImportModal={setShowBulkImportModal}
-          bulkImportFile={bulkImportFile}
-          bulkImporting={bulkImporting}
-          bulkImportMessage={bulkImportMessage}
-          importSuccess={importSuccess}
-          showFormatInfo={showFormatInfo}
-          setShowFormatInfo={setShowFormatInfo}
-          resetBulkImportForm={resetBulkImportForm}
-
-          // Enhanced modal props
           showCustomTypeInput={showCustomTypeInput}
           customCredentialType={customCredentialType}
           studentSearchTerm={studentSearchTerm}
-
-          // Event handlers
+          students={students}
+          formData={formData}
+          uploading={uploading}
+          uploadMessage={uploadMessage}
           handleInputChange={handleInputChange}
           handleCustomTypeChange={handleCustomTypeChange}
           handleStudentSearchChange={handleStudentSearchChange}
           handleSubmit={handleSubmit}
-          handleViewCredential={handleViewCredential}
+        />
+      )}
+
+      {!showStudentManagement && (
+        <BulkImportStudentsModal
+          show={showBulkImportModal}
+          onClose={handleCloseBulkImportModal || (() => setShowBulkImportModal(false))}
+          importSuccess={importSuccess}
+          bulkImportMessage={bulkImportMessage}
+          bulkImportFile={bulkImportFile}
+          bulkImporting={bulkImporting}
+          showFormatInfo={showFormatInfo}
+          setShowFormatInfo={setShowFormatInfo}
+          resetBulkImportForm={resetBulkImportForm}
           handleBulkImportFileChange={handleBulkImportFileChange}
           handleBulkImportSubmit={handleBulkImportSubmit}
-          handleCloseBulkImportModal={handleCloseBulkImportModal}
-          formatDate={formatDate}
-          
-          // NEW: Student management handler
-          handleShowStudentManagement={handleShowStudentManagement}
         />
       )}
     </>
@@ -446,3 +592,4 @@ function AcademicInstitution() {
 }
 
 export default AcademicInstitution;
+
