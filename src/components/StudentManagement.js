@@ -5,10 +5,10 @@ import './StudentManagement.css';
 import { 
   fetchStudents, 
   fetchStudentCredentialCount, 
-  fetchStudentCredentialsForManagement // Updated to use the new function
+  fetchStudentCredentialsForManagement
 } from '../services/apiService';
 
-const StudentManagement = ({ institutionId, onBack }) => {
+const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOpenBulkImport, refreshTrigger }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -18,32 +18,29 @@ const StudentManagement = ({ institutionId, onBack }) => {
 
   useEffect(() => {
     loadStudents();
-  }, [institutionId]);
+  }, [institutionId, refreshTrigger]);
 
   const loadStudents = async () => {
     try {
       setLoading(true);
       const studentsData = await fetchStudents(institutionId);
-      
-      // Fetch credential count for each student
       const studentsWithCredentials = await Promise.all(
         studentsData.map(async (student) => {
           try {
             const credentialCount = await fetchStudentCredentialCount(student.id);
             return {
               ...student,
-              credential_count: credentialCount.total_credentials || 0
+              credential_count: credentialCount.total_credentials || 0,
             };
           } catch (error) {
             console.error(`Error fetching credential count for student ${student.id}:`, error);
             return {
               ...student,
-              credential_count: 0
+              credential_count: 0,
             };
           }
         })
       );
-
       setStudents(studentsWithCredentials);
     } catch (error) {
       console.error('Error loading students:', error);
@@ -57,10 +54,7 @@ const StudentManagement = ({ institutionId, onBack }) => {
       setSelectedStudent(student);
       setCredentialsLoading(true);
       setShowCredentialsModal(true);
-      
-      // Use the new dedicated function for management view
       const credentials = await fetchStudentCredentialsForManagement(student.id);
-      console.log('Fetched credentials for management:', credentials); // Debug log
       setStudentCredentials(credentials);
     } catch (error) {
       console.error('Error loading student credentials:', error);
@@ -70,57 +64,37 @@ const StudentManagement = ({ institutionId, onBack }) => {
     }
   };
 
-  // FIXED: Use the same URL pattern as the main dashboard
   const handleViewCredential = (ipfsCid) => {
     if (!ipfsCid) {
       console.error('No IPFS CID provided');
       return;
     }
     const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsCid}`;
-    console.log('Opening URL:', ipfsUrl); // Debug log
     window.open(ipfsUrl, '_blank');
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric', month: 'short', day: 'numeric'
+      year: 'numeric', month: 'short', day: 'numeric',
     });
   };
 
   return (
-    <div style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#f9f9f9', minHeight: '100vh', paddingTop: '100px' }}>
-      
-
-      {/* FontAwesome CDN */}
-      <link 
-        rel="stylesheet" 
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" 
-      />
-
-      {/* Header Section */}
-      <div className="page-header">
-        <div className="container">
-          <div className="row align-items-center">
-            <div className="col">
-              <button className="back-button" onClick={onBack}>
-                <i className="fas fa-arrow-left me-2"></i>
-                Back to Dashboard
-              </button>
-              <h1 className="page-title mt-3">
-                <i className="fas fa-users me-3"></i>
-                Student Management
-              </h1>
-              <p className="page-subtitle">
-                Manage students and view their credential records
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <div className="student-management">
 
       {/* Main Content */}
       <div className="main-content">
+        {/* Actions */}
+        <div className="mb-3">
+          <button
+            className="btn btn-secondary-custom"
+            onClick={() => onOpenBulkImport && onOpenBulkImport()}
+          >
+            <i className="fas fa-users me-2"></i>
+            Bulk Import Students
+          </button>
+        </div>
         {/* Students Table */}
         <div className="table-card">
           <h2 className="card-title">

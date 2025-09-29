@@ -69,50 +69,6 @@
   min-width: auto;
 }
 
-.page-header {
-  background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
-  color: white;
-  padding: 40px 0;
-  margin-bottom: 40px;
-  /* FIXED: Account for fixed navbar */
-  position: relative;
-  top: 0;
-  z-index: 999;
-}
-
-.page-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  margin-bottom: 10px;
-  text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.page-subtitle {
-  font-size: 1rem;
-  opacity: 0.9;
-  margin-bottom: 20px;
-}
-
-.back-button {
-  background: rgba(255, 255, 255, 0.2);
-  color: white;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  padding: 10px 20px;
-  border-radius: 6px;
-  font-weight: 500;
-  transition: var(--transition);
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-}
-
-.back-button:hover {
-  background: rgba(255, 255, 255, 0.3);
-  color: white;
-  transform: translateY(-1px);
-}
-
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -282,17 +238,10 @@
 }
 
 @media (max-width: 768px) {
-  .page-title {
-    font-size: 1.8rem;
-  }
   
   .table-card {
     padding: 25px;
     margin: 0 10px 20px;
-  }
-  
-  .main-content {
-    padding: 0 10px;
   }
 
   .modal-content {

@@ -148,6 +148,20 @@ export const fetchCredentialStats = async (institutionId) => {
   }
 };
 
+// Update credential's blockchain_id after on-chain issuance
+export const updateBlockchainId = async (credentialId, blockchainId) => {
+  try {
+    const response = await axios.post(`${API_URL}/update-blockchain-id`, {
+      credential_id: credentialId,
+      blockchain_id: blockchainId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating blockchain ID:', error);
+    throw error;
+  }
+};
+
 // Get student name by ID
 export const fetchStudentName = async (studentId) => {
   try {

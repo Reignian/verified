@@ -1,24 +1,30 @@
 // fileName: IssueCredentialModal.js
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import './AcademicInstitution.css';
+import { uploadCredential, updateBlockchainId } from '../services/apiService';
+import blockchainService from '../services/blockchainService';
 
 function IssueCredentialModal({
   show,
   onClose,
   credentialTypes,
-  showCustomTypeInput,
-  customCredentialType,
-  studentSearchTerm,
   students,
-  formData,
-  uploading,
-  uploadMessage,
-  handleInputChange,
-  handleCustomTypeChange,
-  handleStudentSearchChange,
-  handleSubmit,
+  onIssued,
 }) {
+  // Local state moved from parent
+  const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
+  const [customCredentialType, setCustomCredentialType] = useState('');
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
+  const [formData, setFormData] = useState({
+    credentialType: '',
+    studentAccount: '',
+    credentialFile: null,
+  });
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState('');
+  const [modalError, setModalError] = useState('');
+
   // Compute filtered students locally for the modal
   const filteredStudents = useMemo(() => {
     if (!studentSearchTerm) {
@@ -30,6 +36,126 @@ function IssueCredentialModal({
         .includes(String(studentSearchTerm).toLowerCase())
     );
   }, [students, studentSearchTerm]);
+
+  const handleInputChange = (e) => {
+    const { name, value, files } = e.target;
+    if (name === 'credentialType') {
+      if (value === 'other') {
+        setShowCustomTypeInput(true);
+      } else {
+        setShowCustomTypeInput(false);
+        setCustomCredentialType('');
+      }
+    }
+    setFormData((prev) => ({
+      ...prev,
+      [name]: files ? files[0] : value,
+    }));
+    if (uploadMessage) setUploadMessage('');
+    if (modalError) setModalError('');
+  };
+
+  const handleCustomTypeChange = (e) => {
+    setCustomCredentialType(e.target.value);
+    if (modalError) setModalError('');
+  };
+
+  const handleStudentSearchChange = (e) => {
+    setStudentSearchTerm(e.target.value);
+    setFormData((prev) => ({ ...prev, studentAccount: '' }));
+    if (modalError) setModalError('');
+  };
+
+  const resetForm = () => {
+    setFormData({ credentialType: '', studentAccount: '', credentialFile: null });
+    setShowCustomTypeInput(false);
+    setCustomCredentialType('');
+    setStudentSearchTerm('');
+    const fileInput = document.getElementById('credentialFile');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setModalError('');
+
+    const isCustomType = formData.credentialType === 'other';
+    if (
+      (!isCustomType && !formData.credentialType) ||
+      (isCustomType && !customCredentialType.trim()) ||
+      !formData.studentAccount ||
+      !formData.credentialFile
+    ) {
+      setModalError('Please fill all required fields');
+      return;
+    }
+
+    const loggedInUserId = localStorage.getItem('userId');
+    if (!loggedInUserId) {
+      setModalError('Please log in again');
+      return;
+    }
+
+    setUploading(true);
+    setUploadMessage('Processing credential details...');
+
+    try {
+      const selectedStudent = (students || []).find(
+        (s) => s.id === parseInt(formData.studentAccount)
+      );
+      if (!selectedStudent) {
+        throw new Error('Selected student not found.');
+      }
+
+      setUploadMessage('Uploading document to IPFS...');
+
+      // Prepare data for the API. It will have either a 'credential_type_id'
+      // or a 'custom_type' string, but not both.
+      const credentialData = {
+        owner_id: parseInt(formData.studentAccount),
+        sender_id: parseInt(loggedInUserId),
+      };
+      if (isCustomType) {
+        credentialData.custom_type = customCredentialType.trim();
+      } else {
+        credentialData.credential_type_id = parseInt(formData.credentialType);
+      }
+
+      const response = await uploadCredential(credentialData, formData.credentialFile);
+
+      setUploadMessage('Issuing credential on the blockchain...');
+      const blockchainResult = await blockchainService.issueCredential(
+        response.ipfs_cid_hash,
+        selectedStudent.student_id
+      );
+
+      setUploadMessage('Updating database with blockchain info...');
+      await updateBlockchainId(response.credential_id, blockchainResult.credentialId);
+
+      setUploadMessage(
+        `Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`
+      );
+
+      // Notify parent to refresh lists
+      if (typeof onIssued === 'function') {
+        try {
+          await onIssued();
+        } catch (e) {
+          // ignore refresh errors
+        }
+      }
+
+      // Close modal on success
+      if (typeof onClose === 'function') onClose();
+
+      // Reset local form after success
+      resetForm();
+    } catch (error) {
+      setModalError(`Upload failed: ${error.message}`);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   if (!show) return null;
 
@@ -46,6 +172,11 @@ function IssueCredentialModal({
           </button>
         </div>
         <div className="modal-body">
+          {modalError && (
+            <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
+              {modalError}
+            </div>
+          )}
           <form onSubmit={handleSubmit}>
             <div className="form-group">
               <label htmlFor="credentialType" className="form-label">

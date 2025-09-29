@@ -1,36 +1,152 @@
 // fileName: BulkImportStudentsModal.js
 
-import React from 'react';
+import React, { useState } from 'react';
 import './AcademicInstitution.css';
+import { bulkImportStudents } from '../services/apiService';
 
 function BulkImportStudentsModal({
   show,
   onClose,
-  importSuccess,
-  bulkImportMessage,
-  bulkImportFile,
-  bulkImporting,
-  showFormatInfo,
-  setShowFormatInfo,
-  resetBulkImportForm,
-  handleBulkImportFileChange,
-  handleBulkImportSubmit,
+  institutionId,
+  onImported,
 }) {
+  // Local state
+  const [bulkImportFile, setBulkImportFile] = useState(null);
+  const [bulkImporting, setBulkImporting] = useState(false);
+  const [bulkImportMessage, setBulkImportMessage] = useState('');
+  const [importSuccess, setImportSuccess] = useState(false);
+  const [showFormatInfo, setShowFormatInfo] = useState(false);
+  const [modalError, setModalError] = useState('');
+
+  const handleBulkImportFileChange = (e) => {
+    const file = e.target.files?.[0] || null;
+    setBulkImportFile(file);
+    if (bulkImportMessage) setBulkImportMessage('');
+    if (modalError) setModalError('');
+  };
+
+  const resetBulkImportForm = () => {
+    setBulkImportFile(null);
+    setBulkImportMessage('');
+    setImportSuccess(false);
+    setShowFormatInfo(false);
+    setModalError('');
+    const fileInput = document.getElementById('bulkImportFile');
+    if (fileInput) fileInput.value = '';
+  };
+
+  const handleClose = () => {
+    if (typeof onClose === 'function') onClose();
+    // Reset shortly after close to allow fade/transition if any
+    setTimeout(() => resetBulkImportForm(), 200);
+  };
+
+  const handleBulkImportSubmit = async (e) => {
+    e.preventDefault();
+    setModalError('');
+
+    if (!bulkImportFile) {
+      setModalError('Please select a file to import');
+      return;
+    }
+    if (!institutionId) {
+      setModalError('Institution ID not found. Please log in again.');
+      return;
+    }
+
+    setBulkImporting(true);
+    setBulkImportMessage('Processing file and importing students...');
+
+    try {
+      const response = await bulkImportStudents(bulkImportFile, institutionId);
+
+      setBulkImportMessage(
+        `Import completed! \nSuccessfully imported: ${response.imported_count} students\nFailed: ${response.failed_count} records\nTotal processed: ${response.total_processed} records`
+      );
+      setImportSuccess(true);
+
+      // Ask parent to refresh its student list
+      if (typeof onImported === 'function') {
+        try { await onImported(); } catch (_) {}
+      }
+
+      // If there are partial failures, surface details inside the modal
+      if (response.failed_count > 0 && response.failed_records?.length > 0) {
+        const failureDetails = response.failed_records
+          .map((f) => `Row ${f.index}: ${f.error}`)
+          .join('\n');
+        setModalError(`Import completed with ${response.failed_count} errors:\n\n${failureDetails}`);
+      }
+    } catch (error) {
+      // Create user-friendly error messages
+      let userFriendlyMessage = '';
+      if (error.response) {
+        const status = error.response.status;
+        const serverMessage = error.response.data?.error || '';
+        switch (status) {
+          case 400:
+            if (serverMessage.includes('No file uploaded')) {
+              userFriendlyMessage = 'Please select a file to upload before clicking Import.';
+            } else if (serverMessage.includes('No student data found')) {
+              userFriendlyMessage = 'The file you selected appears empty or has no student data. Please check your file and try again.';
+            } else if (serverMessage.includes('No valid student records')) {
+              userFriendlyMessage = 'The file data is not properly formatted. Ensure required fields like student ID and name are present.';
+            } else if (serverMessage.includes('Institution ID required')) {
+              userFriendlyMessage = 'There was a problem identifying your institution. Please log out and log back in, then try again.';
+            } else {
+              userFriendlyMessage = `There is an issue with the file or data: ${serverMessage}`;
+            }
+            break;
+          case 500:
+            if (serverMessage.includes('Import failed')) {
+              userFriendlyMessage = 'Something went wrong while processing your file. This may be due to file format or corrupted data.';
+            } else {
+              userFriendlyMessage = 'A server error occurred while importing students. Please try again shortly.';
+            }
+            break;
+          default:
+            userFriendlyMessage = `Upload failed (Error ${status}): ${serverMessage || 'Please try again or contact support if it continues.'}`;
+        }
+      } else if (error.request) {
+        userFriendlyMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+      } else if (error.message) {
+        if (error.message.includes('Network Error')) {
+          userFriendlyMessage = 'Network connection problem. Please check your internet connection and try again.';
+        } else if (error.message.includes('timeout')) {
+          userFriendlyMessage = 'The upload is taking too long. Try a smaller file or check your connection.';
+        } else {
+          userFriendlyMessage = `Import failed: ${error.message}`;
+        }
+      } else {
+        userFriendlyMessage = 'Import failed due to an unknown error.';
+      }
+
+      setModalError(userFriendlyMessage);
+    } finally {
+      setBulkImporting(false);
+    }
+  };
+
   if (!show) return null;
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay" onClick={handleClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">
             <i className="fas fa-users me-2"></i>
             Bulk Import Students
           </h3>
-          <button className="modal-close" onClick={onClose}>
+          <button className="modal-close" onClick={handleClose}>
             <i className="fas fa-times"></i>
           </button>
         </div>
         <div className="modal-body">
+          {modalError && !importSuccess && (
+            <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
+              {modalError}
+            </div>
+          )}
           {importSuccess ? (
             // Success Message View
             <div className="text-center">
@@ -41,6 +157,11 @@ function BulkImportStudentsModal({
                   {bulkImportMessage?.replace('✅ Import completed! ', '')}
                 </pre>
               </div>
+              {modalError && (
+                <div className="alert alert-warning mt-3" role="alert" style={{ textAlign: 'left', whiteSpace: 'pre-wrap' }}>
+                  {modalError}
+                </div>
+              )}
               <button
                 type="button"
                 className="btn-secondary-custom mt-4"
