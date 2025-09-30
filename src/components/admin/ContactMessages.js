@@ -5,7 +5,7 @@ import {
   fetchAllContactMessages, 
   updateContactMessageStatus, 
   deleteContactMessage 
-} from '../services/adminApiService';
+} from '../../services/adminApiService';
 
 function ContactMessages({ onStatsUpdate }) {
   const [messages, setMessages] = useState([]);

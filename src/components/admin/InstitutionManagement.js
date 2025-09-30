@@ -6,7 +6,7 @@ import {
   createInstitution, 
   updateInstitution, 
   deleteInstitution 
-} from '../services/adminApiService';
+} from '../../services/adminApiService';
 
 function InstitutionManagement({ onStatsUpdate }) {
   const [institutions, setInstitutions] = useState([]);

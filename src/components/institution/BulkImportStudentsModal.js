@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import './AcademicInstitution.css';
-import { bulkImportStudents } from '../services/apiService';
+import { bulkImportStudents } from '../../services/institutionApiService';
 
 function BulkImportStudentsModal({
   show,

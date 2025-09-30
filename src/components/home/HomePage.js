@@ -2,10 +2,10 @@
 
 import React, { useEffect, useState } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import './Navigation.css';
+import '../common/Navigation.css';
 import './HomePage.css';
 import VerifierSection from './VerifierSection';
-import { submitContactForm } from '../services/apiService';
+import { submitContactForm } from '../../services/publicApiService';
 
 function HomePage() {
   const [contactForm, setContactForm] = useState({

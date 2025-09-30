@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './AccessCodesSection.css';
-import { updateAccessCodeStatus, deleteAccessCode, fetchStudentAccessCodes } from '../services/apiService';
+import { updateAccessCodeStatus, deleteAccessCode, fetchStudentAccessCodes } from '../../services/studentApiService';
 
 function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
   // State to manage access code list and statuses

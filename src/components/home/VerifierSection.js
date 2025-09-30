@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './VerifierSection.css';
-import { verifyCredential } from '../services/apiService';
-import blockchainService from '../services/blockchainService';
+import { verifyCredential } from '../../services/publicApiService';
+import blockchainService from '../../services/blockchainService';
 import { ethers } from 'ethers';
 
 // Enable reading URL params to prefill the access code

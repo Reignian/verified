@@ -1,7 +1,7 @@
 // fileName: CredentialMonitoring.js
 
 import React, { useState, useEffect } from 'react';
-import { fetchAllCredentials } from '../services/adminApiService';
+import { fetchAllCredentials } from '../../services/adminApiService';
 
 function CredentialMonitoring() {
   const [credentials, setCredentials] = useState([]);

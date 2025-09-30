@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from 'react';
 import './AcademicInstitution.css';
-import { uploadCredential, updateBlockchainId } from '../services/apiService';
-import blockchainService from '../services/blockchainService';
+import { uploadCredential, updateBlockchainId } from '../../services/institutionApiService';
+import blockchainService from '../../services/blockchainService';
 
 function IssueCredentialModal({
   show,

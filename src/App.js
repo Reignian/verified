@@ -2,12 +2,12 @@
 
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { useState, useEffect } from 'react';
-import HomePage from './components/HomePage';
-import AcademicInstitution from './components/AcademicInstitution';
-import MyVerifiED from './components/MyVerifiED';
-import AdminDashboard from './components/AdminDashboard'; // NEW
-import Login from './components/Login';
-import Navigation from './components/Navigation';
+import HomePage from './components/home/HomePage';
+import AcademicInstitution from './components/institution/AcademicInstitution';
+import MyVerifiED from './components/student/MyVerifiED';
+import AdminDashboard from './components/admin/AdminDashboard';
+import Login from './components/common/Login';
+import Navigation from './components/common/Navigation';
 
 function AppContent() {
   const [user, setUser] = useState(null);

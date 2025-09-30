@@ -1,7 +1,7 @@
 // fileName: VerificationStats.js
 
 import React, { useState, useEffect } from 'react';
-import { fetchCredentialVerificationStats } from '../services/adminApiService';
+import { fetchCredentialVerificationStats } from '../../services/adminApiService';
 
 function VerificationStats() {
   const [verificationStats, setVerificationStats] = useState([]);

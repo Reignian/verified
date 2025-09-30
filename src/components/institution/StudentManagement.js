@@ -5,9 +5,11 @@ import './StudentManagement.css';
 import AddStudentModal from './AddStudentModal';
 import { 
   fetchStudents, 
-  fetchStudentCredentialCount, 
   fetchStudentCredentialsForManagement
-} from '../services/apiService';
+} from '../../services/institutionApiService';
+import { 
+  fetchStudentCredentialCount
+} from '../../services/studentApiService';
 
 const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOpenBulkImport, refreshTrigger }) => {
   const [students, setStudents] = useState([]);

@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import './AddStudentModal.css';
-import { addStudent } from '../services/apiService';
+import { addStudent } from '../../services/institutionApiService';
 
 const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   const [formData, setFormData] = useState({

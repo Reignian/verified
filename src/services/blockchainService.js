@@ -17,8 +17,8 @@ class BlockchainService {
     try {
       // Get contract address and ABI from backend
       const [addressResponse, abiResponse] = await Promise.all([
-        fetch(`${API_URL}/contract-address`),
-        fetch(`${API_URL}/contract-abi`)
+        fetch(`${API_URL}/institution/contract-address`),
+        fetch(`${API_URL}/institution/contract-abi`)
       ]);
 
       if (!addressResponse.ok || !abiResponse.ok) {

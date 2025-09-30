@@ -1,7 +1,7 @@
 // fileName: ErrorModal.js
 
 import React from 'react';
-import './AcademicInstitution.css';
+import '../institution/AcademicInstitution.css';
 
 function ErrorModal({ show, title = 'Error', message, onClose }) {
   if (!show) return null;

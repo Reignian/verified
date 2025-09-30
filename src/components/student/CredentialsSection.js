@@ -1,6 +1,6 @@
 import React from 'react';
 import './CredentialsSection.css';
-import { generateCredentialAccessCode } from '../services/apiService';
+import { generateCredentialAccessCode } from '../../services/studentApiService';
 
 function CredentialsSection({ 
   credentials, 

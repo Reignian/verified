@@ -1,21 +1,21 @@
-﻿// fileName: AcademicInstitution.js
+// fileName: AcademicInstitution.js
 
 import React, { useState, useEffect } from 'react';
 
 import {
   fetchCredentialTypes,
-  fetchStudents,
   fetchIssuedCredentials,
   fetchCredentialStats,
-  fetchInstitutionName
-} from '../services/apiService';
+  fetchInstitutionName,
+  fetchStudents
+} from '../../services/institutionApiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AcademicInstitution.css';
 import StudentManagement from './StudentManagement';
 import IssueCredentialModal from './IssueCredentialModal';
 import BulkImportStudentsModal from './BulkImportStudentsModal';
 import IssuedCredentialsTable from './IssuedCredentialsTable';
-import ErrorModal from './ErrorModal';
+import ErrorModal from '../common/ErrorModal';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);

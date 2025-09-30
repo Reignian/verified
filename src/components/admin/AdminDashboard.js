@@ -1,7 +1,7 @@
 // fileName: AdminDashboard.js
 
 import React, { useState, useEffect } from 'react';
-import { fetchSystemStats } from '../services/adminApiService';
+import { fetchSystemStats } from '../../services/adminApiService';
 import InstitutionManagement from './InstitutionManagement';
 import CredentialMonitoring from './CredentialMonitoring';
 import VerificationStats from './VerificationStats';

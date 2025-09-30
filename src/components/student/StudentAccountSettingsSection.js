@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './StudentAccountSettingsSection.css';
-import { linkAccount, fetchLinkedAccounts, unlinkAccount } from '../services/apiService';
+import { linkAccount, fetchLinkedAccounts, unlinkAccount } from '../../services/studentApiService';
 
 function StudentAccountSettingsSection({ user }) {
   const [activeTab, setActiveTab] = useState('profile');

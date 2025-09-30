@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './MyVerifiED.css';
-import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../services/apiService';
+import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../../services/studentApiService';
 import CredentialsSection from './CredentialsSection';
 import AccessCodesSection from './AccessCodesSection';
 import StudentAccountSettingsSection from './StudentAccountSettingsSection';
