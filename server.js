@@ -264,16 +264,40 @@ app.post('/api/login', (req, res) => {
       });
     }
     
-    res.json({
-      message: 'Login successful',
-      user: {
-        id: user.id,
-        username: user.username,
-        email: user.email,
-        account_type: user.account_type,
-        public_address: user.public_address
-      }
-    });
+    // For institution accounts, fetch public_address from institution table
+    if (user.account_type === 'institution') {
+      const db = require('./src/config/database');
+      db.query('SELECT public_address FROM institution WHERE id = ?', [user.id], (instErr, instResults) => {
+        if (instErr) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        const publicAddress = instResults && instResults[0] ? instResults[0].public_address : null;
+        
+        return res.json({
+          message: 'Login successful',
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            account_type: user.account_type,
+            public_address: publicAddress
+          }
+        });
+      });
+    } else {
+      // For student accounts, no public_address needed
+      res.json({
+        message: 'Login successful',
+        user: {
+          id: user.id,
+          username: user.username,
+          email: user.email,
+          account_type: user.account_type,
+          public_address: null
+        }
+      });
+    }
   });
 });
 
@@ -479,6 +503,53 @@ app.delete('/api/admin/contact-messages/:id', (req, res) => {
 });
 
 // ================= END ADMIN ROUTES =================
+
+// Add single student account
+app.post('/api/add-student/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  const { student_id, first_name, middle_name, last_name, username, email, password } = req.body;
+
+  if (!institutionId) {
+    return res.status(400).json({ error: 'Institution ID is required' });
+  }
+
+  if (!student_id || !first_name || !last_name || !username || !email || !password) {
+    return res.status(400).json({ error: 'All required fields must be provided' });
+  }
+
+  academicQueries.checkStudentIdExists(student_id, (err, exists) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error checking student ID' });
+    }
+    if (exists) {
+      return res.status(400).json({ error: 'Student ID already exists' });
+    }
+
+    academicQueries.checkUsernameExists(username, (err, exists) => {
+      if (err) {
+        return res.status(500).json({ error: 'Database error checking username' });
+      }
+      if (exists) {
+        return res.status(400).json({ error: 'Username already exists' });
+      }
+
+      const studentData = { student_id, first_name, middle_name, last_name, username, email, password };
+
+      academicQueries.addStudent(studentData, institutionId, (err, result) => {
+        if (err) {
+          console.error('Error adding student:', err);
+          return res.status(500).json({ error: 'Failed to create student account' });
+        }
+
+        res.json({
+          success: true,
+          message: 'Student account created successfully',
+          student: result
+        });
+      });
+    });
+  });
+});
 
 app.post('/api/bulk-import-students/:institutionId', upload.single('studentFile'), async (req, res) => {
   const { institutionId } = req.params;

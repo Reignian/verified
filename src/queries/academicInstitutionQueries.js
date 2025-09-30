@@ -24,7 +24,7 @@ const getRecentCustomType = (callback) => {
 // UPDATED: Get students filtered by institution
 const getStudents = (institutionId, callback) => {
   const query = `
-    SELECT s.id, s.student_id, s.first_name, s.last_name, a.public_address 
+    SELECT s.id, s.student_id, s.first_name, s.last_name
     FROM student s 
     JOIN account a ON s.id = a.id 
     WHERE a.account_type = 'student' AND s.institution_id = ?
@@ -154,8 +154,8 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
         }
 
         const accountQuery = `
-          INSERT INTO account (account_type, username, password, email, public_address, institution_id) 
-          VALUES ('student', ?, ?, ?, '', ?)
+          INSERT INTO account (account_type, username, password, email, institution_id) 
+          VALUES ('student', ?, ?, ?, ?)
         `;
         
         const accountValues = [
@@ -248,6 +248,63 @@ const checkUsernameExists = (username, callback) => {
   });
 };
 
+// Add single student account
+const addStudent = (studentData, institutionId, callback) => {
+  const { student_id, first_name, middle_name, last_name, username, email, password } = studentData;
+
+  connection.beginTransaction((err) => {
+    if (err) {
+      return callback(err);
+    }
+
+    const accountQuery = `
+      INSERT INTO account (account_type, username, password, email, institution_id) 
+      VALUES ('student', ?, ?, ?, ?)
+    `;
+
+    connection.query(accountQuery, [username, password, email, institutionId], (err, accountResult) => {
+      if (err) {
+        return connection.rollback(() => {
+          callback(err);
+        });
+      }
+
+      const accountId = accountResult.insertId;
+
+      const studentQuery = `
+        INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
+        VALUES (?, ?, ?, ?, ?, ?)
+      `;
+
+      connection.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId], (err, studentResult) => {
+        if (err) {
+          return connection.rollback(() => {
+            callback(err);
+          });
+        }
+
+        connection.commit((err) => {
+          if (err) {
+            return connection.rollback(() => {
+              callback(err);
+            });
+          }
+
+          callback(null, {
+            id: accountId,
+            student_id,
+            first_name,
+            middle_name,
+            last_name,
+            username,
+            email
+          });
+        });
+      });
+    });
+  });
+};
+
 // UPDATED: Get bulk import stats filtered by institution
 const getBulkImportStats = (institutionId, callback) => {
   const query = `
@@ -271,6 +328,7 @@ module.exports = {
   getIssuedCredentials,
   getCredentialStats,
   bulkCreateStudents,
+  addStudent,
   checkStudentIdExists,
   checkUsernameExists,
   getBulkImportStats

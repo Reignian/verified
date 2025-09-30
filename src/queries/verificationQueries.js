@@ -19,13 +19,12 @@ const getCredentialData = (verificationInput, callback) => {
       CONCAT(s.first_name, ' ', s.last_name) AS recipient_name,
       s.student_id,
       inst.institution_name AS issuer_name,
-      ia.public_address AS issuer_public_address,
+      inst.public_address AS issuer_public_address,
       ca.access_code
     FROM credential c
     JOIN credential_types ct ON c.credential_type_id = ct.id
     JOIN student s ON c.owner_id = s.id
-    JOIN account ia ON c.sender_id = ia.id
-    JOIN institution inst ON inst.id = ia.id
+    JOIN institution inst ON c.sender_id = inst.id
     JOIN credential_access ca ON ca.credential_id = c.id
     WHERE ca.access_code = ?
       AND ca.is_active = 1

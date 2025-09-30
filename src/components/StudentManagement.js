@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import './StudentManagement.css';
+import AddStudentModal from './AddStudentModal';
 import { 
   fetchStudents, 
   fetchStudentCredentialCount, 
@@ -15,6 +16,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
   const [studentCredentials, setStudentCredentials] = useState([]);
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [credentialsLoading, setCredentialsLoading] = useState(false);
+  const [showAddStudentModal, setShowAddStudentModal] = useState(false);
 
   useEffect(() => {
     loadStudents();
@@ -80,10 +82,22 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
     });
   };
 
+  const handleStudentAdded = () => {
+    // Reload students list after adding a new student
+    loadStudents();
+  };
+
   return (
     <div className="student-management">
       {/* Actions */}
-      <div className="mb-3">
+      <div className="mb-3" style={{ display: 'flex', gap: '1rem' }}>
+        <button
+          className="btn btn-primary-custom"
+          onClick={() => setShowAddStudentModal(true)}
+        >
+          <i className="fas fa-user-plus me-2"></i>
+          Add Student
+        </button>
         <button
           className="btn btn-primary-custom"
           onClick={() => onOpenBulkImport && onOpenBulkImport()}
@@ -231,6 +245,14 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
           </div>
         </div>
       )}
+
+      {/* Add Student Modal */}
+      <AddStudentModal
+        show={showAddStudentModal}
+        onClose={() => setShowAddStudentModal(false)}
+        institutionId={institutionId}
+        onStudentAdded={handleStudentAdded}
+      />
     </div>
   );
 };

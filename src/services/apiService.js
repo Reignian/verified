@@ -76,6 +76,17 @@ export const uploadCredential = async (credentialData, file) => {
   }
 };
 
+// Add single student account
+export const addStudent = async (studentData, institutionId) => {
+  try {
+    const response = await axios.post(`${API_URL}/add-student/${institutionId}`, studentData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding student:', error);
+    throw error;
+  }
+};
+
 // UPDATED: Bulk import students with institution ID
 export const bulkImportStudents = async (file, institutionId) => {
   try {
