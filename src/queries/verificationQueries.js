@@ -15,14 +15,14 @@ const getCredentialData = (verificationInput, callback) => {
       c.blockchain_id,
       c.status,
       c.created_at AS date_issued,
-      ct.type_name AS credential_type,
+      COALESCE(ct.type_name, c.custom_type) AS credential_type,
       CONCAT(s.first_name, ' ', s.last_name) AS recipient_name,
       s.student_id,
       inst.institution_name AS issuer_name,
       inst.public_address AS issuer_public_address,
       ca.access_code
     FROM credential c
-    JOIN credential_types ct ON c.credential_type_id = ct.id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     JOIN student s ON c.owner_id = s.id
     JOIN institution inst ON c.sender_id = inst.id
     JOIN credential_access ca ON ca.credential_id = c.id

@@ -7,7 +7,7 @@ import './Login.css';
 
 function Login({ onLoginSuccess }) {
   const [formData, setFormData] = useState({
-    username: '',
+    emailOrUsername: '',
     password: '',
     userType: ''
   });
@@ -29,7 +29,7 @@ function Login({ onLoginSuccess }) {
   const handleAdminToggle = () => {
     setIsAdminLogin(!isAdminLogin);
     setFormData({
-      username: '',
+      emailOrUsername: '',
       password: '',
       userType: ''
     });
@@ -44,10 +44,10 @@ function Login({ onLoginSuccess }) {
     try {
       // For admin login, don't send userType
       const loginData = isAdminLogin ? 
-        { username: formData.username, password: formData.password } :
-        { username: formData.username, password: formData.password, userType: formData.userType };
+        { emailOrUsername: formData.emailOrUsername, password: formData.password } :
+        { emailOrUsername: formData.emailOrUsername, password: formData.password, userType: formData.userType };
       
-      const response = await login(loginData.username, loginData.password, loginData.userType);
+      const response = await login(loginData.emailOrUsername, loginData.password, loginData.userType);
       console.log('Login successful:', response);
       console.log('User ID from response:', response.user.id);
       console.log('User object:', response.user);
@@ -114,15 +114,15 @@ function Login({ onLoginSuccess }) {
           )}
           
           <div className="mb-3">
-            <label htmlFor="username" className="form-label">Username</label>
+            <label htmlFor="emailOrUsername" className="form-label">Email or Username</label>
             <input
               type="text"
-              id="username"
-              name="username"
+              id="emailOrUsername"
+              name="emailOrUsername"
               className="form-control"
-              value={formData.username}
+              value={formData.emailOrUsername}
               onChange={handleInputChange}
-              placeholder={isAdminLogin ? "Enter admin username" : "Enter your username"}
+              placeholder={isAdminLogin ? "Enter admin username or email" : "Enter your email or username"}
               disabled={loading}
               required
             />

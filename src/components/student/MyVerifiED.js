@@ -51,7 +51,8 @@ function MyVerifiED() {
         first_name: studentData.first_name,
         middle_name: studentData.middle_name,
         last_name: studentData.last_name,
-        email: studentData.email
+        email: studentData.email,
+        institution_name: studentData.institution_name
       });
       
       setCredentialCount(credentialData.total_credentials);

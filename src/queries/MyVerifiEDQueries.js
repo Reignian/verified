@@ -8,9 +8,11 @@ const getStudentName = (studentId, callback) => {
       s.first_name,
       s.middle_name,
       s.last_name,
-      a.email
+      a.email,
+      i.institution_name
     FROM student s
     INNER JOIN account a ON a.id = s.id
+    LEFT JOIN institution i ON s.institution_id = i.id
     WHERE s.id = ?
   `;
   connection.query(query, [studentId], callback);

@@ -157,7 +157,7 @@ function StudentAccountSettingsSection({ user }) {
                     <i className="fas fa-user-circle"></i>
                   </div>
                   <div className="profile-info">
-                    <h4 className="profile-name">{user?.first_name} {user?.middle_name} {user?.last_name} {user?.email}</h4>
+                    <h4 className="profile-name">{user?.first_name} {user?.middle_name} {user?.last_name} </h4>
                     <p className="profile-institution">{user?.institution_name || 'Current Institution'}</p>
                   </div>
                 </div>

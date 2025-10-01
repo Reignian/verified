@@ -8,9 +8,9 @@ const API_URL = process.env.NODE_ENV === 'production'
   : 'http://localhost:3001/api';
 
 // Login function
-export const login = async (username, password, userType) => {
+export const login = async (emailOrUsername, password, userType) => {
   try {
-    const requestData = { username, password };
+    const requestData = { emailOrUsername, password };
     // Only include userType if it's provided (not for admin login)
     if (userType) {
       requestData.userType = userType;

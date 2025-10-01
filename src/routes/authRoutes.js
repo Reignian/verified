@@ -7,18 +7,18 @@ const authQueries = require('../queries/authQueries');
 
 // POST /api/auth/login - User login
 router.post('/login', (req, res) => {
-  const { username, password, userType } = req.body;
+  const { emailOrUsername, password, userType } = req.body;
   
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username and password required' });
+  if (!emailOrUsername || !password) {
+    return res.status(400).json({ error: 'Email/Username and password required' });
   }
   
   // For admin login, userType is not required
-  if (!userType && username !== 'admin') {
+  if (!userType && emailOrUsername !== 'admin') {
     return res.status(400).json({ error: 'User type selection required' });
   }
   
-  authQueries.getUserByUsername(username, (err, results) => {
+  authQueries.getUserByEmailOrUsername(emailOrUsername, (err, results) => {
     if (err) {
       return res.status(500).json({ error: 'Database error' });
     }
@@ -29,7 +29,7 @@ router.post('/login', (req, res) => {
     
     const user = results[0];
     
-    if (user.password !== password || user.username !== username) {
+    if (user.password !== password || (user.username !== emailOrUsername && user.email !== emailOrUsername)) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
