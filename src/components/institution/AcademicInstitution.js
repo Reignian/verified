@@ -7,6 +7,7 @@ import {
   fetchIssuedCredentials,
   fetchCredentialStats,
   fetchInstitutionName,
+  fetchInstitutionPublicAddress,
   fetchStudents
 } from '../../services/institutionApiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -21,6 +22,8 @@ function AcademicInstitution() {
   const [account, setAccount] = useState(null);
   const [institutionName, setInstitutionName] = useState('');
   const [institutionId, setInstitutionId] = useState(null);
+  const [dbPublicAddress, setDbPublicAddress] = useState(null);
+  const [walletMatches, setWalletMatches] = useState(false);
 
   const [credentialTypes, setCredentialTypes] = useState([]);
   const [students, setStudents] = useState([]);
@@ -57,6 +60,28 @@ function AcademicInstitution() {
       }
     };
 
+    // Listen for MetaMask account changes
+    const handleAccountsChanged = (accounts) => {
+      if (accounts.length > 0) {
+        setAccount(accounts[0]);
+      } else {
+        setAccount(null);
+      }
+    };
+
+    // Listen for MetaMask network changes
+    const handleChainChanged = (chainId) => {
+      console.log('MetaMask network changed to:', chainId);
+      // Optionally reload the page or refresh data when network changes
+      // window.location.reload();
+    };
+
+    // Add event listeners for MetaMask changes
+    if (window.ethereum) {
+      window.ethereum.on('accountsChanged', handleAccountsChanged);
+      window.ethereum.on('chainChanged', handleChainChanged);
+    }
+
     const loadData = async () => {
       try {
         // Get logged-in user info
@@ -71,9 +96,13 @@ function AcademicInstitution() {
         // Set institution ID from logged-in user
         setInstitutionId(parseInt(loggedInUserId));
 
-        // Fetch institution name
-        const institutionData = await fetchInstitutionName(loggedInUserId);
+        // Fetch institution name and public address
+        const [institutionData, addressData] = await Promise.all([
+          fetchInstitutionName(loggedInUserId),
+          fetchInstitutionPublicAddress(loggedInUserId)
+        ]);
         setInstitutionName(institutionData.institution_name);
+        setDbPublicAddress(addressData.public_address);
 
         // Load institution-specific data
         const [types, studentData, credentials, stats] = await Promise.all([
@@ -96,7 +125,24 @@ function AcademicInstitution() {
 
     getAccount();
     loadData();
+
+    // Cleanup event listeners on component unmount
+    return () => {
+      if (window.ethereum) {
+        window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+      }
+    };
   }, []);
+
+  // Check if MetaMask account matches database address whenever either changes
+  useEffect(() => {
+    if (account && dbPublicAddress) {
+      setWalletMatches(account.toLowerCase() === dbPublicAddress.toLowerCase());
+    } else {
+      setWalletMatches(false);
+    }
+  }, [account, dbPublicAddress]);
 
   // Modal now handles submit flow; define a small refresher for after success
   const refreshIssuedData = async () => {
@@ -143,15 +189,34 @@ function AcademicInstitution() {
             <div className="col-lg-8">
               <h1 className="dashboard-title">
                 <i className="fas fa-university me-3"></i>
-                {institutionName ? `${institutionName} Dashboard` : 'Academic Institution Dashboard'}
+                {institutionName ? `${institutionName}` : 'Academic Institution Dashboard'}
               </h1>
               <p className="dashboard-subtitle">Issue and manage blockchain-verified academic credentials</p>
             </div>
-            {account && (
+            {dbPublicAddress && (
               <div className="col-lg-4">
                 <div className="wallet-info">
-                  <div className="wallet-label">Connected Wallet</div>
-                  <p className="wallet-address">{account}</p>
+                  <div className="wallet-label">Wallet Status</div>
+                  <div className="wallet-status">
+                    {account ? (
+                      walletMatches ? (
+                        <span className="status-match">
+                          <i className="fas fa-check-circle me-1"></i>
+                          MetaMask Connected & Verified
+                        </span>
+                      ) : (
+                        <span className="status-mismatch">
+                          <i className="fas fa-exclamation-triangle me-1"></i>
+                          MetaMask Account Mismatch
+                        </span>
+                      )
+                    ) : (
+                      <span className="status-disconnected">
+                        <i className="fas fa-times-circle me-1"></i>
+                        MetaMask Not Connected
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
@@ -239,6 +304,9 @@ function AcademicInstitution() {
           credentialTypes={credentialTypes}
           students={students}
           onIssued={refreshIssuedData}
+          account={account}
+          dbPublicAddress={dbPublicAddress}
+          walletMatches={walletMatches}
         />
       )}
 

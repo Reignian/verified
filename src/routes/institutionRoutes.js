@@ -48,6 +48,23 @@ router.get('/:accountId/name', (req, res) => {
   });
 });
 
+// GET /api/institution/:accountId/public-address - Get institution public address
+router.get('/:accountId/public-address', (req, res) => {
+  const { accountId } = req.params;
+  
+  academicQueries.getInstitutionPublicAddress(accountId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
 // ============ STUDENT MANAGEMENT ============
 
 // File parsing utilities

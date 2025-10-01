@@ -11,6 +11,9 @@ function IssueCredentialModal({
   credentialTypes,
   students,
   onIssued,
+  account,
+  dbPublicAddress,
+  walletMatches,
 }) {
   // Local state moved from parent
   const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
@@ -30,12 +33,19 @@ function IssueCredentialModal({
     if (!studentSearchTerm) {
       return students || [];
     }
-    return (students || []).filter((student) =>
-      `${student.first_name} ${student.last_name}`
-        .toLowerCase()
-        .includes(String(studentSearchTerm).toLowerCase())
-    );
+    const searchLower = String(studentSearchTerm).toLowerCase();
+    return (students || []).filter((student) => {
+      const fullName = `${student.first_name} ${student.last_name}`.toLowerCase();
+      const studentId = String(student.student_id).toLowerCase();
+      return fullName.includes(searchLower) || studentId.includes(searchLower);
+    });
   }, [students, studentSearchTerm]);
+
+  // Find selected student for display
+  const selectedStudent = useMemo(() => {
+    if (!formData.studentAccount) return null;
+    return (students || []).find(s => s.id === parseInt(formData.studentAccount));
+  }, [students, formData.studentAccount]);
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
@@ -47,6 +57,12 @@ function IssueCredentialModal({
         setCustomCredentialType('');
       }
     }
+    
+    // When student is selected, clear search term to show selected student
+    if (name === 'studentAccount' && value) {
+      setStudentSearchTerm('');
+    }
+    
     setFormData((prev) => ({
       ...prev,
       [name]: files ? files[0] : value,
@@ -62,7 +78,10 @@ function IssueCredentialModal({
 
   const handleStudentSearchChange = (e) => {
     setStudentSearchTerm(e.target.value);
-    setFormData((prev) => ({ ...prev, studentAccount: '' }));
+    // Only clear selection if search term is empty
+    if (e.target.value.trim() === '') {
+      setFormData((prev) => ({ ...prev, studentAccount: '' }));
+    }
     if (modalError) setModalError('');
   };
 
@@ -79,14 +98,38 @@ function IssueCredentialModal({
     e.preventDefault();
     setModalError('');
 
+    // First check: Wallet verification
+    if (!account) {
+      setModalError('Please connect your MetaMask wallet before issuing credentials.');
+      return;
+    }
+
+    if (!walletMatches) {
+      setModalError('Wallet mismatch detected! Please switch to the correct MetaMask account that matches your institution\'s registered address before proceeding.');
+      return;
+    }
+
     const isCustomType = formData.credentialType === 'other';
-    if (
-      (!isCustomType && !formData.credentialType) ||
-      (isCustomType && !customCredentialType.trim()) ||
-      !formData.studentAccount ||
-      !formData.credentialFile
-    ) {
-      setModalError('Please fill all required fields');
+    
+    
+    // Check each condition individually for better error messages
+    if (!isCustomType && !formData.credentialType) {
+      setModalError('Please select a credential type');
+      return;
+    }
+    
+    if (isCustomType && !customCredentialType.trim()) {
+      setModalError('Please enter a custom credential type');
+      return;
+    }
+    
+    if (!formData.studentAccount) {
+      setModalError('Please select a student');
+      return;
+    }
+    
+    if (!formData.credentialFile) {
+      setModalError('Please select a file to upload');
       return;
     }
 
@@ -172,6 +215,33 @@ function IssueCredentialModal({
           </button>
         </div>
         <div className="modal-body">
+          {/* Wallet Status Warning */}
+          {(!account || !walletMatches) && (
+            <div className="wallet-verification-section" style={{ marginBottom: '1rem' }}>
+              <div className="wallet-status-header">
+                <i className="fas fa-wallet me-2"></i>
+                Wallet Verification
+              </div>
+              {!account ? (
+                <div className="alert alert-warning" role="alert">
+                  <i className="fas fa-exclamation-triangle me-2"></i>
+                  <strong>MetaMask Not Connected</strong>
+                  <br />
+                  Please connect your MetaMask wallet to issue credentials.
+                </div>
+              ) : !walletMatches ? (
+                <div className="alert alert-danger" role="alert">
+                  <i className="fas fa-times-circle me-2"></i>
+                  <strong>Wallet Mismatch Detected!</strong>
+                  <br />
+                  <small>
+                    Please switch to the correct MetaMask account before proceeding.
+                  </small>
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {modalError && (
             <div className="alert alert-danger" role="alert" style={{ marginBottom: '1rem' }}>
               {modalError}
@@ -222,39 +292,75 @@ function IssueCredentialModal({
 
             <div className="form-group">
               <label htmlFor="studentSearch" className="form-label">
-                <i className="fas fa-search me-2"></i>
-                Search Student
+                <i className="fas fa-user me-2"></i>
+                Student Account
               </label>
-              <input
-                type="text"
-                id="studentSearch"
-                name="studentSearch"
-                value={studentSearchTerm || ''}
-                onChange={handleStudentSearchChange}
-                className="form-control mb-2"
-                placeholder="Type to search by name..."
-              />
-              <label htmlFor="studentAccount" className="form-label sr-only">
-                Select Student
-              </label>
-              <select
-                id="studentAccount"
-                name="studentAccount"
-                value={formData?.studentAccount || ''}
-                onChange={handleInputChange}
-                className="form-select"
-                required
-                size={Math.min(5, Math.max(2, filteredStudents.length + 1))}
-              >
-                <option value="" disabled={!!formData?.studentAccount}>
-                  {studentSearchTerm ? 'Select from filtered list...' : 'Select Student...'}
-                </option>
-                {filteredStudents.map((student) => (
-                  <option key={student.id} value={student.id}>
-                    {student.first_name} {student.last_name} ({student.student_id})
-                  </option>
-                ))}
-              </select>
+              
+              {/* Show selected student with edit option */}
+              {selectedStudent ? (
+                <div className="selected-student-display p-3 border rounded bg-light d-flex justify-content-between align-items-center">
+                  <div className="student-info">
+                    <div className="d-flex align-items-center">
+                      <i className="fas fa-check me-2 text-success"></i>
+                      <strong>{selectedStudent.first_name} {selectedStudent.last_name}</strong>
+                      <span className="text-muted ms-2">({selectedStudent.student_id})</span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => {
+                      setFormData(prev => ({ ...prev, studentAccount: '' }));
+                      setStudentSearchTerm('');
+                    }}
+                    title="Change student selection"
+                  >
+                    <i className="fas fa-edit me-1"></i>
+                    Change
+                  </button>
+                </div>
+              ) : (
+                <>
+                  {/* Search input - only show when no student selected */}
+                  <input
+                    type="text"
+                    id="studentSearch"
+                    name="studentSearch"
+                    value={studentSearchTerm || ''}
+                    onChange={handleStudentSearchChange}
+                    className="form-control"
+                    placeholder="Type student name or ID to search..."
+                  />
+                  
+                  {/* Only show dropdown when user has typed something and no student selected */}
+                  {studentSearchTerm && studentSearchTerm.trim().length > 0 && (
+                    <div className="student-dropdown-container mt-2" style={{ animation: 'fadeIn 0.3s' }}>
+                      <select
+                        id="studentAccount"
+                        name="studentAccount"
+                        value={formData?.studentAccount || ''}
+                        onChange={handleInputChange}
+                        className="form-select"
+                        required
+                        size={Math.min(5, Math.max(2, filteredStudents.length))}
+                      >
+                        {filteredStudents.length === 0 ? (
+                          <option value="" disabled>No students found</option>
+                        ) : (
+                          <>
+                            <option value="">Select a student...</option>
+                            {filteredStudents.map((student) => (
+                              <option key={student.id} value={student.id}>
+                                {student.first_name} {student.last_name} ({student.student_id})
+                              </option>
+                            ))}
+                          </>
+                        )}
+                      </select>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
 
             <div className="form-group">

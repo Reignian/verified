@@ -106,6 +106,101 @@
 .wallet-info {
   border: 1px solid var(--border);
   padding: 10px 12px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+.wallet-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.wallet-address {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--text-dark);
+  margin: 0 0 8px 0;
+  word-break: break-all;
+}
+
+.wallet-status {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.status-match {
+  color: var(--success-color);
+}
+
+.status-mismatch {
+  color: var(--warning-color);
+}
+
+.status-disconnected {
+  color: var(--text-muted);
+}
+
+/* Wallet Verification Section in Modal */
+.wallet-verification-section {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--surface-muted);
+}
+
+.wallet-status-header {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.wallet-verification-section .alert {
+  margin-bottom: 0;
+  padding: 8px 12px;
+  font-size: 13px;
+}
+
+.wallet-verification-section code {
+  background: rgba(0, 0, 0, 0.1);
+  padding: 2px 4px;
+  border-radius: 2px;
+  font-size: 11px;
+  word-break: break-all;
+}
+
+/* Enhanced Student Input Styles */
+.student-dropdown-container {
+  position: relative;
+}
+
+.selected-student-info {
+  padding: 8px 12px;
+  background: #f8f9fa;
+  border: 1px solid #d1ecf1;
+  border-radius: var(--radius);
+  font-size: 14px;
+}
+
+.selected-student-info .text-success {
+  color: var(--success-color) !important;
+  font-weight: 500;
+}
+
+/* Fade in animation for dropdown */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 .ai-page .main-content { 
   width: 100% !important;
