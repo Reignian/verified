@@ -379,17 +379,17 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
     );
 
     const credentialData = {
-      credential_type_id: custom_type ? null : credential_type_id,
+      credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
       custom_type: custom_type || null,
-      owner_id,
-      sender_id,
+      owner_id: parseInt(owner_id),
+      sender_id: parseInt(sender_id),
       ipfs_cid: pinataResult.ipfsHash,
-      ipfs_cid_hash: crypto.createHash('sha256').update(pinataResult.ipfsHash).digest('hex'),
       status: 'uploaded'
     };
     
     academicQueries.createCredential(credentialData, (err, results) => {
       if (err) {
+        console.error('Error creating credential:', err);
         return res.status(500).json({ error: 'Database error' });
       }
       
@@ -397,7 +397,6 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
         message: 'Credential uploaded successfully',
         credential_id: results.insertId,
         ipfs_hash: pinataResult.ipfsHash,
-        ipfs_cid_hash: credentialData.ipfs_cid_hash,
         ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
         status: 'Uploaded to IPFS only'
       });

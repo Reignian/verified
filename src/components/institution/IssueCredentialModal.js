@@ -167,8 +167,15 @@ function IssueCredentialModal({
       const response = await uploadCredential(credentialData, formData.credentialFile);
 
       setUploadMessage('Issuing credential on the blockchain...');
+      // Compute hash from IPFS CID for blockchain storage using Web Crypto API
+      const encoder = new TextEncoder();
+      const data = encoder.encode(response.ipfs_hash);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const ipfsCidHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      
       const blockchainResult = await blockchainService.issueCredential(
-        response.ipfs_cid_hash,
+        ipfsCidHash,
         selectedStudent.student_id
       );
 

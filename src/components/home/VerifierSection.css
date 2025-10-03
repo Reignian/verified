@@ -23,6 +23,119 @@
   margin-top: 20px;
 }
 
+/* Multi-credential styles */
+.multi-credentials-container {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.credential-card {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 15px;
+  border-left: 4px solid var(--primary-color);
+}
+
+.credential-header h6 {
+  color: var(--primary-color);
+  font-weight: 600;
+  margin: 0;
+}
+
+.credential-details {
+  font-size: 0.9rem;
+}
+
+/* Error Modal Styles */
+.verifier-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.verifier-error-modal {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideIn 0.3s ease-out;
+}
+
+.verifier-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.verifier-modal-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #333;
+}
+
+.verifier-btn-close {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  color: #6c757d;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.verifier-btn-close:hover {
+  background-color: #f8f9fa;
+  color: #333;
+}
+
+.verifier-modal-body {
+  padding: 20px 24px;
+  color: #555;
+  line-height: 1.5;
+}
+
+.verifier-modal-footer {
+  padding: 16px 24px 20px;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.verifier-modal-footer .btn {
+  min-width: 80px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { 
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
 /* Responsive adjustments for verifier section */
 @media (max-width: 768px) {
   .verifier-ui {
@@ -37,5 +150,17 @@
   
   .verification-result-box {
     padding: 15px;
+  }
+  
+  .verifier-error-modal {
+    width: 95%;
+    margin: 20px;
+  }
+  
+  .verifier-modal-header,
+  .verifier-modal-body,
+  .verifier-modal-footer {
+    padding-left: 16px;
+    padding-right: 16px;
   }
 }

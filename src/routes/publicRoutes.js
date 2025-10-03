@@ -29,7 +29,7 @@ router.post('/contact', (req, res) => {
   });
 });
 
-// POST /api/public/verify-credential - Verify credential by access code
+// POST /api/public/verify-credential - Verify credential by access code (single or multi)
 router.post('/verify-credential', (req, res) => {
   const { accessCode } = req.body;
   
@@ -37,17 +37,65 @@ router.post('/verify-credential', (req, res) => {
     return res.status(400).json({ error: 'Access code is required' });
   }
   
-  verificationQueries.getCredentialData(accessCode.trim(), (err, result) => {
+  const trimmedCode = accessCode.trim();
+  
+  // First try single access code
+  verificationQueries.getCredentialData(trimmedCode, (err, singleResult) => {
     if (err) {
-      console.error('Verification error:', err);
+      console.error('Single verification error:', err);
       return res.status(500).json({ error: 'Database error occurred' });
     }
     
-    if (!result) {
-      // Log failed verification attempt
+    if (singleResult) {
+      // Log successful single verification
+      adminQueries.logCredentialVerification({
+        credential_id: singleResult.id,
+        access_code: trimmedCode,
+        verifier_ip: req.ip || req.connection.remoteAddress,
+        verifier_user_agent: req.get('User-Agent'),
+        status: 'success'
+      }, (logErr) => {
+        if (logErr) console.error('Failed to log verification attempt:', logErr);
+      });
+      
+      return res.json({
+        success: true,
+        type: 'single',
+        credential: singleResult
+      });
+    }
+    
+    // If no single result, try multi-access code
+    verificationQueries.getMultiCredentialData(trimmedCode, (multiErr, multiResults) => {
+      if (multiErr) {
+        console.error('Multi verification error:', multiErr);
+        return res.status(500).json({ error: 'Database error occurred' });
+      }
+      
+      if (multiResults && multiResults.length > 0) {
+        // Log successful multi verification (log first credential as representative)
+        adminQueries.logCredentialVerification({
+          credential_id: multiResults[0].id,
+          access_code: trimmedCode,
+          verifier_ip: req.ip || req.connection.remoteAddress,
+          verifier_user_agent: req.get('User-Agent'),
+          status: 'success'
+        }, (logErr) => {
+          if (logErr) console.error('Failed to log verification attempt:', logErr);
+        });
+        
+        return res.json({
+          success: true,
+          type: 'multi',
+          credentials: multiResults,
+          count: multiResults.length
+        });
+      }
+      
+      // No results found in either single or multi
       adminQueries.logCredentialVerification({
         credential_id: null,
-        access_code: accessCode.trim(),
+        access_code: trimmedCode,
         verifier_ip: req.ip || req.connection.remoteAddress,
         verifier_user_agent: req.get('User-Agent'),
         status: 'failed'
@@ -56,22 +104,6 @@ router.post('/verify-credential', (req, res) => {
       });
       
       return res.status(404).json({ error: 'No credential found with this access code' });
-    }
-    
-    // Log successful verification
-    adminQueries.logCredentialVerification({
-      credential_id: result.id,
-      access_code: accessCode.trim(),
-      verifier_ip: req.ip || req.connection.remoteAddress,
-      verifier_user_agent: req.get('User-Agent'),
-      status: 'success'
-    }, (logErr) => {
-      if (logErr) console.error('Failed to log verification attempt:', logErr);
-    });
-    
-    res.json({
-      success: true,
-      credential: result
     });
   });
 });

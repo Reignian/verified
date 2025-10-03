@@ -54,39 +54,34 @@ const getInstitutionPublicAddress = (accountId, callback) => {
 
 // UPDATED: Handle custom types without creating new credential types
 const createCredential = (credentialData, callback) => {
-  const { 
-    credential_type_id, 
-    custom_type,
+  const {
+    credential_type_id,
+    custom_type = null,
     owner_id, 
     sender_id, 
     ipfs_cid = 'default_cid', 
-    ipfs_cid_hash = 'default_hash', 
     blockchain_id = null,
     status = 'pending' 
   } = credentialData;
-  
-  // If it's a custom type, set credential_type_id to NULL and use custom_type
-  const finalCredentialTypeId = custom_type ? null : credential_type_id;
-  const finalCustomType = custom_type || null;
+
+  console.log('Creating credential with data:', credentialData);
   
   const query = `
     INSERT INTO credential 
-    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, ipfs_cid_hash, blockchain_id, status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, blockchain_id, status) 
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `;
   
   connection.query(query, [
-    finalCredentialTypeId, 
-    finalCustomType,
+    credential_type_id, 
+    custom_type, 
     owner_id, 
     sender_id, 
     ipfs_cid, 
-    ipfs_cid_hash, 
     blockchain_id,
     status
   ], callback);
 };
-
 // UPDATED: Get issued credentials filtered by institution (sender_id is the institution)
 const getIssuedCredentials = (institutionId, callback) => {
   const query = `

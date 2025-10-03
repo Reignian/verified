@@ -9,7 +9,11 @@ function VerifierSection() {
   const [showVerificationResult, setShowVerificationResult] = useState(false);
   const [verificationInput, setVerificationInput] = useState('');
   const [credentialData, setCredentialData] = useState(null);
+  const [credentialsData, setCredentialsData] = useState(null);
+  const [verificationType, setVerificationType] = useState(null); // 'single' or 'multi'
   const [isLoading, setIsLoading] = useState(false);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
   // All on-chain integrity checks will be computed and logged to console only.
 
   // Prefill access code from URL (?code=XXXXXX) and optionally auto-verify
@@ -46,58 +50,74 @@ function VerifierSection() {
     }
   }, []);
 
+  const showError = (message) => {
+    setErrorMessage(message);
+    setShowErrorModal(true);
+  };
+
+  const closeErrorModal = () => {
+    setShowErrorModal(false);
+    setErrorMessage('');
+  };
+
   const runOnChainIntegrityChecks = async (credential) => {
     const blockchainId = credential?.blockchain_id;
     if (!blockchainId) {
-      console.warn('[Verifier] No blockchain_id on credential. Skipping on-chain checks.');
-      return;
+      console.warn('[Verifier] No blockchain_id on credential. Rejecting verification.');
+      return { isValid: false, error: 'No blockchain ID found' };
     }
+    
     try {
       const chainData = await blockchainService.fetchOnChainCredential(blockchainId);
       const chainVerify = await blockchainService.verifyOnChainCredential(blockchainId);
 
       const exists = !!chainVerify?.exists;
+      
+      if (!exists) {
+        console.warn('[Verifier] Credential does not exist on blockchain');
+        return { isValid: false, error: 'Credential not found on blockchain' };
+      }
 
       const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase();
       const chainIssuer = (chainData.issuer || '').trim().toLowerCase();
-      const issuerMatch = exists && dbIssuer && chainIssuer ? dbIssuer === chainIssuer : null;
-
-      const idMatch = typeof chainVerify?.exists === 'boolean' ? chainVerify.exists : null;
+      const issuerMatch = dbIssuer && chainIssuer ? dbIssuer === chainIssuer : false;
 
       const dbStudentId = (credential.student_id ?? '').toString().trim();
       const chainStudentId = (chainData.studentId ?? '').toString().trim();
-      const studentIdMatch = exists && dbStudentId && chainStudentId ? dbStudentId === chainStudentId : null;
+      const studentIdMatch = dbStudentId && chainStudentId ? dbStudentId === chainStudentId : false;
 
       const dbCid = (credential.ipfs_cid ?? '').toString().trim();
       const chainCidHashHex = (chainData.ipfsCidHashHex ?? '').toString().trim();
-      let cidHashMatch = null;
+      let cidHashMatch = false;
       let computedCidHashHex = null;
-      if (exists && dbCid && chainCidHashHex) {
+      if (dbCid && chainCidHashHex) {
         try {
           computedCidHashHex = ethers.sha256(ethers.toUtf8Bytes(dbCid));
           cidHashMatch = computedCidHashHex.toLowerCase() === chainCidHashHex.toLowerCase();
         } catch {
-          cidHashMatch = null;
+          cidHashMatch = false;
         }
       }
 
-      let dateMatch = null;
+      let dateMatch = false;
       let dbDayForMatch = null;
       let chainDayForMatch = null;
       try {
         const dbDate = new Date(credential.date_issued);
         dbDayForMatch = isNaN(dbDate.getTime()) ? null : dbDate.toISOString().slice(0, 10);
-        chainDayForMatch = exists && chainData.createdAt
+        chainDayForMatch = chainData.createdAt
           ? new Date(chainData.createdAt * 1000).toISOString().slice(0, 10)
           : null;
-        dateMatch = dbDayForMatch && chainDayForMatch ? dbDayForMatch === chainDayForMatch : null;
+        dateMatch = dbDayForMatch && chainDayForMatch ? dbDayForMatch === chainDayForMatch : false;
       } catch {
-        dateMatch = null;
+        dateMatch = false;
       }
 
+      const allVerified = issuerMatch && studentIdMatch && cidHashMatch && dateMatch;
+
       const indicators = {
+        isValid: allVerified,
         issuerMatch,
-        idMatch,
         studentIdMatch,
         cidHashMatch,
         dateMatch,
@@ -115,34 +135,29 @@ function VerifierSection() {
         }
       };
 
-      const allTrue = [issuerMatch, idMatch, studentIdMatch, cidHashMatch, dateMatch]
-        .every(v => v === true);
-
-      if (allTrue) {
-        console.log('[Verifier] Blockchain verified');
+      if (allVerified) {
+        console.log('[Verifier] ✅ Blockchain verification PASSED - All data matches');
       } else {
-        console.group('[Verifier] Verification mismatches');
-        if (idMatch !== true) {
-          console.warn('[Verifier] Credential ID mismatch');
+        console.group('[Verifier] ❌ Blockchain verification FAILED - Data tampering detected');
+        if (!issuerMatch) {
+          console.error('[Verifier] Issuer address mismatch - Expected:', dbIssuer, 'Got:', chainIssuer);
         }
-        if (issuerMatch !== true) {
-          console.warn('[Verifier] Issuer address mismatch');
+        if (!studentIdMatch) {
+          console.error('[Verifier] Student ID mismatch - Expected:', dbStudentId, 'Got:', chainStudentId);
         }
-        if (studentIdMatch !== true) {
-          console.warn('[Verifier] Student ID mismatch');
+        if (!cidHashMatch) {
+          console.error('[Verifier] CID hash mismatch - Expected:', computedCidHashHex, 'Got:', chainCidHashHex);
         }
-        if (cidHashMatch !== true) {
-          console.warn('[Verifier] CID hash mismatch');
-        }
-        if (dateMatch !== true) {
-          console.warn('[Verifier] Issue date mismatch');
+        if (!dateMatch) {
+          console.error('[Verifier] Issue date mismatch - Expected:', dbDayForMatch, 'Got:', chainDayForMatch);
         }
         console.groupEnd();
       }
 
       return indicators;
     } catch (err) {
-      console.error('[Verifier] On-chain checks failed:', err);
+      console.error('[Verifier] Blockchain verification failed:', err);
+      return { isValid: false, error: 'Blockchain verification failed: ' + err.message };
     }
   };
 
@@ -154,28 +169,75 @@ function VerifierSection() {
       try {
         const response = await verifyCredential(code);
         
-        if (response.success && response.credential) {
-          setCredentialData(response.credential);
-          setShowVerificationResult(true);
-          // Run all on-chain integrity checks and log indicators to console
-          runOnChainIntegrityChecks(response.credential);
+        if (response.success) {
+          if (response.type === 'single' && response.credential) {
+            // Single credential verification - BLOCKCHAIN FIRST
+            console.log('[Verifier] Verifying single credential on blockchain...');
+            const blockchainResult = await runOnChainIntegrityChecks(response.credential);
+            
+            if (blockchainResult.isValid) {
+              setCredentialData(response.credential);
+              setCredentialsData(null);
+              setVerificationType('single');
+              setShowVerificationResult(true);
+            } else {
+              showError(`Blockchain verification failed: ${blockchainResult.error || 'Data integrity compromised. This credential has been tampered with or is not properly stored on the blockchain.'}`);
+              setShowVerificationResult(false);
+            }
+          } else if (response.type === 'multi' && response.credentials) {
+            // Multi-credential verification - BLOCKCHAIN FIRST FOR ALL
+            console.log(`[Verifier] Verifying ${response.credentials.length} credentials on blockchain...`);
+            const verifiedCredentials = [];
+            const failedCredentials = [];
+            
+            for (let i = 0; i < response.credentials.length; i++) {
+              const credential = response.credentials[i];
+              console.log(`[Verifier] Checking credential ${i + 1}/${response.credentials.length}:`);
+              const blockchainResult = await runOnChainIntegrityChecks(credential);
+              
+              if (blockchainResult.isValid) {
+                verifiedCredentials.push(credential);
+              } else {
+                failedCredentials.push({
+                  credential,
+                  error: blockchainResult.error
+                });
+              }
+            }
+            
+            if (verifiedCredentials.length > 0) {
+              if (failedCredentials.length > 0) {
+                console.warn(`[Verifier] ${failedCredentials.length} credentials failed blockchain verification and were filtered out`);
+              }
+              setCredentialsData(verifiedCredentials);
+              setCredentialData(null);
+              setVerificationType('multi');
+              setShowVerificationResult(true);
+            } else {
+              showError(`All credentials failed blockchain verification. These credentials have been tampered with or are not properly stored on the blockchain.`);
+              setShowVerificationResult(false);
+            }
+          } else {
+            showError('No credential found with this access code.');
+            setShowVerificationResult(false);
+          }
         } else {
-          alert('No credential found with this access code.');
+          showError('No credential found with this access code.');
           setShowVerificationResult(false);
         }
       } catch (error) {
         console.error('Verification error:', error);
         if (error.response && error.response.status === 404) {
-          alert('No credential found with this access code.');
+          showError('No credential found with this access code.');
         } else {
-          alert('Error occurred during verification. Please try again.');
+          showError('Error occurred during verification. Please try again.');
         }
         setShowVerificationResult(false);
       } finally {
         setIsLoading(false);
       }
     } else {
-      alert('Please enter a credential access code to verify.');
+      showError('Please enter a credential access code to verify.');
     }
   };
 
@@ -224,7 +286,7 @@ function VerifierSection() {
                   </button>
                 </div>
                 
-                {showVerificationResult && credentialData && (
+                {showVerificationResult && verificationType === 'single' && credentialData && (
                   <div className="verification-result-box">
                     <div className="d-flex align-items-center mb-3">
                       <i className="fas fa-check-circle text-success me-2"></i>
@@ -232,7 +294,7 @@ function VerifierSection() {
                     </div>
                     <div>
                       <div className="d-flex justify-content-between py-2 border-bottom">
-                        <span className="fw-bold">Student Name:</span>
+                        <span className="fw-bold">Name:</span>
                         <span>{credentialData.recipient_name}</span>
                       </div>
                       <div className="d-flex justify-content-between py-2 border-bottom">
@@ -245,7 +307,11 @@ function VerifierSection() {
                       </div>
                       <div className="d-flex justify-content-between py-2">
                         <span className="fw-bold">Issue Date:</span>
-                        <span>{new Date(credentialData.date_issued).toLocaleDateString()}</span>
+                        <span>{new Date(credentialData.date_issued).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}</span>
                       </div>
                       {credentialData?.ipfs_cid && (
                         <div className="d-flex justify-content-between py-2">
@@ -262,6 +328,64 @@ function VerifierSection() {
                           </span>
                         </div>
                       )}
+                    </div>
+                  </div>
+                )}
+
+                {showVerificationResult && verificationType === 'multi' && credentialsData && (
+                  <div className="verification-result-box">
+                    <div className="d-flex align-items-center mb-3">
+                      <i className="fas fa-check-circle text-success me-2"></i>
+                      <span className="fw-bold text-success">Verified ({credentialsData.length} Credentials)</span>
+                    </div>
+                    <div className="multi-credentials-container">
+                      {credentialsData.map((credential, index) => (
+                        <div key={credential.id} className="credential-card mb-3">
+                          <div className="credential-header">
+                            <h6 className="mb-2">
+                              <i className="fas fa-award text-primary me-2"></i>
+                              Credential {index + 1}
+                            </h6>
+                          </div>
+                          <div className="credential-details">
+                            <div className="d-flex justify-content-between py-1 border-bottom">
+                              <span className="fw-bold">Name:</span>
+                              <span>{credential.recipient_name}</span>
+                            </div>
+                            <div className="d-flex justify-content-between py-1 border-bottom">
+                              <span className="fw-bold">Institution:</span>
+                              <span>{credential.issuer_name}</span>
+                            </div>
+                            <div className="d-flex justify-content-between py-1 border-bottom">
+                              <span className="fw-bold">Credential Type:</span>
+                              <span>{credential.credential_type}</span>
+                            </div>
+                            <div className="d-flex justify-content-between py-1">
+                              <span className="fw-bold">Issue Date:</span>
+                              <span>{new Date(credential.date_issued).toLocaleDateString('en-US', {
+                                year: 'numeric',
+                                month: 'long',
+                                day: 'numeric'
+                              })}</span>
+                            </div>
+                            {credential?.ipfs_cid && (
+                              <div className="d-flex justify-content-between py-1">
+                                <span className="fw-bold">Credential File:</span>
+                                <span>
+                                  <a 
+                                    href={`https://gateway.pinata.cloud/ipfs/${credential.ipfs_cid}`} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="me-2"
+                                  >
+                                    View
+                                  </a>
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -283,6 +407,40 @@ function VerifierSection() {
           </div>
         </div>
       </div>
+
+      {/* Error Modal */}
+      {showErrorModal && (
+        <div className="verifier-modal-overlay" onClick={closeErrorModal}>
+          <div className="verifier-error-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="verifier-modal-header">
+              <h5 className="verifier-modal-title">
+                <i className="fas fa-exclamation-triangle text-warning me-2"></i>
+                Verification Error
+              </h5>
+              <button 
+                type="button" 
+                className="verifier-btn-close" 
+                onClick={closeErrorModal}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            <div className="verifier-modal-body">
+              <p className="mb-0">{errorMessage}</p>
+            </div>
+            <div className="verifier-modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-primary" 
+                onClick={closeErrorModal}
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }
