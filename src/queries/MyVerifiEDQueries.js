@@ -139,6 +139,45 @@ const deleteAccessCode = (accessCode, callback) => {
   connection.query(query, [accessCode], callback);
 };
 
+// Generate multi-access code for multiple credentials
+const generateMultiAccessCode = (studentId, credentialIds, accessCode, callback) => {
+  if (!credentialIds || credentialIds.length < 2) {
+    return callback(new Error('At least 2 credentials are required for multi-access code'));
+  }
+
+  connection.beginTransaction((txErr) => {
+    if (txErr) return callback(txErr);
+
+    const rollback = (err) => connection.rollback(() => callback(err));
+
+    // 1. Insert new multi-access code (keep existing ones active, just like single access codes)
+    const insertCodeQuery = 'INSERT INTO multi_access_code (access_code, student_id, is_active) VALUES (?, ?, 1)';
+    connection.query(insertCodeQuery, [accessCode, studentId], (insertErr, insertResult) => {
+      if (insertErr) return rollback(insertErr);
+
+      const multiAccessCodeId = insertResult.insertId;
+
+      // 2. Insert credential mappings
+      const credentialMappings = credentialIds.map(credId => [multiAccessCodeId, credId]);
+      const insertMappingsQuery = 'INSERT INTO multi_access_code_credentials (multi_access_code_id, credential_id) VALUES ?';
+      
+      connection.query(insertMappingsQuery, [credentialMappings], (mappingErr) => {
+        if (mappingErr) return rollback(mappingErr);
+
+        connection.commit((commitErr) => {
+          if (commitErr) return rollback(commitErr);
+          callback(null, { 
+            success: true, 
+            access_code: accessCode, 
+            multi_access_code_id: multiAccessCodeId,
+            credential_count: credentialIds.length 
+          });
+        });
+      });
+    });
+  });
+};
+
 // Fetch all non-deleted access codes for the student's linked group with active status
 const getStudentAccessCodes = (studentId, callback) => {
   const sql = `
@@ -147,10 +186,12 @@ const getStudentAccessCodes = (studentId, callback) => {
       ca.is_active,
       ca.created_at,
       ca.credential_id,
-      COALESCE(ct.type_name, c.custom_type) AS credential_type
+      COALESCE(ct.type_name, c.custom_type) AS credential_type,
+      i.institution_name
     FROM credential_access ca
     INNER JOIN credential c ON c.id = ca.credential_id
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    LEFT JOIN institution i ON i.id = c.sender_id
     WHERE ca.is_deleted = 0 AND c.owner_id IN (
       SELECT la2.student_id
       FROM linked_accounts la1
@@ -161,6 +202,56 @@ const getStudentAccessCodes = (studentId, callback) => {
     ORDER BY ca.created_at DESC
   `;
   connection.query(sql, [studentId, studentId], callback);
+};
+
+// Fetch all non-deleted multi-access codes for the student's linked group with credential details
+const getStudentMultiAccessCodes = (studentId, callback) => {
+  const sql = `
+    SELECT 
+      mac.id,
+      mac.access_code,
+      mac.is_active,
+      mac.created_at,
+      GROUP_CONCAT(
+        CONCAT(
+          COALESCE(ct.type_name, c.custom_type),
+          CASE 
+            WHEN i.institution_name IS NOT NULL AND i.institution_name != '' 
+            THEN CONCAT(' - ', i.institution_name)
+            ELSE ''
+          END
+        ) 
+        SEPARATOR ', '
+      ) AS credential_types,
+      COUNT(macc.credential_id) AS credential_count
+    FROM multi_access_code mac
+    INNER JOIN multi_access_code_credentials macc ON macc.multi_access_code_id = mac.id
+    INNER JOIN credential c ON c.id = macc.credential_id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    LEFT JOIN institution i ON i.id = c.sender_id
+    WHERE mac.is_deleted = 0 AND mac.student_id IN (
+      SELECT la2.student_id
+      FROM linked_accounts la1
+      JOIN linked_accounts la2 ON la2.group_id = la1.group_id
+      WHERE la1.student_id = ?
+      UNION SELECT ?
+    )
+    GROUP BY mac.id, mac.access_code, mac.is_active, mac.created_at
+    ORDER BY mac.created_at DESC
+  `;
+  connection.query(sql, [studentId, studentId], callback);
+};
+
+// Update multi-access code status (active/inactive)
+const updateMultiAccessCodeStatus = (accessCode, isActive, callback) => {
+  const sql = 'UPDATE multi_access_code SET is_active = ? WHERE access_code = ? AND is_deleted = 0';
+  connection.query(sql, [isActive ? 1 : 0, accessCode], callback);
+};
+
+// Delete multi-access code (soft delete)
+const deleteMultiAccessCode = (accessCode, callback) => {
+  const sql = 'UPDATE multi_access_code SET is_deleted = 1 WHERE access_code = ? AND is_deleted = 0';
+  connection.query(sql, [accessCode], callback);
 };
 
 // Unlink target account from the current user's link group
@@ -277,6 +368,10 @@ module.exports = {
   upsertCredentialAccessCode,
   updateAccessCodeStatus,
   deleteAccessCode,
+  generateMultiAccessCode,
+  getStudentMultiAccessCodes,
+  updateMultiAccessCodeStatus,
+  deleteMultiAccessCode,
   unlinkAccount,
   linkAccounts,
   getStudentAccessCodes

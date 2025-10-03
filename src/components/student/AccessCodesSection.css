@@ -216,7 +216,7 @@
 .access-code-details {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: start;
   font-size: 0.9rem;
   color: #666;
 }
@@ -224,7 +224,7 @@
 .credential-reference,
 .creation-date {
   display: flex;
-  align-items: center;
+  align-items: start;
   gap: 4px;
 }
 
@@ -242,4 +242,18 @@
   .access-code-card {
     padding: 16px;
   }
+}
+
+/* Credential List Styles */
+
+.credential-item {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+  margin-bottom: 4px;
+  padding-left: 8px;
+}
+
+.credential-item:last-child {
+  margin-bottom: 0;
 }

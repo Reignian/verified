@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './MyVerifiED.css';
-import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials } from '../../services/studentApiService';
+import { fetchStudentName, fetchStudentCredentialCount, fetchStudentCredentials, fetchStudentAccessCodes, fetchStudentMultiAccessCodes } from '../../services/studentApiService';
 import CredentialsSection from './CredentialsSection';
 import AccessCodesSection from './AccessCodesSection';
 import StudentAccountSettingsSection from './StudentAccountSettingsSection';
@@ -12,6 +12,8 @@ function MyVerifiED() {
   const [user, setUser] = useState(null);
   const [credentialCount, setCredentialCount] = useState(0);
   const [totalAccessCodes, setTotalAccessCodes] = useState(0);
+  const [singleAccessCodesCount, setSingleAccessCodesCount] = useState(0);
+  const [multiAccessCodesCount, setMultiAccessCodesCount] = useState(0);
   const [activeSection, setActiveSection] = useState('credentials');
   const [generatingId, setGeneratingId] = useState(null);
 
@@ -37,11 +39,13 @@ function MyVerifiED() {
         return;
       }
 
-      // Fetch student data, credential count, and actual credentials
-      const [studentData, credentialData, credentialsData] = await Promise.all([
+      // Fetch student data, credential count, credentials, and access codes
+      const [studentData, credentialData, credentialsData, singleAccessCodes, multiAccessCodes] = await Promise.all([
         fetchStudentName(userId),
         fetchStudentCredentialCount(userId),
-        fetchStudentCredentials(userId)
+        fetchStudentCredentials(userId),
+        fetchStudentAccessCodes(userId),
+        fetchStudentMultiAccessCodes(userId)
       ]);
       
       setUser({ 
@@ -62,8 +66,13 @@ function MyVerifiED() {
         codes: c.access_codes ? c.access_codes.split(',').filter(Boolean) : []
       }));
       setCredentials(transformed);
-      // Calculate and set total access codes
-      setTotalAccessCodes(calculateTotalAccessCodes(transformed));
+      
+      // Calculate total access codes (single + multi)
+      const singleCount = (singleAccessCodes || []).length;
+      const multiCount = (multiAccessCodes || []).length;
+      setSingleAccessCodesCount(singleCount);
+      setMultiAccessCodesCount(multiCount);
+      setTotalAccessCodes(singleCount + multiCount);
       setLoading(false);
 
     } catch (error) {
@@ -170,6 +179,11 @@ function MyVerifiED() {
               {totalAccessCodes}
             </div>
             <p className="stat-label">Total Access Codes</p>
+            <div className="stat-breakdown">
+              <small className="text-muted">
+                {singleAccessCodesCount} Single • {multiAccessCodesCount} Multi
+              </small>
+            </div>
           </div>
 
           <div 

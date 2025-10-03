@@ -70,6 +70,58 @@ export const generateCredentialAccessCode = async (credentialId) => {
   }
 };
 
+// Generate a new multi-access code for multiple credentials
+export const generateMultiAccessCode = async (studentId, credentialIds) => {
+  try {
+    const response = await axios.post(`${API_URL}/student/generate-multi-access-code`, {
+      student_id: studentId,
+      credential_ids: credentialIds,
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error generating multi-access code:', error);
+    throw error;
+  }
+};
+
+// Get student's multi-access codes
+export const fetchStudentMultiAccessCodes = async (studentId) => {
+  try {
+    const response = await axios.get(`${API_URL}/student/${studentId}/multi-access-codes`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student multi-access codes:', error);
+    throw error;
+  }
+};
+
+// Update multi-access code status (active/inactive)
+export const updateMultiAccessCodeStatus = async (accessCode, isActive) => {
+  try {
+    const response = await axios.put(`${API_URL}/student/update-multi-access-code-status`, {
+      access_code: accessCode,
+      is_active: isActive
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating multi-access code status:', error);
+    throw error;
+  }
+};
+
+// Delete multi-access code
+export const deleteMultiAccessCode = async (accessCode) => {
+  try {
+    const response = await axios.delete(`${API_URL}/student/delete-multi-access-code`, {
+      data: { access_code: accessCode }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting multi-access code:', error);
+    throw error;
+  }
+};
+
 // Update access code status (active/inactive)
 export const updateAccessCodeStatus = async (accessCode, isActive) => {
   try {

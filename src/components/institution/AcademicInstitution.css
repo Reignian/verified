@@ -618,7 +618,6 @@
 
   .btn-primary-custom, .btn-secondary-custom, .btn-success-custom {
     width: 100%;
-    max-width: 300px;
     margin: 5px 0;
   }
 }

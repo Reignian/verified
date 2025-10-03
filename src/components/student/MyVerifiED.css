@@ -118,3 +118,18 @@
     padding: 0 15px;
   }
 }
+
+/* Stat Breakdown Styles */
+.stat-breakdown {
+  margin-top: 8px;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.stat-card.active .stat-breakdown {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.stat-card.active .stat-breakdown .text-muted {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
