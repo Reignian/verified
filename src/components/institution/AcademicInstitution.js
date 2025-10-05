@@ -8,6 +8,7 @@ import {
   fetchCredentialStats,
   fetchInstitutionName,
   fetchInstitutionPublicAddress,
+  updateInstitutionPublicAddress,
   fetchStudents
 } from '../../services/institutionApiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -17,6 +18,8 @@ import IssueCredentialModal from './IssueCredentialModal';
 import BulkImportStudentsModal from './BulkImportStudentsModal';
 import IssuedCredentialsTable from './IssuedCredentialsTable';
 import ErrorModal from '../common/ErrorModal';
+import PublicAddressCheck from './PublicAddressCheck';
+import PublicAddressModal from './PublicAddressModal';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -32,6 +35,7 @@ function AcademicInstitution() {
   const [showModal, setShowModal] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
 
   // Bulk import modal visibility (modal owns its internal state/logic)
   const [showBulkImportModal, setShowBulkImportModal] = useState(false);
@@ -175,54 +179,76 @@ function AcademicInstitution() {
     window.open(ipfsUrl, '_blank');
   };
 
+  const handleAddressUpdated = (newAddress) => {
+    setDbPublicAddress(newAddress);
+    setShowSettingsModal(false);
+  };
+
 
   // Student management view is toggled via stat card click
 
   // Always show header + stats, change only the section content below
   return (
-    <div className="ai-page" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
+    <PublicAddressCheck
+      institutionId={institutionId}
+      dbPublicAddress={dbPublicAddress}
+      onAddressUpdated={handleAddressUpdated}
+    >
+      <div className="ai-page" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
 
-      {/* Header Section */}
-      <div className="dashboard-header">
-        <div className="container">
-          <div className="row align-items-center">
-            <div className="col-lg-8">
-              <h1 className="dashboard-title">
-                <i className="fas fa-university me-3"></i>
-                {institutionName ? `${institutionName}` : 'Academic Institution Dashboard'}
-              </h1>
-              <p className="dashboard-subtitle">Issue and manage blockchain-verified academic credentials</p>
-            </div>
-            {dbPublicAddress && (
+        {/* Header Section */}
+        <div className="dashboard-header">
+          <div className="container">
+            <div className="row align-items-center">
+              <div className="col-lg-8">
+                <h1 className="dashboard-title">
+                  <i className="fas fa-university me-3"></i>
+                  {institutionName ? `${institutionName}` : 'Academic Institution Dashboard'}
+                </h1>
+                <p className="dashboard-subtitle">Issue and manage blockchain-verified academic credentials</p>
+              </div>
               <div className="col-lg-4">
-                <div className="wallet-info">
-                  <div className="wallet-label">Wallet Status</div>
-                  <div className="wallet-status">
-                    {account ? (
-                      walletMatches ? (
-                        <span className="status-match">
-                          <i className="fas fa-check-circle me-1"></i>
-                          MetaMask Connected & Verified
-                        </span>
-                      ) : (
-                        <span className="status-mismatch">
-                          <i className="fas fa-exclamation-triangle me-1"></i>
-                          MetaMask Account Mismatch
-                        </span>
-                      )
-                    ) : (
-                      <span className="status-disconnected">
-                        <i className="fas fa-times-circle me-1"></i>
-                        MetaMask Not Connected
-                      </span>
-                    )}
-                  </div>
+                <div className="header-actions">
+                  {/* Settings Icon */}
+                  <button 
+                    className="settings-btn"
+                    onClick={() => setShowSettingsModal(true)}
+                    title="Settings"
+                  >
+                    <i className="fas fa-cog"></i>
+                  </button>
+                  
+                  {/* Wallet Status */}
+                  {dbPublicAddress && (
+                    <div className="wallet-info">
+                      <div className="wallet-label">Wallet Status</div>
+                      <div className="wallet-status">
+                        {account ? (
+                          walletMatches ? (
+                            <span className="status-match">
+                              <i className="fas fa-check-circle me-1"></i>
+                              MetaMask Connected & Verified
+                            </span>
+                          ) : (
+                            <span className="status-mismatch">
+                              <i className="fas fa-exclamation-triangle me-1"></i>
+                              MetaMask Account Mismatch
+                            </span>
+                          )
+                        ) : (
+                          <span className="status-disconnected">
+                            <i className="fas fa-times-circle me-1"></i>
+                            MetaMask Not Connected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
-      </div>
 
       {/* Main Content */}
       <div className="main-content">
@@ -316,7 +342,17 @@ function AcademicInstitution() {
         institutionId={institutionId}
         onImported={async () => { await refreshStudentsData(); setStudentsRefreshTick((v) => v + 1); }}
       />
+
+      {/* Settings Modal */}
+      <PublicAddressModal
+        show={showSettingsModal}
+        onClose={() => setShowSettingsModal(false)}
+        institutionId={institutionId}
+        currentAddress={dbPublicAddress}
+        onAddressUpdated={handleAddressUpdated}
+      />
     </div>
+    </PublicAddressCheck>
   );
 }
 

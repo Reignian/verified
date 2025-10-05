@@ -65,6 +65,37 @@ router.get('/:accountId/public-address', (req, res) => {
   });
 });
 
+// PUT /api/institution/:accountId/public-address - Update institution public address
+router.put('/:accountId/public-address', (req, res) => {
+  const { accountId } = req.params;
+  const { public_address } = req.body;
+  
+  if (!public_address) {
+    return res.status(400).json({ error: 'Public address is required' });
+  }
+  
+  // Basic Ethereum address validation
+  if (!/^0x[a-fA-F0-9]{40}$/.test(public_address)) {
+    return res.status(400).json({ error: 'Invalid Ethereum address format' });
+  }
+  
+  academicQueries.updateInstitutionPublicAddress(accountId, public_address, (err, results) => {
+    if (err) {
+      console.error('Error updating public address:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json({ 
+      message: 'Public address updated successfully',
+      public_address: public_address
+    });
+  });
+});
+
 // ============ STUDENT MANAGEMENT ============
 
 // File parsing utilities
