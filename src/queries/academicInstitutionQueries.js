@@ -52,6 +52,16 @@ const getInstitutionPublicAddress = (accountId, callback) => {
   connection.query(query, [accountId], callback);
 };
 
+// Update institution public address by account ID
+const updateInstitutionPublicAddress = (accountId, publicAddress, callback) => {
+  const query = `
+    UPDATE institution 
+    SET public_address = ? 
+    WHERE id = ?
+  `;
+  connection.query(query, [publicAddress, accountId], callback);
+};
+
 // UPDATED: Handle custom types without creating new credential types
 const createCredential = (credentialData, callback) => {
   const {
@@ -324,12 +334,14 @@ const getBulkImportStats = (institutionId, callback) => {
   connection.query(query, [institutionId], callback);
 };
 
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
   getStudents,
   getInstitutionName,
   getInstitutionPublicAddress,
+  updateInstitutionPublicAddress,
   createCredential,
   getIssuedCredentials,
   getCredentialStats,

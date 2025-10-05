@@ -31,6 +31,19 @@ export const fetchInstitutionPublicAddress = async (accountId) => {
   }
 };
 
+// Update institution public address by account ID
+export const updateInstitutionPublicAddress = async (accountId, publicAddress) => {
+  try {
+    const response = await axios.put(`${API_URL}/institution/${accountId}/public-address`, {
+      public_address: publicAddress
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating institution public address:', error);
+    throw error;
+  }
+};
+
 // ============ STUDENT MANAGEMENT ============
 
 // Add single student account
