@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './StudentAccountSettingsSection.css';
-import { linkAccount, fetchLinkedAccounts, unlinkAccount } from '../../services/studentApiService';
+import { linkAccount, fetchLinkedAccounts, unlinkAccount, changePassword } from '../../services/studentApiService';
 
 function StudentAccountSettingsSection({ user }) {
   const [activeTab, setActiveTab] = useState('profile');
@@ -23,6 +23,15 @@ function StudentAccountSettingsSection({ user }) {
   const [unlinkTargetId, setUnlinkTargetId] = useState(null);
   const [unlinkModalError, setUnlinkModalError] = useState('');
   const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
+
+  // Change password modal state
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [changePasswordError, setChangePasswordError] = useState('');
+  const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
+  const [changePasswordSubmitting, setChangePasswordSubmitting] = useState(false);
 
   const loadLinkedAccounts = async () => {
     if (!user?.id) return;
@@ -75,6 +84,70 @@ function StudentAccountSettingsSection({ user }) {
     } finally {
       setUnlinkingId(null);
       setUnlinkSubmitting(false);
+    }
+  };
+
+  const openChangePasswordModal = () => {
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+    setShowChangePasswordModal(true);
+  };
+
+  const closeChangePasswordModal = () => {
+    if (changePasswordSubmitting) return;
+    setShowChangePasswordModal(false);
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+  };
+
+  const submitChangePassword = async (e) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    // Validation
+    if (!currentPassword.trim()) {
+      setChangePasswordError('Current password is required.');
+      return;
+    }
+    if (!newPassword.trim()) {
+      setChangePasswordError('New password is required.');
+      return;
+    }
+    if (newPassword.length < 6) {
+      setChangePasswordError('New password must be at least 6 characters long.');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setChangePasswordError('New passwords do not match.');
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setChangePasswordError('New password must be different from current password.');
+      return;
+    }
+
+    setChangePasswordError('');
+    setChangePasswordSuccess('');
+
+    try {
+      setChangePasswordSubmitting(true);
+      await changePassword(user.id, currentPassword, newPassword);
+      setChangePasswordSuccess('Password changed successfully!');
+      // Clear form after success
+      setTimeout(() => {
+        closeChangePasswordModal();
+      }, 2000);
+    } catch (err) {
+      const serverMsg = err?.response?.data?.error || err?.response?.data?.message;
+      setChangePasswordError(serverMsg || err.message || 'Failed to change password.');
+    } finally {
+      setChangePasswordSubmitting(false);
     }
   };
 
@@ -199,6 +272,17 @@ function StudentAccountSettingsSection({ user }) {
                       </div>
                     </div>
                   </div>
+                </div>
+                
+                <div className="profile-actions mt-4">
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-primary"
+                    onClick={openChangePasswordModal}
+                  >
+                    <i className="fas fa-key me-2"></i>
+                    Change Password
+                  </button>
                 </div>
               </div>
             </div>
@@ -368,6 +452,93 @@ function StudentAccountSettingsSection({ user }) {
           </div>
         )}
       </div>
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && (
+        <div className="change-password-modal-overlay show" role="dialog" aria-modal="true">
+          <div className="change-password-modal">
+            <div className="modal-header">
+              <h5 className="modal-title">Change Password</h5>
+              <button 
+                type="button" 
+                className="btn-close" 
+                aria-label="Close" 
+                onClick={closeChangePasswordModal} 
+                disabled={changePasswordSubmitting}
+              ></button>
+            </div>
+            <form onSubmit={submitChangePassword}>
+              <div className="modal-body">
+                <p className="text-muted mb-4">Enter your current password and choose a new password.</p>
+                
+                {changePasswordError && (
+                  <div className="alert alert-danger" role="alert">{changePasswordError}</div>
+                )}
+                {changePasswordSuccess && (
+                  <div className="alert alert-success" role="alert">{changePasswordSuccess}</div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label">Current Password</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    disabled={changePasswordSubmitting}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">New Password</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    disabled={changePasswordSubmitting}
+                    minLength="6"
+                    required
+                  />
+                  <div className="form-text">Password must be at least 6 characters long.</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Confirm New Password</label>
+                  <input
+                    type="password"
+                    className="form-control"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    disabled={changePasswordSubmitting}
+                    required
+                  />
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={closeChangePasswordModal} 
+                  disabled={changePasswordSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={changePasswordSubmitting}
+                >
+                  <i className="fas fa-key me-2"></i>
+                  {changePasswordSubmitting ? 'Changing Password...' : 'Change Password'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

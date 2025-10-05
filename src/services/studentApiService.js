@@ -197,3 +197,20 @@ export const unlinkAccount = async (currentAccountId, targetAccountId, currentPa
     throw error;
   }
 };
+
+// Change password for a student account
+export const changePassword = async (accountId, currentPassword, newPassword) => {
+  try {
+    const response = await axios.put(`${API_URL}/student/change-password`, {
+      account_id: accountId,
+      current_password: currentPassword,
+      new_password: newPassword
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error changing password:', error);
+    // Surface server error messages to caller
+    if (error.response?.data) throw error;
+    throw error;
+  }
+};

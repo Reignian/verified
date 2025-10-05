@@ -359,6 +359,35 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
   });
 };
 
+// Change password for a student account
+const changePassword = (accountId, currentPassword, newPassword, callback) => {
+  // First verify the current password
+  const verifyQuery = 'SELECT id FROM account WHERE id = ? AND password = ? LIMIT 1';
+  connection.query(verifyQuery, [accountId, currentPassword], (verifyErr, verifyResults) => {
+    if (verifyErr) {
+      return callback(verifyErr);
+    }
+    
+    if (verifyResults.length === 0) {
+      return callback(new Error('Current password is incorrect'));
+    }
+    
+    // Update the password
+    const updateQuery = 'UPDATE account SET password = ? WHERE id = ?';
+    connection.query(updateQuery, [newPassword, accountId], (updateErr, updateResults) => {
+      if (updateErr) {
+        return callback(updateErr);
+      }
+      
+      if (updateResults.affectedRows === 0) {
+        return callback(new Error('Account not found'));
+      }
+      
+      callback(null, { success: true, message: 'Password changed successfully' });
+    });
+  });
+};
+
 module.exports = {
   getStudentName,
   getLinkedAccounts,
@@ -374,5 +403,6 @@ module.exports = {
   deleteMultiAccessCode,
   unlinkAccount,
   linkAccounts,
-  getStudentAccessCodes
+  getStudentAccessCodes,
+  changePassword
 };

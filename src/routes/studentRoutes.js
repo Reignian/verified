@@ -363,4 +363,46 @@ router.delete('/unlink-account', (req, res) => {
   }
 });
 
+// PUT /api/student/change-password - Change password for a student account
+router.put('/change-password', (req, res) => {
+  const { account_id, current_password, new_password } = req.body;
+
+  if (!account_id || !current_password || !new_password) {
+    return res.status(400).json({ error: 'account_id, current_password, and new_password are required' });
+  }
+
+  // Basic validation
+  if (String(new_password).length < 6) {
+    return res.status(400).json({ error: 'New password must be at least 6 characters long' });
+  }
+
+  if (current_password === new_password) {
+    return res.status(400).json({ error: 'New password must be different from current password' });
+  }
+
+  myVerifiEDQueries.changePassword(
+    Number(account_id),
+    String(current_password),
+    String(new_password),
+    (err, result) => {
+      if (err) {
+        // Handle specific error messages
+        if (err.message === 'Current password is incorrect') {
+          return res.status(401).json({ error: 'Current password is incorrect' });
+        }
+        if (err.message === 'Account not found') {
+          return res.status(404).json({ error: 'Account not found' });
+        }
+        console.error('Error changing password:', err);
+        return res.status(500).json({ error: 'Database error occurred' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Password changed successfully'
+      });
+    }
+  );
+});
+
 module.exports = router;

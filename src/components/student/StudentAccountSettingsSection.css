@@ -412,6 +412,13 @@
   margin: 0;
 }
 
+/* Profile Actions */
+.profile-actions {
+  text-align: center;
+  padding-top: 20px;
+  border-top: 2px solid #f0f0f0;
+}
+
 /* Unlink Modal */
 .unlink-modal-overlay {
   position: fixed;
@@ -455,6 +462,94 @@
   display: flex;
   gap: 10px;
   justify-content: flex-end;
+}
+
+/* Change Password Modal */
+.change-password-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+}
+
+.change-password-modal {
+  background: #fff;
+  border-radius: 12px;
+  border: 2px solid #e9ecef;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  overflow: hidden;
+}
+
+.change-password-modal .modal-header {
+  background: linear-gradient(135deg, #4050b5 0%, #7986cb 100%);
+  color: white;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.change-password-modal .modal-title {
+  margin: 0;
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.change-password-modal .btn-close {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.3s ease;
+}
+
+.change-password-modal .btn-close:hover {
+  opacity: 1;
+}
+
+.change-password-modal .modal-body {
+  padding: 30px;
+}
+
+.change-password-modal .modal-footer {
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  padding: 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.change-password-modal .form-control {
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 12px 15px;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+}
+
+.change-password-modal .form-control:focus {
+  border-color: #4050b5;
+  box-shadow: 0 0 0 0.2rem rgba(64, 80, 181, 0.25);
+}
+
+.change-password-modal .form-label {
+  font-weight: 600;
+  color: #555;
+  margin-bottom: 8px;
+}
+
+.change-password-modal .form-text {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-top: 5px;
 }
 
 /* Responsive Design */
