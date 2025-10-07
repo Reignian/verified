@@ -13,13 +13,15 @@ function AppContent() {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // Check if current page is login page
   const isLoginPage = location.pathname === '/login';
 
   // Determine current page type
   const getCurrentPage = () => {
     if (location.pathname === '/institution-dashboard') return 'institution';
     if (location.pathname === '/student-dashboard') return 'student';
-    if (location.pathname === '/admin-dashboard') return 'admin'; // NEW
+    if (location.pathname === '/admin-dashboard') return 'admin';
     return 'home';
   };
 
@@ -66,7 +68,7 @@ function AppContent() {
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} /> {/* NEW */}
+        <Route path="/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </>
   );

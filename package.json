@@ -30,6 +30,7 @@
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
+  "homepage": "https://reignian.github.io/verified",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
@@ -37,7 +38,9 @@
     "dev": "concurrently \"npm run server\" \"npm start\"",
     "server": "nodemon server.js",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
     "extends": [
@@ -59,6 +62,7 @@
   },
   "devDependencies": {
     "concurrently": "^9.2.1",
+    "gh-pages": "^6.3.0",
     "nodemon": "^3.1.10"
   }
 }
