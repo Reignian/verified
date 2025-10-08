@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import './AcademicInstitution.css';
-import { uploadCredential, updateBlockchainId } from '../../services/institutionApiService';
+import { uploadCredentialAfterBlockchain } from '../../services/institutionApiService';
 import blockchainService from '../../services/blockchainService';
 
 function IssueCredentialModal({
@@ -111,7 +111,6 @@ function IssueCredentialModal({
 
     const isCustomType = formData.credentialType === 'other';
     
-    
     // Check each condition individually for better error messages
     if (!isCustomType && !formData.credentialType) {
       setModalError('Please select a credential type');
@@ -150,7 +149,24 @@ function IssueCredentialModal({
         throw new Error('Selected student not found.');
       }
 
-      setUploadMessage('Uploading document to IPFS...');
+      setUploadMessage('Preparing file hash for blockchain...');
+
+      // Create a hash of the file content for blockchain storage
+      const fileBuffer = await formData.credentialFile.arrayBuffer();
+      const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+      setUploadMessage('Requesting blockchain transaction...');
+      
+      // Issue credential on blockchain FIRST - this is where user can cancel
+      const blockchainResult = await blockchainService.issueCredential(
+        fileHash,
+        selectedStudent.student_id
+      );
+
+      // Only proceed with file upload if blockchain transaction succeeded
+      setUploadMessage('Blockchain confirmed! Uploading document to IPFS...');
 
       // Prepare data for the API. It will have either a 'credential_type_id'
       // or a 'custom_type' string, but not both.
@@ -164,23 +180,12 @@ function IssueCredentialModal({
         credentialData.credential_type_id = parseInt(formData.credentialType);
       }
 
-      const response = await uploadCredential(credentialData, formData.credentialFile);
-
-      setUploadMessage('Issuing credential on the blockchain...');
-      // Compute hash from IPFS CID for blockchain storage using Web Crypto API
-      const encoder = new TextEncoder();
-      const data = encoder.encode(response.ipfs_hash);
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const ipfsCidHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      
-      const blockchainResult = await blockchainService.issueCredential(
-        ipfsCidHash,
-        selectedStudent.student_id
+      // Upload file to IPFS and save to database with blockchain ID
+      const response = await uploadCredentialAfterBlockchain(
+        credentialData, 
+        formData.credentialFile, 
+        blockchainResult.credentialId
       );
-
-      setUploadMessage('Updating database with blockchain info...');
-      await updateBlockchainId(response.credential_id, blockchainResult.credentialId);
 
       setUploadMessage(
         `Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`
@@ -201,9 +206,20 @@ function IssueCredentialModal({
       // Reset local form after success
       resetForm();
     } catch (error) {
-      setModalError(`Upload failed: ${error.message}`);
+      // Check if error is from blockchain transaction (user cancellation)
+      if (error.message && (
+        error.message.includes('User rejected') || 
+        error.message.includes('User denied') ||
+        error.message.includes('cancelled') ||
+        error.message.includes('canceled')
+      )) {
+        setModalError('Transaction was cancelled. No files were uploaded or saved.');
+      } else {
+        setModalError(`Process failed: ${error.message}`);
+      }
     } finally {
       setUploading(false);
+      setUploadMessage('');
     }
   };
 

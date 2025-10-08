@@ -152,6 +152,38 @@ export const uploadCredential = async (credentialData, file) => {
   }
 };
 
+// Upload credential after blockchain confirmation (blockchain-first approach)
+export const uploadCredentialAfterBlockchain = async (credentialData, file, blockchainId) => {
+  try {
+    const formData = new FormData();
+    
+    // Handle either standard or custom credential type
+    if (credentialData.custom_type) {
+      formData.append('custom_type', credentialData.custom_type);
+    } else {
+      formData.append('credential_type_id', credentialData.credential_type_id);
+    }
+    
+    formData.append('owner_id', credentialData.owner_id);
+    formData.append('sender_id', credentialData.sender_id);
+    formData.append('blockchain_id', blockchainId);
+    
+    if (file) {
+      formData.append('credentialFile', file);
+    }
+
+    const response = await axios.post(`${API_URL}/institution/upload-credential-after-blockchain`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error uploading credential after blockchain:', error);
+    throw error;
+  }
+};
+
 // Update credential's blockchain_id after on-chain issuance
 export const updateBlockchainId = async (credentialId, blockchainId) => {
   try {
