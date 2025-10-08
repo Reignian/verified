@@ -41,17 +41,38 @@ function loadContractData() {
 
 async function initBlockchain() {
   try {
-    blockchainProvider = new ethers.JsonRpcProvider('http://127.0.0.1:7545');
+    // Use environment variables for blockchain configuration
+    const rpcUrl = process.env.BLOCKCHAIN_RPC_URL || 'http://127.0.0.1:7545';
+    const networkId = process.env.NETWORK_ID || '1337';
+    
+    blockchainProvider = new ethers.JsonRpcProvider(rpcUrl);
     await blockchainProvider.getNetwork();
-    contractData = loadContractData();
-    if (contractData && contractData.networks['1337']) {
-      contractAddress = contractData.networks['1337'].address;
-      const signer = await blockchainProvider.getSigner(0);
-      contract = new ethers.Contract(contractAddress, contractData.abi, signer);
-      console.log('Blockchain connected');
+    
+    // For Polygon Amoy, use the contract address from environment
+    if (networkId === '80002') {
+      // Polygon Amoy - use deployed contract address
+      contractAddress = process.env.CONTRACT_ADDRESS;
+      contractData = loadContractData();
+      
+      if (contractAddress && contractData) {
+        // For server-side operations, we'll use read-only provider
+        // Transactions will be handled by frontend MetaMask
+        contract = new ethers.Contract(contractAddress, contractData.abi, blockchainProvider);
+        console.log('Blockchain connected to Polygon Amoy');
+        console.log('Contract address:', contractAddress);
+      }
+    } else {
+      // Local Ganache setup
+      contractData = loadContractData();
+      if (contractData && contractData.networks[networkId]) {
+        contractAddress = contractData.networks[networkId].address;
+        const signer = await blockchainProvider.getSigner(0);
+        contract = new ethers.Contract(contractAddress, contractData.abi, signer);
+        console.log('Blockchain connected to local Ganache');
+      }
     }
   } catch (error) {
-    console.log('Blockchain connection failed');
+    console.log('Blockchain connection failed:', error.message);
   }
 }
 
@@ -97,12 +118,7 @@ if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
   });
 }
 
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  console.log('📁 Routes organized by page:');
-  console.log('  - /api/public      → HomePage (Contact & Verification)');
-  console.log('  - /api/student     → Student Dashboard (MyVerifiED)');
-  console.log('  - /api/institution → Institution Dashboard');
-  console.log('  - /api/auth        → Login (shared)');
-  console.log('  - /api/admin       → Admin Dashboard');
 });

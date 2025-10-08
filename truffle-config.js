@@ -41,10 +41,10 @@
  * https://trufflesuite.com/docs/truffle/getting-started/using-the-truffle-dashboard/
  */
 
-// require('dotenv').config();
-// const { MNEMONIC, PROJECT_ID } = process.env;
+require('dotenv').config();
+const { BLOCKCHAIN_PRIVATE_KEY } = process.env;
 
-// const HDWalletProvider = require('@truffle/hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 module.exports = {
   /**
@@ -68,6 +68,20 @@ module.exports = {
       host: "127.0.0.1",     // Localhost (default: none)
       port: 7545,            // Standard Ethereum port (default: none)
       network_id: "*",       // Any network (default: none)
+    },
+    
+    // Polygon Amoy Testnet
+    amoy: {
+      provider: () => new HDWalletProvider(
+        BLOCKCHAIN_PRIVATE_KEY,
+        'https://polygon-amoy.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-'
+      ),
+      network_id: 80002,
+      confirmations: 2,
+      timeoutBlocks: 200,
+      skipDryRun: true,
+      gas: 6000000,
+      gasPrice: 10000000000, // 10 gwei
     },
     //
     // An additional network, but with some advanced options…
