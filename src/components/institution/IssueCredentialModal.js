@@ -1,6 +1,6 @@
 // fileName: IssueCredentialModal.js
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import './AcademicInstitution.css';
 import { uploadCredentialAfterBlockchain } from '../../services/institutionApiService';
 import blockchainService from '../../services/blockchainService';
@@ -24,9 +24,31 @@ function IssueCredentialModal({
     studentAccount: '',
     credentialFile: null,
   });
+  const [showLoaderModal, setShowLoaderModal] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadMessage, setUploadMessage] = useState('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [loaderStatus, setLoaderStatus] = useState('loading'); // 'loading', 'success', 'cancelled'
   const [modalError, setModalError] = useState('');
+
+  // Reset form function
+  const resetForm = () => {
+    setFormData({ credentialType: '', studentAccount: '', credentialFile: null });
+    setShowCustomTypeInput(false);
+    setCustomCredentialType('');
+    setStudentSearchTerm('');
+    setModalError('');
+    const fileInput = document.getElementById('credentialFile');
+    if (fileInput) fileInput.value = '';
+  };
+
+  // Reset form when modal opens
+  useEffect(() => {
+    if (show) {
+      resetForm();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
 
   // Compute filtered students locally for the modal
   const filteredStudents = useMemo(() => {
@@ -85,15 +107,6 @@ function IssueCredentialModal({
     if (modalError) setModalError('');
   };
 
-  const resetForm = () => {
-    setFormData({ credentialType: '', studentAccount: '', credentialFile: null });
-    setShowCustomTypeInput(false);
-    setCustomCredentialType('');
-    setStudentSearchTerm('');
-    const fileInput = document.getElementById('credentialFile');
-    if (fileInput) fileInput.value = '';
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setModalError('');
@@ -138,8 +151,13 @@ function IssueCredentialModal({
       return;
     }
 
+    // Close input modal and show loader modal
+    if (typeof onClose === 'function') onClose();
+    setShowLoaderModal(true);
+    setLoaderStatus('loading');
     setUploading(true);
-    setUploadMessage('Processing credential details...');
+    setUploadMessage('Preparing transaction...');
+    setUploadProgress(0);
 
     try {
       const selectedStudent = (students || []).find(
@@ -149,24 +167,21 @@ function IssueCredentialModal({
         throw new Error('Selected student not found.');
       }
 
-      setUploadMessage('Preparing file hash for blockchain...');
-
-      // Create a hash of the file content for blockchain storage
+      // Prepare file hash (no progress bar yet - user hasn't confirmed)
       const fileBuffer = await formData.credentialFile.arrayBuffer();
       const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
       const hashArray = Array.from(new Uint8Array(hashBuffer));
       const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 
-      setUploadMessage('Requesting blockchain transaction...');
-      
-      // Issue credential on blockchain FIRST - this is where user can cancel
+      // Request blockchain transaction - user can cancel here
       const blockchainResult = await blockchainService.issueCredential(
         fileHash,
         selectedStudent.student_id
       );
 
-      // Only proceed with file upload if blockchain transaction succeeded
-      setUploadMessage('Blockchain confirmed! Uploading document to IPFS...');
+      // Only show progress bar AFTER MetaMask confirmation
+      setUploadMessage('Issuing credential...');
+      setUploadProgress(30); // Start at 30% since blockchain is confirmed
 
       // Prepare data for the API. It will have either a 'credential_type_id'
       // or a 'custom_type' string, but not both.
@@ -180,16 +195,19 @@ function IssueCredentialModal({
         credentialData.credential_type_id = parseInt(formData.credentialType);
       }
 
-      // Upload file to IPFS and save to database with blockchain ID
+      // Step 2: Upload to IPFS and save to database (70% progress)
+      setUploadProgress(70);
+      
       const response = await uploadCredentialAfterBlockchain(
         credentialData, 
         formData.credentialFile, 
-        blockchainResult.credentialId
+        blockchainResult.transactionHash
       );
 
-      setUploadMessage(
-        `Success! IPFS: ${response.ipfs_hash} | Blockchain: ${blockchainResult.credentialId} | TX: ${blockchainResult.transactionHash}`
-      );
+      // Step 3: Complete (100% progress)
+      setUploadProgress(100);
+      setUploadMessage('Credential issued successfully!');
+      setLoaderStatus('success');
 
       // Notify parent to refresh lists
       if (typeof onIssued === 'function') {
@@ -200,11 +218,10 @@ function IssueCredentialModal({
         }
       }
 
-      // Close modal on success
-      if (typeof onClose === 'function') onClose();
-
-      // Reset local form after success
-      resetForm();
+      // Auto-close loader after 3 seconds
+      setTimeout(() => {
+        setShowLoaderModal(false);
+      }, 3000);
     } catch (error) {
       // Check if error is from blockchain transaction (user cancellation)
       if (error.message && (
@@ -213,20 +230,33 @@ function IssueCredentialModal({
         error.message.includes('cancelled') ||
         error.message.includes('canceled')
       )) {
-        setModalError('Transaction was cancelled. No files were uploaded or saved.');
+        setLoaderStatus('cancelled');
+        setUploadMessage('Transaction was cancelled. Nothing was saved.');
+        
+        // Auto-close after 3 seconds
+        setTimeout(() => {
+          setShowLoaderModal(false);
+        }, 3000);
       } else {
-        setModalError(`Process failed: ${error.message}`);
+        setLoaderStatus('error');
+        setUploadMessage(`Process failed: ${error.message}`);
+        
+        // Auto-close after 5 seconds for errors
+        setTimeout(() => {
+          setShowLoaderModal(false);
+        }, 5000);
       }
     } finally {
       setUploading(false);
-      setUploadMessage('');
+      setUploadProgress(0);
     }
   };
 
-  if (!show) return null;
-
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <>
+      {/* Input Modal */}
+      {show && (
+        <div className="modal-overlay" onClick={onClose}>
       <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h3 className="modal-title">
@@ -418,38 +448,74 @@ function IssueCredentialModal({
             </div>
 
             <div className="text-center">
-              <button type="submit" className="btn-primary-custom" disabled={uploading}>
-                {uploading && <div className="loading-spinner"></div>}
-                <i className={`fas ${uploading ? '' : 'fa-check-circle'} me-2`}></i>
-                {uploading ? 'Processing...' : 'Issue Credential'}
+              <button type="submit" className="btn-primary-custom">
+                <i className="fas fa-check-circle me-2"></i>
+                Issue Credential
               </button>
             </div>
-
-            {uploadMessage && (
-              <div
-                className={`upload-message ${uploading ? 'uploading' : uploadMessage.includes('Success') ? 'success' : ''}`}
-              >
-                {uploading ? (
-                  <div className="d-flex align-items-center">
-                    <i className="fas fa-spinner fa-spin me-2"></i>
-                    {uploadMessage}
-                  </div>
-                ) : uploadMessage.includes('Success') ? (
-                  <div className="d-flex align-items-center">
-                    <i className="fas fa-check-circle me-2"></i>
-                    <div>
-                      <strong>Credential Successfully Issued!</strong>
-                      <br />
-                      <small>{uploadMessage.replace('✅ Success! ', '')}</small>
-                    </div>
-                  </div>
-                ) : null}
-              </div>
-            )}
           </form>
         </div>
       </div>
-    </div>
+        </div>
+      )}
+
+      {/* Loader Modal */}
+      {showLoaderModal && (
+        <div className="modal-overlay">
+          <div className="modal-content loader-modal">
+            <div className={`modal-header ${
+              loaderStatus === 'success' ? 'success-header' : 
+              loaderStatus === 'cancelled' ? 'cancel-header' : 
+              loaderStatus === 'error' ? 'error-header' : 'loading-header'
+            }`}>
+              <div className="status-icon">
+                {loaderStatus === 'loading' && <i className="fas fa-spinner fa-spin"></i>}
+                {loaderStatus === 'success' && <i className="fas fa-check-circle"></i>}
+                {loaderStatus === 'cancelled' && <i className="fas fa-times-circle"></i>}
+                {loaderStatus === 'error' && <i className="fas fa-exclamation-triangle"></i>}
+              </div>
+              <h3 className="modal-title">
+                {loaderStatus === 'loading' && 'Processing...'}
+                {loaderStatus === 'success' && 'Success!'}
+                {loaderStatus === 'cancelled' && 'Cancelled'}
+                {loaderStatus === 'error' && 'Error'}
+              </h3>
+            </div>
+            <div className="modal-body">
+              {loaderStatus === 'loading' && uploadProgress > 0 && (
+                <div className="upload-progress-section">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="progress-label">{uploadMessage}</span>
+                    <span className="progress-percentage">{uploadProgress}%</span>
+                  </div>
+                  <div className="progress-bar-container">
+                    <div 
+                      className="progress-bar-fill" 
+                      style={{ width: `${uploadProgress}%` }}
+                    ></div>
+                  </div>
+                </div>
+              )}
+
+              {loaderStatus === 'loading' && uploadProgress === 0 && (
+                <div className="loading-message">
+                  <div className="d-flex align-items-center justify-content-center">
+                    <i className="fas fa-spinner fa-spin me-2"></i>
+                    {uploadMessage}
+                  </div>
+                </div>
+              )}
+
+              {loaderStatus !== 'loading' && (
+                <p className="status-message">
+                  {uploadMessage}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 

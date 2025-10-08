@@ -125,10 +125,13 @@ class BlockchainService {
         }
       }
 
+      // Use transaction hash from the transaction object (more reliable)
+      const transactionHash = tx.hash || receipt.transactionHash || receipt.hash;
+      
       if (credentialId) {
         return {
           credentialId: credentialId.toString(),
-          transactionHash: receipt.transactionHash
+          transactionHash: transactionHash
         };
       } else {
         // If we can't find the event, still return success with transaction hash
@@ -140,18 +143,28 @@ class BlockchainService {
           
           return {
             credentialId: credentialCounter.toString(),
-            transactionHash: receipt.transactionHash
+            transactionHash: transactionHash
           };
         } catch (counterError) {
           // Return success without credential ID
           return {
             credentialId: 'unknown',
-            transactionHash: receipt.transactionHash
+            transactionHash: transactionHash
           };
         }
       }
 
     } catch (error) {
+      // Don't log user cancellation errors - they're expected behavior
+      if (error.code === 'ACTION_REJECTED' || 
+          error.code === 4001 || 
+          error.message?.includes('user rejected') ||
+          error.message?.includes('User denied')) {
+        // Silently throw the error without logging
+        throw error;
+      }
+      
+      // Log other unexpected errors
       console.error('Error issuing credential:', error);
       throw error;
     }

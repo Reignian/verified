@@ -438,7 +438,64 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
   }
 });
 
-// POST /api/institution/update-blockchain-id - Update credential's blockchain ID after on-chain issuance
+// POST /api/institution/upload-credential-after-blockchain - Upload credential ONLY after blockchain confirmation
+router.post('/upload-credential-after-blockchain', upload.single('credentialFile'), async (req, res) => {
+  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id } = req.body;
+  
+  // Either credential_type_id OR custom_type must be provided, plus blockchain_id (transaction hash) is required
+  if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !blockchain_id || !req.file) {
+    return res.status(400).json({ error: 'Missing required fields' });
+  }
+
+  try {
+    const metadata = {
+      name: `Credential_${custom_type || credential_type_id}_${Date.now()}`,
+      uploadedBy: `User_${sender_id}`,
+      credentialType: custom_type || credential_type_id,
+      transactionHash: blockchain_id
+    };
+
+    // Upload to IPFS
+    const pinataResult = await pinataService.uploadBufferToPinata(
+      req.file.buffer, 
+      req.file.originalname, 
+      metadata
+    );
+
+    // Save to database with transaction hash as blockchain_id
+    const credentialData = {
+      credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
+      custom_type: custom_type || null,
+      owner_id: parseInt(owner_id),
+      sender_id: parseInt(sender_id),
+      ipfs_cid: pinataResult.ipfsHash,
+      blockchain_id: blockchain_id, // This is now the transaction hash
+      status: 'blockchain_verified'
+    };
+    
+    academicQueries.createCredential(credentialData, (err, results) => {
+      if (err) {
+        console.error('Error creating credential:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      res.json({
+        message: 'Credential uploaded successfully',
+        credential_id: results.insertId,
+        ipfs_hash: pinataResult.ipfsHash,
+        ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
+        blockchain_id: blockchain_id, // Transaction hash
+        status: 'Blockchain verified and uploaded to IPFS'
+      });
+    });
+
+  } catch (error) {
+    console.error('Upload after blockchain failed:', error);
+    res.status(500).json({ error: 'Upload failed' });
+  }
+});
+
+// POST /api/institution/update-blockchain-id - Update credential's blockchain transaction hash after on-chain issuance
 router.post('/update-blockchain-id', (req, res) => {
   const { credential_id, blockchain_id } = req.body;
   
@@ -460,9 +517,9 @@ router.post('/update-blockchain-id', (req, res) => {
       }
       
       res.json({ 
-        message: 'Blockchain ID updated',
+        message: 'Blockchain transaction hash updated',
         credential_id,
-        blockchain_id 
+        blockchain_id // This is now the transaction hash
       });
     });
   } catch (error) {
