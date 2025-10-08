@@ -1,7 +1,6 @@
 // fileName: HomePage.js (Updated with working contact form)
 
 import React, { useEffect, useState } from 'react';
-import 'bootstrap/dist/css/bootstrap.min.css';
 import '../common/Navigation.css';
 import './HomePage.css';
 import VerifierSection from './VerifierSection';

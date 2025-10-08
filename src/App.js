@@ -15,25 +15,26 @@ function AppContent() {
   const location = useLocation();
   
   // Check if current page is login page
-  const isLoginPage = location.pathname === '/login';
+  const isLoginPage = location.pathname === '/login' || location.pathname === '/verified/login';
 
   // Determine current page type
   const getCurrentPage = () => {
-    if (location.pathname === '/institution-dashboard') return 'institution';
-    if (location.pathname === '/student-dashboard') return 'student';
-    if (location.pathname === '/admin-dashboard') return 'admin';
+    const path = location.pathname;
+    if (path === '/institution-dashboard' || path === '/verified/institution-dashboard') return 'institution';
+    if (path === '/student-dashboard' || path === '/verified/student-dashboard') return 'student';
+    if (path === '/admin-dashboard' || path === '/verified/admin-dashboard') return 'admin';
     return 'home';
   };
 
   useEffect(() => {
-    // Check if user is logged in
+    // Check if user is logged in on initial load only
     const userId = localStorage.getItem('userId');
     const userType = localStorage.getItem('userType');
     
     if (userId && userType) {
       setUser({ id: userId, type: userType });
     }
-  }, [location]);
+  }, []); // Remove location dependency to prevent re-renders on route changes
 
   const handleLogout = () => {
     localStorage.removeItem('userId');
@@ -65,10 +66,15 @@ function AppContent() {
       
       <Routes>
         <Route path="/" element={<HomePage />} />
+        <Route path="/verified" element={<HomePage />} />
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/verified/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
+        <Route path="/verified/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />
+        <Route path="/verified/student-dashboard" element={<MyVerifiED />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route path="/verified/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </>
   );

@@ -189,10 +189,6 @@ function CredentialsSection({
                         {credential.type}
                       </h3>
                       <p className="credential-info">
-                        <i className="fas fa-book me-2"></i>
-                        <strong>Subject:</strong>
-                      </p>
-                      <p className="credential-info">
                         <i className="fas fa-university me-2"></i>
                         <strong>Issued by:</strong> {credential.issuer}
                       </p>
