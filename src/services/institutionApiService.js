@@ -153,7 +153,7 @@ export const uploadCredential = async (credentialData, file) => {
 };
 
 // Upload credential after blockchain confirmation (blockchain-first approach)
-export const uploadCredentialAfterBlockchain = async (credentialData, file, blockchainId) => {
+export const uploadCredentialAfterBlockchain = async (credentialData, file, credentialId, transactionHash) => {
   try {
     const formData = new FormData();
     
@@ -166,7 +166,8 @@ export const uploadCredentialAfterBlockchain = async (credentialData, file, bloc
     
     formData.append('owner_id', credentialData.owner_id);
     formData.append('sender_id', credentialData.sender_id);
-    formData.append('blockchain_id', blockchainId);
+    formData.append('blockchain_id', credentialId);  // Store credential ID from smart contract
+    formData.append('transaction_hash', transactionHash || '');  // Store transaction hash for reference
     
     if (file) {
       formData.append('credentialFile', file);

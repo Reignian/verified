@@ -18,13 +18,32 @@ const upload = multer({ storage: multer.memoryStorage() });
 
 // Helper function to load contract data
 function loadContractData() {
-  const contractPath = path.join(__dirname, '../../build/contracts/CredentialRegistry.json');
-  if (!fs.existsSync(contractPath)) {
-    return null;
-  }
+  // For Polygon Amoy, use the static config instead of build files
   try {
-    return JSON.parse(fs.readFileSync(contractPath, 'utf8'));
+    // Import the config file (using require since this is CommonJS)
+    const configPath = path.join(__dirname, '../config/CredentialRegistryConfig.js');
+    if (fs.existsSync(configPath)) {
+      // Read and parse the ES6 module manually
+      const configContent = fs.readFileSync(configPath, 'utf8');
+      
+      // Extract CONTRACT_ABI from the file content
+      const abiMatch = configContent.match(/export const CONTRACT_ABI = (\[[\s\S]*?\]);/);
+      if (abiMatch) {
+        const abiString = abiMatch[1];
+        const abi = eval(`(${abiString})`); // Safe since it's our own config file
+        return { abi };
+      }
+    }
+    
+    // Fallback to build folder for local development
+    const contractPath = path.join(__dirname, '../../build/contracts/CredentialRegistry.json');
+    if (fs.existsSync(contractPath)) {
+      return JSON.parse(fs.readFileSync(contractPath, 'utf8'));
+    }
+    
+    return null;
   } catch (error) {
+    console.error('Error loading contract data:', error);
     return null;
   }
 }
@@ -440,9 +459,9 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
 
 // POST /api/institution/upload-credential-after-blockchain - Upload credential ONLY after blockchain confirmation
 router.post('/upload-credential-after-blockchain', upload.single('credentialFile'), async (req, res) => {
-  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id } = req.body;
+  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash } = req.body;
   
-  // Either credential_type_id OR custom_type must be provided, plus blockchain_id (transaction hash) is required
+  // Either credential_type_id OR custom_type must be provided, plus blockchain_id (credential ID) is required
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !blockchain_id || !req.file) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
@@ -452,7 +471,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       name: `Credential_${custom_type || credential_type_id}_${Date.now()}`,
       uploadedBy: `User_${sender_id}`,
       credentialType: custom_type || credential_type_id,
-      transactionHash: blockchain_id
+      credentialId: blockchain_id,
+      transactionHash: transaction_hash
     };
 
     // Upload to IPFS
@@ -462,14 +482,14 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       metadata
     );
 
-    // Save to database with transaction hash as blockchain_id
+    // Save to database with credential ID as blockchain_id
     const credentialData = {
       credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
       custom_type: custom_type || null,
       owner_id: parseInt(owner_id),
       sender_id: parseInt(sender_id),
       ipfs_cid: pinataResult.ipfsHash,
-      blockchain_id: blockchain_id, // This is now the transaction hash
+      blockchain_id: blockchain_id, // This is now the credential ID from smart contract
       status: 'blockchain_verified'
     };
     
@@ -484,7 +504,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         credential_id: results.insertId,
         ipfs_hash: pinataResult.ipfsHash,
         ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
-        blockchain_id: blockchain_id, // Transaction hash
+        blockchain_id: blockchain_id, // Credential ID
+        transaction_hash: transaction_hash, // Transaction hash for reference
         status: 'Blockchain verified and uploaded to IPFS'
       });
     });
@@ -557,20 +578,40 @@ router.get('/credential-stats/:institutionId', (req, res) => {
 
 // GET /api/institution/contract-address - Get deployed contract address
 router.get('/contract-address', (req, res) => {
-  const contractData = loadContractData();
-  if (!contractData || !contractData.networks['1337']) {
-    return res.status(404).json({ error: 'Contract not deployed' });
+  // Use environment variable for Polygon Amoy deployment
+  const contractAddress = process.env.CONTRACT_ADDRESS;
+  
+  if (!contractAddress) {
+    return res.status(404).json({ error: 'Contract address not configured' });
   }
-  res.json({ address: contractData.networks['1337'].address });
+  
+  res.json({ address: contractAddress });
 });
 
 // GET /api/institution/contract-abi - Get contract ABI
 router.get('/contract-abi', (req, res) => {
   const contractData = loadContractData();
   if (!contractData) {
-    return res.status(404).json({ error: 'Contract not deployed' });
+    return res.status(404).json({ error: 'Contract ABI not found' });
   }
   res.json({ abi: contractData.abi });
+});
+
+// GET /api/institution/contract-info - Debug endpoint to check contract configuration
+router.get('/contract-info', (req, res) => {
+  const contractAddress = process.env.CONTRACT_ADDRESS;
+  const networkId = process.env.NETWORK_ID;
+  const rpcUrl = process.env.BLOCKCHAIN_RPC_URL;
+  const contractData = loadContractData();
+  
+  res.json({
+    contractAddress,
+    networkId,
+    rpcUrl,
+    hasABI: !!contractData?.abi,
+    abiLength: contractData?.abi?.length || 0,
+    polygonAmoyExplorer: contractAddress ? `https://amoy.polygonscan.com/address/${contractAddress}` : null
+  });
 });
 
 module.exports = router;

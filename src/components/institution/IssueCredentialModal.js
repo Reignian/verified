@@ -201,7 +201,8 @@ function IssueCredentialModal({
       const response = await uploadCredentialAfterBlockchain(
         credentialData, 
         formData.credentialFile, 
-        blockchainResult.transactionHash
+        blockchainResult.credentialId,  // Pass credential ID (not transaction hash)
+        blockchainResult.transactionHash  // Pass transaction hash for reference
       );
 
       // Step 3: Complete (100% progress)
