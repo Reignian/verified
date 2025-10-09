@@ -1,8 +1,0 @@
-CREATE TABLE credential_access (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  credential_id INT NOT NULL,
-  access_code VARCHAR(50) NOT NULL UNIQUE,
-  is_active BOOLEAN DEFAULT TRUE,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  FOREIGN KEY (credential_id) REFERENCES credential(id)
-);
