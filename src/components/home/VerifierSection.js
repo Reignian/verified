@@ -63,7 +63,6 @@ function VerifierSection() {
   const runOnChainIntegrityChecks = async (credential) => {
     const blockchainId = credential?.blockchain_id;
     if (!blockchainId) {
-      console.warn('[Verifier] No blockchain_id on credential. Rejecting verification.');
       return { isValid: false, error: 'No blockchain ID found' };
     }
     
@@ -74,7 +73,6 @@ function VerifierSection() {
       const exists = !!chainVerify?.exists;
       
       if (!exists) {
-        console.warn('[Verifier] Credential does not exist on blockchain');
         return { isValid: false, error: 'Credential not found on blockchain' };
       }
 
@@ -90,12 +88,30 @@ function VerifierSection() {
       const chainCidHashHex = (chainData.ipfsCidHashHex ?? '').toString().trim();
       let cidHashMatch = false;
       let computedCidHashHex = null;
+      
       if (dbCid && chainCidHashHex) {
         try {
-          computedCidHashHex = ethers.sha256(ethers.toUtf8Bytes(dbCid));
-          cidHashMatch = computedCidHashHex.toLowerCase() === chainCidHashHex.toLowerCase();
-        } catch {
+          // Download file from IPFS and compute file content hash for verification
+          const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${dbCid}`;
+          const response = await fetch(ipfsUrl);
+          
+          if (response.ok) {
+            // Compute SHA-256 hash of file content (same as issuance process)
+            const fileBuffer = await response.arrayBuffer();
+            const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            const fileHash = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+            const fileHashWithPrefix = '0x' + fileHash;
+            
+            computedCidHashHex = fileHashWithPrefix;
+            cidHashMatch = fileHashWithPrefix.toLowerCase() === chainCidHashHex.toLowerCase();
+          } else {
+            cidHashMatch = false;
+            computedCidHashHex = 'ipfs_download_failed';
+          }
+        } catch (error) {
           cidHashMatch = false;
+          computedCidHashHex = 'error: ' + error.message;
         }
       }
 
@@ -114,6 +130,19 @@ function VerifierSection() {
       }
 
       const allVerified = issuerMatch && studentIdMatch && cidHashMatch && dateMatch;
+
+      // Temporary debug logging to identify the issue
+      if (!allVerified) {
+        console.group('🔍 Blockchain Verification Debug');
+        console.log('Credential ID:', blockchainId);
+        console.log('❌ Verification failed. Details:');
+        console.log('  Issuer Match:', issuerMatch, '- Expected:', dbIssuer, 'Got:', chainIssuer);
+        console.log('  Student ID Match:', studentIdMatch, '- Expected:', dbStudentId, 'Got:', chainStudentId);
+        console.log('  CID Hash Match:', cidHashMatch, '- Expected:', computedCidHashHex, 'Got:', chainCidHashHex);
+        console.log('  Date Match:', dateMatch, '- Expected:', dbDayForMatch, 'Got:', chainDayForMatch);
+        console.log('  Database CID:', dbCid);
+        console.groupEnd();
+      }
 
       const indicators = {
         isValid: allVerified,
@@ -135,28 +164,9 @@ function VerifierSection() {
         }
       };
 
-      if (allVerified) {
-        console.log('[Verifier] ✅ Blockchain verification PASSED - All data matches');
-      } else {
-        console.group('[Verifier] ❌ Blockchain verification FAILED - Data tampering detected');
-        if (!issuerMatch) {
-          console.error('[Verifier] Issuer address mismatch - Expected:', dbIssuer, 'Got:', chainIssuer);
-        }
-        if (!studentIdMatch) {
-          console.error('[Verifier] Student ID mismatch - Expected:', dbStudentId, 'Got:', chainStudentId);
-        }
-        if (!cidHashMatch) {
-          console.error('[Verifier] CID hash mismatch - Expected:', computedCidHashHex, 'Got:', chainCidHashHex);
-        }
-        if (!dateMatch) {
-          console.error('[Verifier] Issue date mismatch - Expected:', dbDayForMatch, 'Got:', chainDayForMatch);
-        }
-        console.groupEnd();
-      }
 
       return indicators;
     } catch (err) {
-      console.error('[Verifier] Blockchain verification failed:', err);
       return { isValid: false, error: 'Blockchain verification failed: ' + err.message };
     }
   };
@@ -172,7 +182,6 @@ function VerifierSection() {
         if (response.success) {
           if (response.type === 'single' && response.credential) {
             // Single credential verification - BLOCKCHAIN FIRST
-            console.log('[Verifier] Verifying single credential on blockchain...');
             const blockchainResult = await runOnChainIntegrityChecks(response.credential);
             
             if (blockchainResult.isValid) {
@@ -186,13 +195,11 @@ function VerifierSection() {
             }
           } else if (response.type === 'multi' && response.credentials) {
             // Multi-credential verification - BLOCKCHAIN FIRST FOR ALL
-            console.log(`[Verifier] Verifying ${response.credentials.length} credentials on blockchain...`);
             const verifiedCredentials = [];
             const failedCredentials = [];
             
             for (let i = 0; i < response.credentials.length; i++) {
               const credential = response.credentials[i];
-              console.log(`[Verifier] Checking credential ${i + 1}/${response.credentials.length}:`);
               const blockchainResult = await runOnChainIntegrityChecks(credential);
               
               if (blockchainResult.isValid) {
@@ -206,9 +213,6 @@ function VerifierSection() {
             }
             
             if (verifiedCredentials.length > 0) {
-              if (failedCredentials.length > 0) {
-                console.warn(`[Verifier] ${failedCredentials.length} credentials failed blockchain verification and were filtered out`);
-              }
               setCredentialsData(verifiedCredentials);
               setCredentialData(null);
               setVerificationType('multi');
@@ -244,6 +248,7 @@ function VerifierSection() {
   const handleInputChange = (e) => {
     setVerificationInput(e.target.value);
   };
+
 
   const verifierBenefits = [
     "Instant verification without calls or emails",
