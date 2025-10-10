@@ -31,7 +31,6 @@
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5"
   },
-  "homepage": "https://reignian.github.io/verified",
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
