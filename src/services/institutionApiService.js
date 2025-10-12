@@ -4,7 +4,7 @@
 import axios from 'axios';
 
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api'
+  ? 'https://verified-production.up.railway.app/api'
   : 'http://localhost:3001/api';
 
 // ============ INSTITUTION INFO ============

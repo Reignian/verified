@@ -1,9 +1,9 @@
 import { ethers } from 'ethers';
 
-// API base URL - same as apiService.js
+// API base URL - points to Railway backend
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? '/api'  // In production, use relative path (same domain)
-  : 'http://localhost:3001/api';  // In development, use localhost
+  ? 'https://verified-production.up.railway.app/api'  // Production: Railway backend
+  : 'http://localhost:3001/api';  // Development: localhost
 
 class BlockchainService {
   constructor() {

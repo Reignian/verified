@@ -15,10 +15,29 @@ const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
 
 const app = express();
-const PORT = process.env.BACKEND_PORT;
+const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001;
 
-// Middleware
-app.use(cors());
+// CORS Configuration - Allow Netlify frontend and local development
+const allowedOrigins = [
+  'https://verifi-ed.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:3001'
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true
+}));
+
 app.use(express.json());
 
 // Blockchain initialization (kept in main server for shared state)
