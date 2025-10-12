@@ -98,9 +98,17 @@ function HomePage() {
             </div>
             <div className="col-lg-6 text-center">
               <img 
-                src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 500 400'%3E%3Crect fill='%234050b5' x='50' y='50' width='100' height='100' rx='10'/%3E%3Crect fill='%237986cb' x='200' y='100' width='100' height='100' rx='10'/%3E%3Crect fill='%233d5afe' x='350' y='50' width='100' height='100' rx='10'/%3E%3Cpath stroke='%234050b5' stroke-width='3' fill='none' d='M100 150 L250 200 L400 150'/%3E%3Ccircle fill='%234caf50' cx='100' cy='150' r='5'/%3E%3Ccircle fill='%234caf50' cx='250' cy='200' r='5'/%3E%3Ccircle fill='%234caf50' cx='400' cy='150' r='5'/%3E%3Ctext x='250' y='350' text-anchor='middle' fill='%23333' font-family='Arial' font-size='16'%3EBlockchain Verification%3C/text%3E%3C/svg%3E" 
-                alt="Blockchain credential verification illustration" 
+                src="/icon_verify.png" 
+                alt="VerifiED - Secure credential verification" 
                 className="img-fluid" 
+                style={{
+                  maxWidth: '400px',
+                  height: 'auto',
+                  backgroundColor: 'transparent',
+                  border: 'none',
+                  outline: 'none',
+                  boxShadow: 'none'
+                }}
               />
             </div>
           </div>
@@ -218,79 +226,6 @@ function HomePage() {
       {/* Verifier Section */}
       <VerifierSection />
 
-      {/* Sample Credentials Section */}
-      <section id="samples" className="py-5" style={{backgroundColor: 'var(--background-light)'}}>
-        <div className="container">
-          <div className="section-header">
-            <h2>Sample Credentials</h2>
-            <p>Examples of verified credentials on our platform</p>
-          </div>
-          
-          <div className="row g-4">
-            {[
-              {
-                logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle fill='%234050b5' cx='30' cy='30' r='30'/%3E%3Ctext x='30' y='38' text-anchor='middle' fill='white' font-family='Arial' font-size='20' font-weight='bold'%3EM%3C/text%3E%3C/svg%3E",
-                title: "Bachelor of Science",
-                subtitle: "Computer Science",
-                recipient: "John Smith",
-                issuer: "MIT",
-                date: "June 10, 2024"
-              },
-              {
-                logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle fill='%23dc3545' cx='30' cy='30' r='30'/%3E%3Ctext x='30' y='38' text-anchor='middle' fill='white' font-family='Arial' font-size='20' font-weight='bold'%3EH%3C/text%3E%3C/svg%3E",
-                title: "Master of Business Administration",
-                subtitle: "Finance Specialization",
-                recipient: "Sarah Johnson",
-                issuer: "Harvard Business School",
-                date: "May 20, 2024"
-              },
-              {
-                logo: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 60'%3E%3Ccircle fill='%23ffc107' cx='30' cy='30' r='30'/%3E%3Ctext x='30' y='38' text-anchor='middle' fill='white' font-family='Arial' font-size='20' font-weight='bold'%3EB%3C/text%3E%3C/svg%3E",
-                title: "Professional Certification",
-                subtitle: "Blockchain Development",
-                recipient: "David Chen",
-                issuer: "Blockchain Academy",
-                date: "March 5, 2024"
-              }
-            ].map((credential, index) => (
-              <div key={index} className="col-md-4">
-                <div className="credential-card">
-                  <div className="d-flex align-items-center p-3 border-bottom">
-                    <img 
-                      src={credential.logo} 
-                      alt="University logo" 
-                      className="rounded-circle me-3" 
-                      style={{width: '60px', height: '60px'}} 
-                    />
-                    <div>
-                      <h4 className="mb-1">{credential.title}</h4>
-                      <p className="mb-0 text-muted small">{credential.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="p-3">
-                    <div className="d-flex mb-2">
-                      <span className="fw-bold me-2" style={{minWidth: '80px'}}>Recipient:</span>
-                      <span>{credential.recipient}</span>
-                    </div>
-                    <div className="d-flex mb-2">
-                      <span className="fw-bold me-2" style={{minWidth: '80px'}}>Issuer:</span>
-                      <span>{credential.issuer}</span>
-                    </div>
-                    <div className="d-flex mb-3">
-                      <span className="fw-bold me-2" style={{minWidth: '80px'}}>Date:</span>
-                      <span>{credential.date}</span>
-                    </div>
-                    <div className="verification-status d-flex align-items-center">
-                      <i className="fas fa-shield-check me-2"></i>
-                      <span>Blockchain Verified</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
       {/* Use Cases Section */}
       <section id="use-cases" className="py-5 bg-white">
