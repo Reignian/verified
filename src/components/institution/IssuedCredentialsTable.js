@@ -3,6 +3,9 @@
 import React from 'react';
 import './AcademicInstitution.css';
 
+// Pinata gateway URL from environment variable
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
+
 function IssuedCredentialsTable({ credentials, onView }) {
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -14,7 +17,7 @@ function IssuedCredentialsTable({ credentials, onView }) {
 
   const handleView = (ipfsCid) => {
     if (typeof onView === 'function') return onView(ipfsCid);
-    const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsCid}`;
+    const ipfsUrl = `${PINATA_GATEWAY}/${ipfsCid}`;
     window.open(ipfsUrl, '_blank');
   };
 

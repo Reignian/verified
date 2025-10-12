@@ -11,6 +11,9 @@ import {
   fetchStudentCredentialCount
 } from '../../services/studentApiService';
 
+// Pinata gateway URL from environment variable
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
+
 const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOpenBulkImport, refreshTrigger }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +76,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
       console.error('No IPFS CID provided');
       return;
     }
-    const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsCid}`;
+    const ipfsUrl = `${PINATA_GATEWAY}/${ipfsCid}`;
     window.open(ipfsUrl, '_blank');
   };
 

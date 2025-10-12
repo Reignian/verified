@@ -4,6 +4,9 @@ import { verifyCredential } from '../../services/publicApiService';
 import blockchainService from '../../services/blockchainService';
 import { ethers } from 'ethers';
 
+// Pinata gateway URL from environment variable
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
+
 // Enable reading URL params to prefill the access code
 function VerifierSection() {
   const [showVerificationResult, setShowVerificationResult] = useState(false);
@@ -323,7 +326,7 @@ function VerifierSection() {
                           <span className="fw-bold">Credential File:</span>
                           <span>
                             <a 
-                              href={`https://gateway.pinata.cloud/ipfs/${credentialData.ipfs_cid}`} 
+                              href={`${PINATA_GATEWAY}/${credentialData.ipfs_cid}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
                               className="me-2"
@@ -378,7 +381,7 @@ function VerifierSection() {
                                 <span className="fw-bold">Credential File:</span>
                                 <span>
                                   <a 
-                                    href={`https://gateway.pinata.cloud/ipfs/${credential.ipfs_cid}`} 
+                                    href={`${PINATA_GATEWAY}/${credential.ipfs_cid}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
                                     className="me-2"

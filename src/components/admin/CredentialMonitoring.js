@@ -3,6 +3,9 @@
 import React, { useState, useEffect } from 'react';
 import { fetchAllCredentials } from '../../services/adminApiService';
 
+// Pinata gateway URL from environment variable
+const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
+
 function CredentialMonitoring() {
   const [credentials, setCredentials] = useState([]);
   const [filteredCredentials, setFilteredCredentials] = useState([]);
@@ -252,7 +255,7 @@ function CredentialMonitoring() {
                       <div className="btn-group" role="group">
                         <button
                           className="btn btn-sm btn-outline-info"
-                          onClick={() => window.open(`https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${credential.ipfs_cid}`, '_blank')}
+                          onClick={() => window.open(`${PINATA_GATEWAY}/${credential.ipfs_cid}`, '_blank')}
                           title="View on IPFS"
                           disabled={!credential.ipfs_cid}
                         >
