@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const adminQueries = require('../queries/adminQueries');
+const SystemSettingsService = require('../services/systemSettingsService');
 
 // GET /api/admin/stats - Get system statistics for admin dashboard
 router.get('/stats', (req, res) => {
@@ -179,6 +180,63 @@ router.delete('/contact-messages/:id', (req, res) => {
       success: true,
       message: 'Message deleted successfully'
     });
+  });
+});
+
+// System Settings Routes
+
+// GET /api/admin/system-settings - Get all system settings
+router.get('/system-settings', async (req, res) => {
+  try {
+    const settings = await SystemSettingsService.getAllSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching system settings:', error);
+    res.status(500).json({ error: 'Failed to fetch system settings' });
+  }
+});
+
+// PUT /api/admin/system-settings - Update system settings
+router.put('/system-settings', async (req, res) => {
+  try {
+    const settings = req.body;
+    await SystemSettingsService.updateMultipleSettings(settings);
+    res.json({ success: true, message: 'Settings updated successfully' });
+  } catch (error) {
+    console.error('Error updating system settings:', error);
+    res.status(500).json({ error: 'Failed to update system settings' });
+  }
+});
+
+// POST /api/admin/contact-messages/:id/gmail-reply - Generate Gmail reply URL
+router.post('/contact-messages/:id/gmail-reply', async (req, res) => {
+  const { id } = req.params;
+  
+  // First get the contact message
+  adminQueries.getAllContactMessages((err, messages) => {
+    if (err) {
+      console.error('Error fetching contact message:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    const message = messages.find(m => m.id == id);
+    if (!message) {
+      return res.status(404).json({ error: 'Message not found' });
+    }
+    
+    // Generate Gmail URL
+    SystemSettingsService.generateGmailReplyUrl(message)
+      .then(gmailUrl => {
+        res.json({ 
+          success: true, 
+          gmailUrl: gmailUrl,
+          message: 'Gmail compose URL generated successfully'
+        });
+      })
+      .catch(error => {
+        console.error('Error generating Gmail URL:', error);
+        res.status(500).json({ error: 'Failed to generate Gmail URL' });
+      });
   });
 });
 

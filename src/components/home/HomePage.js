@@ -5,6 +5,7 @@ import '../common/Navigation.css';
 import './HomePage.css';
 import VerifierSection from './VerifierSection';
 import { submitContactForm } from '../../services/publicApiService';
+import { generateDeviceFingerprint, validateEmail, isDisposableEmail } from '../../utils/deviceFingerprint';
 
 function HomePage() {
   const [contactForm, setContactForm] = useState({
@@ -16,6 +17,8 @@ function HomePage() {
   const [contactSubmitting, setContactSubmitting] = useState(false);
   const [contactMessage, setContactMessage] = useState('');
   const [contactMessageType, setContactMessageType] = useState('');
+  const [emailValidation, setEmailValidation] = useState({ isValid: true, message: '' });
+  const [deviceFingerprint, setDeviceFingerprint] = useState(null);
 
   useEffect(() => {
     // Smooth scrolling for anchor links
@@ -31,6 +34,15 @@ function HomePage() {
     };
 
     document.addEventListener('click', handleSmoothScroll);
+    
+    // Generate device fingerprint on component mount
+    try {
+      const fingerprint = generateDeviceFingerprint();
+      setDeviceFingerprint(fingerprint);
+    } catch (error) {
+      console.warn('Failed to generate device fingerprint:', error);
+    }
+    
     return () => document.removeEventListener('click', handleSmoothScroll);
   }, []);
 
@@ -40,15 +52,42 @@ function HomePage() {
       ...prev,
       [name]: value
     }));
+    
+    // Real-time email validation
+    if (name === 'email') {
+      if (value.trim() === '') {
+        setEmailValidation({ isValid: true, message: '' });
+      } else if (!validateEmail(value)) {
+        setEmailValidation({ isValid: false, message: 'Please enter a valid email address' });
+      } else if (isDisposableEmail(value)) {
+        setEmailValidation({ isValid: false, message: 'Temporary email addresses are not allowed' });
+      } else {
+        setEmailValidation({ isValid: true, message: '' });
+      }
+    }
   };
 
   const handleContactSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate email before submission
+    if (!emailValidation.isValid) {
+      setContactMessage(emailValidation.message);
+      setContactMessageType('error');
+      return;
+    }
+    
     setContactSubmitting(true);
     setContactMessage('');
     
     try {
-      const response = await submitContactForm(contactForm);
+      // Include device fingerprint in submission
+      const formDataWithFingerprint = {
+        ...contactForm,
+        deviceFingerprint: deviceFingerprint
+      };
+      
+      const response = await submitContactForm(formDataWithFingerprint);
       setContactMessage(response.message || 'Thank you for your message! We will get back to you soon.');
       setContactMessageType('success');
       
@@ -59,18 +98,28 @@ function HomePage() {
         user_type: '',
         message: ''
       });
+      setEmailValidation({ isValid: true, message: '' });
+      
     } catch (error) {
       console.error('Contact form submission failed:', error);
-      setContactMessage(error.response?.data?.error || 'Failed to submit message. Please try again.');
+      
+      // Handle rate limiting specifically
+      if (error.response?.status === 429) {
+        const errorData = error.response.data;
+        const hoursLeft = errorData.hoursLeft || 24;
+        setContactMessage(`Too many submissions. Please try again in ${hoursLeft} hours.`);
+      } else {
+        setContactMessage(error.response?.data?.error || 'Failed to submit message. Please try again.');
+      }
       setContactMessageType('error');
     } finally {
       setContactSubmitting(false);
       
-      // Clear message after 5 seconds
+      // Clear message after 8 seconds for rate limit messages
       setTimeout(() => {
         setContactMessage('');
         setContactMessageType('');
-      }, 5000);
+      }, 8000);
     }
   };
 
@@ -320,7 +369,7 @@ function HomePage() {
                 <div className="mb-3">
                   <input 
                     type="email" 
-                    className="form-control" 
+                    className={`form-control ${!emailValidation.isValid ? 'is-invalid' : ''}`}
                     name="email"
                     placeholder="Email" 
                     value={contactForm.email}
@@ -328,6 +377,12 @@ function HomePage() {
                     required 
                     disabled={contactSubmitting}
                   />
+                  {!emailValidation.isValid && (
+                    <div className="invalid-feedback">
+                      <i className="fas fa-exclamation-triangle me-1"></i>
+                      {emailValidation.message}
+                    </div>
+                  )}
                 </div>
                 <div className="mb-3">
                   <select 
@@ -360,7 +415,7 @@ function HomePage() {
                 <button 
                   type="submit" 
                   className="btn btn-primary-custom w-100"
-                  disabled={contactSubmitting}
+                  disabled={contactSubmitting || !emailValidation.isValid}
                 >
                   {contactSubmitting ? (
                     <>
@@ -374,6 +429,13 @@ function HomePage() {
                     </>
                   )}
                 </button>
+                
+                <div className="mt-3">
+                  <small className="text-muted">
+                    <i className="fas fa-info-circle me-1"></i>
+                    To prevent spam, you can send one message per day per device.
+                  </small>
+                </div>
               </form>
             </div>
             

@@ -3,9 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { fetchSystemStats } from '../../services/adminApiService';
 import InstitutionManagement from './InstitutionManagement';
-import CredentialMonitoring from './CredentialMonitoring';
-import VerificationStats from './VerificationStats';
 import ContactMessages from './ContactMessages';
+import SystemSettings from './SystemSettings';
 import './AdminDashboard.css';
 
 function AdminDashboard() {
@@ -51,7 +50,7 @@ function AdminDashboard() {
             ) : error ? (
               <div className="alert alert-danger">{error}</div>
             ) : (
-              <div className="row g-4">
+              <div className="row g-4 justify-content-center">
                 <div className="col-md-6 col-lg-4">
                   <div className="stat-card institutions">
                     <div className="stat-icon">
@@ -65,49 +64,13 @@ function AdminDashboard() {
                 </div>
                 
                 <div className="col-md-6 col-lg-4">
-                  <div className="stat-card students">
-                    <div className="stat-icon">
-                      <i className="fas fa-user-graduate"></i>
-                    </div>
-                    <div className="stat-content">
-                      <h3>{formatNumber(stats?.total_students || 0)}</h3>
-                      <p>Students Registered</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="col-md-6 col-lg-4">
-                  <div className="stat-card credentials">
-                    <div className="stat-icon">
-                      <i className="fas fa-certificate"></i>
-                    </div>
-                    <div className="stat-content">
-                      <h3>{formatNumber(stats?.total_credentials || 0)}</h3>
-                      <p>Total Credentials</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="col-md-6 col-lg-4">
-                  <div className="stat-card verified">
-                    <div className="stat-icon">
-                      <i className="fas fa-shield-check"></i>
-                    </div>
-                    <div className="stat-content">
-                      <h3>{formatNumber(stats?.verified_credentials || 0)}</h3>
-                      <p>Blockchain Verified</p>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="col-md-6 col-lg-4">
                   <div className="stat-card verifications">
                     <div className="stat-icon">
                       <i className="fas fa-search"></i>
                     </div>
                     <div className="stat-content">
-                      <h3>{formatNumber(stats?.total_verifications || 0)}</h3>
-                      <p>Total Verifications</p>
+                      <h3>{formatNumber(stats?.daily_verifications || 0)}</h3>
+                      <p>Daily Verifier Usage</p>
                     </div>
                   </div>
                 </div>
@@ -134,14 +97,11 @@ function AdminDashboard() {
       case 'institutions':
         return <InstitutionManagement onStatsUpdate={loadSystemStats} />;
       
-      case 'credentials':
-        return <CredentialMonitoring />;
-      
-      case 'verifications':
-        return <VerificationStats />;
-      
       case 'messages':
         return <ContactMessages onStatsUpdate={loadSystemStats} />;
+      
+      case 'settings':
+        return <SystemSettings />;
       
       default:
         return null;
@@ -177,22 +137,6 @@ function AdminDashboard() {
           </button>
           
           <button
-            className={`nav-link ${activeTab === 'credentials' ? 'active' : ''}`}
-            onClick={() => setActiveTab('credentials')}
-          >
-            <i className="fas fa-certificate me-1"></i>
-            Credentials
-          </button>
-          
-          <button
-            className={`nav-link ${activeTab === 'verifications' ? 'active' : ''}`}
-            onClick={() => setActiveTab('verifications')}
-          >
-            <i className="fas fa-chart-line me-1"></i>
-            Verification Stats
-          </button>
-          
-          <button
             className={`nav-link ${activeTab === 'messages' ? 'active' : ''}`}
             onClick={() => setActiveTab('messages')}
           >
@@ -201,6 +145,14 @@ function AdminDashboard() {
             {stats?.unread_messages > 0 && (
               <span className="badge bg-danger ms-1">{stats.unread_messages}</span>
             )}
+          </button>
+          
+          <button
+            className={`nav-link ${activeTab === 'settings' ? 'active' : ''}`}
+            onClick={() => setActiveTab('settings')}
+          >
+            <i className="fas fa-cog me-1"></i>
+            Settings
           </button>
         </div>
       </nav>

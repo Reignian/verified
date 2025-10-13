@@ -236,16 +236,36 @@ const deleteContactMessage = (messageId, callback) => {
 };
 
 const createContactMessage = (messageData, callback) => {
-  const query = `
-    INSERT INTO contact_messages (name, email, user_type, message, status, created_at)
-    VALUES (?, ?, ?, ?, 'unread', NOW())
-  `;
-  connection.query(query, [
-    messageData.name,
-    messageData.email,
-    messageData.user_type,
-    messageData.message
-  ], callback);
+  // Handle both old format (backward compatibility) and new format with tracking
+  const hasTrackingData = messageData.deviceFingerprint || messageData.ipAddress || messageData.userAgent;
+  
+  if (hasTrackingData) {
+    const query = `
+      INSERT INTO contact_messages (name, email, user_type, message, status, created_at, device_fingerprint, ip_address, user_agent)
+      VALUES (?, ?, ?, ?, 'unread', NOW(), ?, ?, ?)
+    `;
+    connection.query(query, [
+      messageData.name,
+      messageData.email,
+      messageData.user_type,
+      messageData.message,
+      messageData.deviceFingerprint || null,
+      messageData.ipAddress || null,
+      messageData.userAgent || null
+    ], callback);
+  } else {
+    // Backward compatibility - old format
+    const query = `
+      INSERT INTO contact_messages (name, email, user_type, message, status, created_at)
+      VALUES (?, ?, ?, ?, 'unread', NOW())
+    `;
+    connection.query(query, [
+      messageData.name,
+      messageData.email,
+      messageData.user_type,
+      messageData.message
+    ], callback);
+  }
 };
 
 // Track credential verification

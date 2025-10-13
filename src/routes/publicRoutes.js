@@ -6,27 +6,93 @@ const router = express.Router();
 const crypto = require('crypto');
 const verificationQueries = require('../queries/verificationQueries');
 const adminQueries = require('../queries/adminQueries');
+const ContactRateLimitService = require('../services/contactRateLimitService');
 
-// POST /api/public/contact - Contact form submission
-router.post('/contact', (req, res) => {
-  const { name, email, user_type, message } = req.body;
+// POST /api/public/contact - Contact form submission with spam protection
+router.post('/contact', async (req, res) => {
+  const { name, email, user_type, message, deviceFingerprint } = req.body;
   
+  // Basic validation
   if (!name || !email || !user_type || !message) {
     return res.status(400).json({ error: 'All fields are required' });
   }
   
-  adminQueries.createContactMessage({ name, email, user_type, message }, (err, result) => {
-    if (err) {
-      console.error('Error creating contact message:', err);
-      return res.status(500).json({ error: 'Failed to submit message' });
+  // Email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    return res.status(400).json({ error: 'Please enter a valid email address' });
+  }
+  
+  // Get client information
+  const ipAddress = req.ip || req.connection.remoteAddress || 'unknown';
+  const userAgent = req.get('User-Agent') || 'unknown';
+  const clientFingerprint = deviceFingerprint || `fallback_${ipAddress}_${Date.now()}`;
+  
+  try {
+    // Check rate limiting
+    const rateLimitCheck = await ContactRateLimitService.checkRateLimit(
+      clientFingerprint, 
+      ipAddress, 
+      email
+    );
+    
+    if (!rateLimitCheck.allowed) {
+      return res.status(429).json({ 
+        error: rateLimitCheck.message,
+        rateLimited: true,
+        hoursLeft: rateLimitCheck.hoursLeft
+      });
     }
     
-    res.json({
-      success: true,
-      message: 'Thank you for your message! We will get back to you soon.',
-      id: result.insertId
+    // Record the submission attempt
+    await ContactRateLimitService.recordSubmission(
+      clientFingerprint, 
+      ipAddress, 
+      email, 
+      true
+    );
+    
+    // Create contact message with additional tracking info
+    const messageData = {
+      name,
+      email,
+      user_type,
+      message,
+      deviceFingerprint: clientFingerprint,
+      ipAddress,
+      userAgent
+    };
+    
+    adminQueries.createContactMessage(messageData, (err, result) => {
+      if (err) {
+        console.error('Error creating contact message:', err);
+        return res.status(500).json({ error: 'Failed to submit message' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Thank you for your message! We will get back to you soon.',
+        id: result.insertId
+      });
     });
-  });
+    
+  } catch (error) {
+    console.error('Rate limiting error:', error);
+    
+    // Fallback: still allow submission but log the error
+    adminQueries.createContactMessage({ name, email, user_type, message }, (err, result) => {
+      if (err) {
+        console.error('Error creating contact message:', err);
+        return res.status(500).json({ error: 'Failed to submit message' });
+      }
+      
+      res.json({
+        success: true,
+        message: 'Thank you for your message! We will get back to you soon.',
+        id: result.insertId
+      });
+    });
+  }
 });
 
 // POST /api/public/verify-credential - Verify credential by access code (single or multi)

@@ -4,7 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   fetchAllContactMessages, 
   updateContactMessageStatus, 
-  deleteContactMessage 
+  deleteContactMessage,
+  generateGmailReplyUrl
 } from '../../services/adminApiService';
 
 function ContactMessages({ onStatsUpdate }) {
@@ -95,6 +96,22 @@ function ContactMessages({ onStatsUpdate }) {
     } catch (error) {
       console.error('Failed to delete message:', error);
       setError('Failed to delete message');
+    }
+  };
+
+  const handleGmailReply = async (messageId) => {
+    try {
+      const response = await generateGmailReplyUrl(messageId);
+      
+      // Open Gmail in a new tab
+      window.open(response.gmailUrl, '_blank');
+      
+      // Mark as replied
+      await handleStatusUpdate(messageId, 'replied');
+      
+    } catch (error) {
+      console.error('Failed to generate Gmail reply:', error);
+      setError('Failed to open Gmail reply');
     }
   };
 
@@ -330,6 +347,14 @@ function ContactMessages({ onStatsUpdate }) {
                           <i className="fas fa-eye"></i>
                         </button>
                         
+                        <button
+                          className="btn btn-sm btn-outline-info"
+                          onClick={() => handleGmailReply(message.id)}
+                          title="Reply via Gmail"
+                        >
+                          <i className="fab fa-google"></i>
+                        </button>
+                        
                         {message.status !== 'replied' && (
                           <button
                             className="btn btn-sm btn-outline-success"
@@ -439,6 +464,18 @@ function ContactMessages({ onStatsUpdate }) {
                   Close
                 </button>
                 
+                <button 
+                  type="button" 
+                  className="btn btn-info"
+                  onClick={() => {
+                    handleGmailReply(selectedMessage.id);
+                    setShowModal(false);
+                  }}
+                >
+                  <i className="fab fa-google me-2"></i>
+                  Reply via Gmail
+                </button>
+                
                 {selectedMessage.status !== 'replied' && (
                   <button 
                     type="button" 
@@ -451,14 +488,6 @@ function ContactMessages({ onStatsUpdate }) {
                     Mark as Replied
                   </button>
                 )}
-                
-                <a 
-                  href={`mailto:${selectedMessage.email}?subject=Re: Your message to VerifiED&body=Dear ${selectedMessage.name},%0D%0A%0D%0AThank you for contacting VerifiED. %0D%0A%0D%0ARegarding your message:%0D%0A"${selectedMessage.message}"%0D%0A%0D%0ABest regards,%0D%0AVerifiED Support Team`}
-                  className="btn btn-primary"
-                >
-                  <i className="fas fa-reply me-2"></i>
-                  Reply via Email
-                </a>
               </div>
             </div>
           </div>

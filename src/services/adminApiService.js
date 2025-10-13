@@ -120,3 +120,34 @@ export const deleteContactMessage = async (messageId) => {
     throw error;
   }
 };
+
+// System Settings Management
+export const fetchSystemSettings = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/admin/system-settings`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching system settings:', error);
+    throw error;
+  }
+};
+
+export const updateSystemSettings = async (settings) => {
+  try {
+    const response = await axios.put(`${API_URL}/admin/system-settings`, settings);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating system settings:', error);
+    throw error;
+  }
+};
+
+export const generateGmailReplyUrl = async (messageId) => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/contact-messages/${messageId}/gmail-reply`);
+    return response.data;
+  } catch (error) {
+    console.error('Error generating Gmail reply URL:', error);
+    throw error;
+  }
+};
