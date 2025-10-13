@@ -157,86 +157,103 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
         return processStudent(index + 1);
       }
 
-      connection.beginTransaction((err) => {
+      connection.getConnection((err, conn) => {
         if (err) {
           failed++;
           failures.push({
             index: index + 1,
             data: student,
-            error: 'Transaction failed: ' + err.message
+            error: 'Connection failed: ' + err.message
           });
           return processStudent(index + 1);
         }
 
-        const accountQuery = `
-          INSERT INTO account (account_type, username, password, email, institution_id) 
-          VALUES ('student', ?, ?, ?, ?)
-        `;
-        
-        const accountValues = [
-          student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
-          student.password || 'student123',
-          student.email || `${student.username || student.first_name}@student.edu`,
-          institutionId
-        ];
-
-        connection.query(accountQuery, accountValues, (err, accountResult) => {
+        conn.beginTransaction((err) => {
           if (err) {
-            return connection.rollback(() => {
-              failed++;
-              failures.push({
-                index: index + 1,
-                data: student,
-                error: 'Account creation failed: ' + err.message
-              });
-              processStudent(index + 1);
+            conn.release();
+            failed++;
+            failures.push({
+              index: index + 1,
+              data: student,
+              error: 'Transaction failed: ' + err.message
             });
+            return processStudent(index + 1);
           }
 
-          const accountId = accountResult.insertId;
-
-          const studentQuery = `
-            INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
-            VALUES (?, ?, ?, ?, ?, ?)
+          const accountQuery = `
+            INSERT INTO account (account_type, username, password, email, institution_id) 
+            VALUES ('student', ?, ?, ?, ?)
           `;
           
-          const studentValues = [
-            accountId,
-            student.student_id,
-            student.first_name,
-            student.middle_name || null,
-            student.last_name || '',
+          const accountValues = [
+            student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
+            student.password || 'student123',
+            student.email || `${student.username || student.first_name}@student.edu`,
             institutionId
           ];
 
-          connection.query(studentQuery, studentValues, (err, studentResult) => {
+          conn.query(accountQuery, accountValues, (err, accountResult) => {
             if (err) {
-              return connection.rollback(() => {
+              return conn.rollback(() => {
+                conn.release();
                 failed++;
                 failures.push({
                   index: index + 1,
                   data: student,
-                  error: 'Student record creation failed: ' + err.message
+                  error: 'Account creation failed: ' + err.message
                 });
                 processStudent(index + 1);
               });
             }
 
-            connection.commit((err) => {
+            const accountId = accountResult.insertId;
+
+            const studentQuery = `
+              INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
+              VALUES (?, ?, ?, ?, ?, ?)
+            `;
+            
+            const studentValues = [
+              accountId,
+              student.student_id,
+              student.first_name,
+              student.middle_name || null,
+              student.last_name || '',
+              institutionId
+            ];
+
+            conn.query(studentQuery, studentValues, (err, studentResult) => {
               if (err) {
-                return connection.rollback(() => {
+                return conn.rollback(() => {
+                  conn.release();
                   failed++;
                   failures.push({
                     index: index + 1,
                     data: student,
-                    error: 'Transaction commit failed: ' + err.message
+                    error: 'Student record creation failed: ' + err.message
                   });
                   processStudent(index + 1);
                 });
               }
 
-              successful++;
-              processStudent(index + 1);
+              conn.commit((err) => {
+                if (err) {
+                  return conn.rollback(() => {
+                    conn.release();
+                    failed++;
+                    failures.push({
+                      index: index + 1,
+                      data: student,
+                      error: 'Transaction commit failed: ' + err.message
+                    });
+                    processStudent(index + 1);
+                  });
+                }
+
+                conn.release();
+                successful++;
+                processStudent(index + 1);
+              });
             });
           });
         });
@@ -267,52 +284,63 @@ const checkUsernameExists = (username, callback) => {
 const addStudent = (studentData, institutionId, callback) => {
   const { student_id, first_name, middle_name, last_name, username, email, password } = studentData;
 
-  connection.beginTransaction((err) => {
+  connection.getConnection((err, conn) => {
     if (err) {
       return callback(err);
     }
 
-    const accountQuery = `
-      INSERT INTO account (account_type, username, password, email, institution_id) 
-      VALUES ('student', ?, ?, ?, ?)
-    `;
-
-    connection.query(accountQuery, [username, password, email, institutionId], (err, accountResult) => {
+    conn.beginTransaction((err) => {
       if (err) {
-        return connection.rollback(() => {
-          callback(err);
-        });
+        conn.release();
+        return callback(err);
       }
 
-      const accountId = accountResult.insertId;
-
-      const studentQuery = `
-        INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
-        VALUES (?, ?, ?, ?, ?, ?)
+      const accountQuery = `
+        INSERT INTO account (account_type, username, password, email, institution_id) 
+        VALUES ('student', ?, ?, ?, ?)
       `;
 
-      connection.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId], (err, studentResult) => {
+      conn.query(accountQuery, [username, password, email, institutionId], (err, accountResult) => {
         if (err) {
-          return connection.rollback(() => {
+          return conn.rollback(() => {
+            conn.release();
             callback(err);
           });
         }
 
-        connection.commit((err) => {
+        const accountId = accountResult.insertId;
+
+        const studentQuery = `
+          INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
+          VALUES (?, ?, ?, ?, ?, ?)
+        `;
+
+        conn.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId], (err, studentResult) => {
           if (err) {
-            return connection.rollback(() => {
+            return conn.rollback(() => {
+              conn.release();
               callback(err);
             });
           }
 
-          callback(null, {
-            id: accountId,
-            student_id,
-            first_name,
-            middle_name,
-            last_name,
-            username,
-            email
+          conn.commit((err) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+
+            conn.release();
+            callback(null, {
+              id: accountId,
+              student_id,
+              first_name,
+              middle_name,
+              last_name,
+              username,
+              email
+            });
           });
         });
       });
@@ -334,6 +362,125 @@ const getBulkImportStats = (institutionId, callback) => {
   connection.query(query, [institutionId], callback);
 };
 
+// Get dashboard statistics for institution
+const getDashboardStats = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      (SELECT COUNT(*) FROM student s WHERE s.institution_id = ?) as total_students,
+      (SELECT COUNT(*) FROM credential c JOIN student s ON c.owner_id = s.id WHERE c.sender_id = ? AND s.institution_id = ?) as total_credentials,
+      (SELECT COUNT(*) 
+       FROM credential_verifications cv 
+       JOIN credential c ON cv.credential_id = c.id 
+       JOIN student s ON c.owner_id = s.id 
+       WHERE c.sender_id = ? AND s.institution_id = ? AND DATE(cv.verification_timestamp) = CURDATE()) as daily_verifications
+  `;
+  connection.query(query, [institutionId, institutionId, institutionId, institutionId, institutionId], callback);
+};
+
+// Get institution profile information
+const getInstitutionProfile = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      i.institution_name,
+      a.username,
+      a.email
+    FROM institution i
+    JOIN account a ON i.id = a.id
+    WHERE i.id = ? AND a.account_type = 'institution'
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Update institution profile
+const updateInstitutionProfile = (institutionId, profileData, callback) => {
+  const { institution_name, username, email, password } = profileData;
+  
+  console.log('updateInstitutionProfile called with:', { institutionId, profileData });
+  
+  // Get a connection from the pool for the transaction
+  connection.getConnection((err, conn) => {
+    if (err) {
+      console.error('Error getting connection:', err);
+      return callback(err);
+    }
+
+    conn.beginTransaction((err) => {
+      if (err) {
+        console.error('Transaction begin error:', err);
+        conn.release();
+        return callback(err);
+      }
+
+      // Update institution table
+      const institutionQuery = `
+        UPDATE institution 
+        SET institution_name = ? 
+        WHERE id = ?
+      `;
+      
+      console.log('Executing institution update:', { institution_name, institutionId });
+      
+      conn.query(institutionQuery, [institution_name, institutionId], (err, result) => {
+        if (err) {
+          console.error('Institution update error:', err);
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
+          });
+        }
+
+        console.log('Institution update result:', result);
+
+        // Update account table
+        let accountQuery, accountValues;
+        if (password) {
+          accountQuery = `
+            UPDATE account 
+            SET username = ?, email = ?, password = ? 
+            WHERE id = ? AND account_type = 'institution'
+          `;
+          accountValues = [username, email, password, institutionId];
+        } else {
+          accountQuery = `
+            UPDATE account 
+            SET username = ?, email = ? 
+            WHERE id = ? AND account_type = 'institution'
+          `;
+          accountValues = [username, email, institutionId];
+        }
+
+        console.log('Executing account update:', { username, email, hasPassword: !!password });
+
+        conn.query(accountQuery, accountValues, (err, result) => {
+          if (err) {
+            console.error('Account update error:', err);
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+
+          console.log('Account update result:', result);
+
+          conn.commit((err) => {
+            if (err) {
+              console.error('Transaction commit error:', err);
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+
+            console.log('Profile update successful');
+            conn.release();
+            callback(null, { message: 'Profile updated successfully' });
+          });
+        });
+      });
+    });
+  });
+};
+
 
 module.exports = {
   getCredentialTypes,
@@ -349,5 +496,8 @@ module.exports = {
   addStudent,
   checkStudentIdExists,
   checkUsernameExists,
-  getBulkImportStats
+  getBulkImportStats,
+  getDashboardStats,
+  getInstitutionProfile,
+  updateInstitutionProfile
 };

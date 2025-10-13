@@ -222,3 +222,38 @@ export const fetchCredentialStats = async (institutionId) => {
     throw error;
   }
 };
+
+// Fetch dashboard statistics (students count, credentials count, daily verifications)
+export const fetchDashboardStats = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/dashboard-stats/${institutionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    throw error;
+  }
+};
+
+// ============ INSTITUTION PROFILE ============
+
+// Get institution profile information
+export const fetchInstitutionProfile = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/${institutionId}/profile`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching institution profile:', error);
+    throw error;
+  }
+};
+
+// Update institution profile
+export const updateInstitutionProfile = async (institutionId, profileData) => {
+  try {
+    const response = await axios.put(`${API_URL}/institution/${institutionId}/profile`, profileData);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating institution profile:', error);
+    throw error;
+  }
+};

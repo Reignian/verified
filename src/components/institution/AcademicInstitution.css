@@ -24,6 +24,66 @@
   --spacing-lg: 24px;
 }
 
+/* Dashboard Stats Section */
+.dashboard-stats-section {
+  padding: 20px;
+}
+
+.dashboard-stats-section .stat-card {
+  background: linear-gradient(135deg, #ffffff, #f8f9fa);
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  transition: all 0.3s ease;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+}
+
+.dashboard-stats-section .stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+}
+
+.dashboard-stats-section .stat-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20px;
+  font-size: 24px;
+  color: white;
+}
+
+.dashboard-stats-section .row .col-md-4:nth-child(1) .stat-card .stat-icon {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+}
+
+.dashboard-stats-section .row .col-md-4:nth-child(2) .stat-card .stat-icon {
+  background: linear-gradient(135deg, #2ecc71, #27ae60);
+}
+
+.dashboard-stats-section .row .col-md-4:nth-child(3) .stat-card .stat-icon {
+  background: linear-gradient(135deg, #f39c12, #e67e22);
+}
+
+.dashboard-stats-section .stat-content h3 {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0 0 5px 0;
+}
+
+.dashboard-stats-section .stat-content p {
+  font-size: 14px;
+  color: #7f8c8d;
+  margin: 0;
+  font-weight: 500;
+}
+
 /* Progress Bar Styles */
 .upload-progress-section {
   padding: 1rem;
@@ -551,14 +611,16 @@
   margin-bottom: 25px;
 }
 
-.form-label {
+.academic-institution-page .form-label {
   font-weight: 600;
   color: var(--text-dark);
   margin-bottom: 8px;
   display: block;
 }
 
-.form-control, .form-select {
+/* Scoped form controls to prevent conflicts */
+.academic-institution-page .form-control, 
+.academic-institution-page .form-select {
   border: 2px solid var(--border-color);
   border-radius: 8px;
   padding: 12px 16px;
@@ -567,7 +629,8 @@
   background-color: #fafafa;
 }
 
-.form-control:focus, .form-select:focus {
+.academic-institution-page .form-control:focus, 
+.academic-institution-page .form-select:focus {
   border-color: var(--primary-color);
   box-shadow: 0 0 0 0.2rem rgba(64, 80, 181, 0.25);
   background-color: white;

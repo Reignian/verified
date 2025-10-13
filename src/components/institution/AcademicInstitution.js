@@ -9,7 +9,10 @@ import {
   fetchInstitutionName,
   fetchInstitutionPublicAddress,
   updateInstitutionPublicAddress,
-  fetchStudents
+  fetchStudents,
+  fetchDashboardStats,
+  fetchInstitutionProfile,
+  updateInstitutionProfile
 } from '../../services/institutionApiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AcademicInstitution.css';
@@ -17,6 +20,7 @@ import StudentManagement from './StudentManagement';
 import IssueCredentialModal from './IssueCredentialModal';
 import BulkImportStudentsModal from './BulkImportStudentsModal';
 import IssuedCredentialsTable from './IssuedCredentialsTable';
+import InstitutionSettings from './InstitutionSettings';
 import ErrorModal from '../common/ErrorModal';
 import PublicAddressCheck from './PublicAddressCheck';
 import PublicAddressModal from './PublicAddressModal';
@@ -32,6 +36,8 @@ function AcademicInstitution() {
   const [students, setStudents] = useState([]);
   const [issuedCredentials, setIssuedCredentials] = useState([]);
   const [credentialStats, setCredentialStats] = useState({ total_credentials: 0, new_credentials_week: 0 });
+  const [dashboardStats, setDashboardStats] = useState({ total_students: 0, total_credentials: 0, daily_verifications: 0 });
+  const [institutionProfile, setInstitutionProfile] = useState({ institution_name: '', username: '', email: '' });
   const [showModal, setShowModal] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -109,17 +115,21 @@ function AcademicInstitution() {
         setDbPublicAddress(addressData.public_address);
 
         // Load institution-specific data
-        const [types, studentData, credentials, stats] = await Promise.all([
+        const [types, studentData, credentials, stats, dashStats, profile] = await Promise.all([
           fetchCredentialTypes(),
           fetchStudents(loggedInUserId), // Pass institution ID
           fetchIssuedCredentials(loggedInUserId), // Pass institution ID
-          fetchCredentialStats(loggedInUserId) // Pass institution ID
+          fetchCredentialStats(loggedInUserId), // Pass institution ID
+          fetchDashboardStats(loggedInUserId), // Pass institution ID
+          fetchInstitutionProfile(loggedInUserId) // Pass institution ID
         ]);
         
         setCredentialTypes(types);
         setStudents(studentData);
         setIssuedCredentials(credentials);
         setCredentialStats(stats);
+        setDashboardStats(dashStats);
+        setInstitutionProfile(profile);
       } catch (error) {
         console.error('Data loading failed:', error);
         setErrorMessage('Failed to load institution data. Please refresh the page.');
@@ -194,7 +204,7 @@ function AcademicInstitution() {
       dbPublicAddress={dbPublicAddress}
       onAddressUpdated={handleAddressUpdated}
     >
-      <div className="ai-page" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
+      <div className="ai-page academic-institution-page" style={{ fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif", backgroundColor: '#ffffff', minHeight: '100vh', paddingTop: '80px' }}>
 
         {/* Header Section */}
         <div className="dashboard-header">
@@ -291,6 +301,46 @@ function AcademicInstitution() {
         </div>
 
         {/* Section Container - content below changes */}
+        {activeSection === 'dashboard' && (
+          <div className="dashboard-stats-section">
+            <div className="row">
+              <div className="col-md-4">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fas fa-users"></i>
+                  </div>
+                  <div className="stat-content">
+                    <h3>{dashboardStats.total_students}</h3>
+                    <p>Total Students</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fas fa-certificate"></i>
+                  </div>
+                  <div className="stat-content">
+                    <h3>{dashboardStats.total_credentials}</h3>
+                    <p>Issued Credentials</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fas fa-check-circle"></i>
+                  </div>
+                  <div className="stat-content">
+                    <h3>{dashboardStats.daily_verifications}</h3>
+                    <p>Daily Verifications</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {activeSection === 'issued' && (
           <>
             <div className="button-group mb-3">
@@ -311,6 +361,17 @@ function AcademicInstitution() {
             institutionId={institutionId}
             onOpenBulkImport={() => setShowBulkImportModal(true)}
             refreshTrigger={studentsRefreshTick}
+          />
+        )}
+
+        {activeSection === 'settings' && (
+          <InstitutionSettings 
+            institutionId={institutionId}
+            profile={institutionProfile}
+            onProfileUpdate={(updatedProfile) => {
+              setInstitutionProfile(updatedProfile);
+              setInstitutionName(updatedProfile.institution_name);
+            }}
           />
         )}
       </div>

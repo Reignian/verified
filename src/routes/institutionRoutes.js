@@ -574,6 +574,67 @@ router.get('/credential-stats/:institutionId', (req, res) => {
   });
 });
 
+// GET /api/institution/dashboard-stats/:institutionId - Get dashboard statistics
+router.get('/dashboard-stats/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getDashboardStats(institutionId, (err, results) => {
+    if (err) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results[0]);
+  });
+});
+
+// ============ INSTITUTION PROFILE ============
+
+// GET /api/institution/:institutionId/profile - Get institution profile
+router.get('/:institutionId/profile', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getInstitutionProfile(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching institution profile:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    if (results.length === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json(results[0]);
+  });
+});
+
+// PUT /api/institution/:institutionId/profile - Update institution profile
+router.put('/:institutionId/profile', (req, res) => {
+  const { institutionId } = req.params;
+  const { institution_name, username, email, password } = req.body;
+  
+  if (!institution_name || !username || !email) {
+    return res.status(400).json({ error: 'Institution name, username, and email are required' });
+  }
+  
+  const profileData = { institution_name, username, email };
+  if (password && password.trim() !== '') {
+    profileData.password = password;
+  }
+  
+  academicQueries.updateInstitutionProfile(institutionId, profileData, (err, results) => {
+    if (err) {
+      console.error('Error updating institution profile:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json({ 
+      message: 'Institution profile updated successfully',
+      institution_name,
+      username,
+      email
+    });
+  });
+});
+
 // ============ BLOCKCHAIN CONTRACT INFO ============
 
 // GET /api/institution/contract-address - Get deployed contract address
