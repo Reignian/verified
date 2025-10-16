@@ -242,6 +242,175 @@
   .access-code-card {
     padding: 16px;
   }
+
+  .access-code-value {
+    font-size: 1.2rem;
+  }
+
+  .empty-state {
+    padding: 50px 30px;
+  }
+
+  .empty-state-icon {
+    font-size: 3.5rem;
+  }
+
+  .empty-state-title {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .access-codes-container {
+    gap: 10px;
+  }
+
+  .access-code-card {
+    padding: 15px;
+  }
+
+  .access-code-header {
+    flex-direction: column;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .access-code-info {
+    width: 100%;
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .access-code-value {
+    font-size: 1.1rem;
+  }
+
+  .access-code-actions {
+    width: 100%;
+    justify-content: space-between;
+    align-self: flex-start;
+  }
+
+  .status-badge-small {
+    font-size: 0.7rem;
+    padding: 3px 7px;
+  }
+
+  .access-code-details {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .credential-reference,
+  .creation-date {
+    font-size: 0.85rem;
+  }
+
+  .empty-state {
+    padding: 40px 20px;
+  }
+
+  .empty-state-icon {
+    font-size: 3rem;
+  }
+
+  .empty-state-title {
+    font-size: 1.2rem;
+  }
+
+  .empty-state-text {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small devices (320px - 375px) */
+@media (max-width: 375px) {
+  .access-codes-container {
+    gap: 8px;
+  }
+
+  .access-code-card {
+    padding: 12px;
+  }
+
+  .access-code-header {
+    gap: 8px;
+  }
+
+  .access-code-info {
+    gap: 6px;
+  }
+
+  .access-code-value {
+    font-size: 1rem;
+    letter-spacing: 0.5px;
+  }
+
+  .status-badge-small {
+    font-size: 0.65rem;
+    padding: 3px 6px;
+  }
+
+  .toggle-label {
+    width: 40px;
+    height: 22px;
+  }
+
+  .toggle-label::after {
+    width: 18px;
+    height: 18px;
+  }
+
+  .toggle-input:checked + .toggle-label::after {
+    transform: translateX(18px);
+  }
+
+  .menu-button {
+    padding: 5px 7px;
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.9rem;
+  }
+
+  .access-code-details {
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+
+  .credential-reference,
+  .creation-date {
+    font-size: 0.8rem;
+  }
+
+  .detail-label {
+    font-size: 0.75rem;
+  }
+
+  .credential-item {
+    font-size: 0.8rem;
+    padding-left: 6px;
+  }
+
+  .empty-state {
+    padding: 35px 15px;
+  }
+
+  .empty-state-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+  }
+
+  .empty-state-title {
+    font-size: 1.1rem;
+    margin-bottom: 8px;
+  }
+
+  .empty-state-text {
+    font-size: 0.85rem;
+    line-height: 1.5;
+  }
 }
 
 /* Credential List Styles */
