@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react';
 import './AcademicInstitution.css';
-import { uploadCredentialAfterBlockchain } from '../../services/institutionApiService';
+import { uploadCredentialAfterBlockchain, fetchInstitutionPrograms } from '../../services/institutionApiService';
 import blockchainService from '../../services/blockchainService';
 
 function IssueCredentialModal({
@@ -14,6 +14,7 @@ function IssueCredentialModal({
   account,
   dbPublicAddress,
   walletMatches,
+  institutionId,
 }) {
   // Local state moved from parent
   const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
@@ -23,6 +24,7 @@ function IssueCredentialModal({
     credentialType: '',
     studentAccount: '',
     credentialFile: null,
+    programId: '',
   });
   const [showLoaderModal, setShowLoaderModal] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -30,10 +32,11 @@ function IssueCredentialModal({
   const [uploadProgress, setUploadProgress] = useState(0);
   const [loaderStatus, setLoaderStatus] = useState('loading'); // 'loading', 'success', 'cancelled'
   const [modalError, setModalError] = useState('');
+  const [programs, setPrograms] = useState([]);
 
   // Reset form function
   const resetForm = () => {
-    setFormData({ credentialType: '', studentAccount: '', credentialFile: null });
+    setFormData({ credentialType: '', studentAccount: '', credentialFile: null, programId: '' });
     setShowCustomTypeInput(false);
     setCustomCredentialType('');
     setStudentSearchTerm('');
@@ -42,13 +45,23 @@ function IssueCredentialModal({
     if (fileInput) fileInput.value = '';
   };
 
-  // Reset form when modal opens
+  // Load programs when modal opens
   useEffect(() => {
-    if (show) {
+    if (show && institutionId) {
+      loadPrograms();
       resetForm();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [show]);
+  }, [show, institutionId]);
+
+  const loadPrograms = async () => {
+    try {
+      const programList = await fetchInstitutionPrograms(institutionId);
+      setPrograms(programList);
+    } catch (err) {
+      console.error('Error loading programs:', err);
+    }
+  };
 
   // Compute filtered students locally for the modal
   const filteredStudents = useMemo(() => {
@@ -80,9 +93,23 @@ function IssueCredentialModal({
       }
     }
     
-    // When student is selected, clear search term to show selected student
+    // When student is selected, clear search term and auto-fill program
     if (name === 'studentAccount' && value) {
       setStudentSearchTerm('');
+      
+      // Auto-fill program based on student's program
+      const student = (students || []).find(s => s.id === parseInt(value));
+      
+      if (student && student.program_id) {
+        setFormData((prev) => ({
+          ...prev,
+          studentAccount: value,
+          programId: student.program_id.toString(),
+        }));
+        if (uploadMessage) setUploadMessage('');
+        if (modalError) setModalError('');
+        return; // Exit early since we already updated formData
+      }
     }
     
     setFormData((prev) => ({
@@ -193,6 +220,11 @@ function IssueCredentialModal({
         credentialData.custom_type = customCredentialType.trim();
       } else {
         credentialData.credential_type_id = parseInt(formData.credentialType);
+      }
+      
+      // Add program_id if selected
+      if (formData.programId) {
+        credentialData.program_id = parseInt(formData.programId);
       }
 
       // Step 2: Upload to IPFS and save to database (70% progress)
@@ -415,6 +447,34 @@ function IssueCredentialModal({
                   )}
                 </>
               )}
+            </div>
+
+            {/* Program Selection */}
+            <div className="form-group">
+              <label htmlFor="programId" className="form-label">
+                <i className="fas fa-graduation-cap me-2"></i>
+                Program
+              </label>
+              <select
+                id="programId"
+                name="programId"
+                value={formData?.programId || ''}
+                onChange={handleInputChange}
+                className="form-select"
+              >
+                <option value="">Select Program (Optional)</option>
+                {programs.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.program_code ? `${program.program_code} - ` : ''}{program.program_name}
+                  </option>
+                ))}
+              </select>
+              <small className="text-muted mt-1 d-block">
+                <i className="fas fa-info-circle me-1"></i>
+                {selectedStudent && selectedStudent.program_id 
+                  ? 'Auto-filled from student profile. You can change if needed.' 
+                  : 'Select the program for this credential'}
+              </small>
             </div>
 
             <div className="form-group">

@@ -383,6 +383,7 @@ function AcademicInstitution() {
           account={account}
           dbPublicAddress={dbPublicAddress}
           walletMatches={walletMatches}
+          institutionId={institutionId}
         />
       )}
 

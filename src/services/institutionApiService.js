@@ -136,6 +136,11 @@ export const uploadCredential = async (credentialData, file) => {
     formData.append('owner_id', credentialData.owner_id);
     formData.append('sender_id', credentialData.sender_id);
     
+    // Add program_id if provided
+    if (credentialData.program_id) {
+      formData.append('program_id', credentialData.program_id);
+    }
+    
     if (file) {
       formData.append('credentialFile', file);
     }
@@ -168,6 +173,11 @@ export const uploadCredentialAfterBlockchain = async (credentialData, file, cred
     formData.append('sender_id', credentialData.sender_id);
     formData.append('blockchain_id', credentialId);  // Store credential ID from smart contract
     formData.append('transaction_hash', transactionHash || '');  // Store transaction hash for reference
+    
+    // Add program_id if provided
+    if (credentialData.program_id) {
+      formData.append('program_id', credentialData.program_id);
+    }
     
     if (file) {
       formData.append('credentialFile', file);

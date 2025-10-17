@@ -80,15 +80,14 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid = 'default_cid', 
     blockchain_id = null,
-    status = 'pending' 
+    status = 'pending',
+    program_id = null
   } = credentialData;
-
-  console.log('Creating credential with data:', credentialData);
   
   const query = `
     INSERT INTO credential 
-    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, blockchain_id, status) 
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, blockchain_id, status, program_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   connection.query(query, [
@@ -98,7 +97,8 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid, 
     blockchain_id,
-    status
+    status,
+    program_id
   ], callback);
 };
 // UPDATED: Get issued credentials filtered by institution (sender_id is the institution)

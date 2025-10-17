@@ -408,7 +408,7 @@ router.get('/recent-custom-type', (req, res) => {
 
 // POST /api/institution/upload-credential - Upload credential to IPFS and database
 router.post('/upload-credential', upload.single('credentialFile'), async (req, res) => {
-  const { credential_type_id, owner_id, sender_id, custom_type } = req.body;
+  const { credential_type_id, owner_id, sender_id, custom_type, program_id } = req.body;
   
   // Either credential_type_id OR custom_type must be provided
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !req.file) {
@@ -434,7 +434,8 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
       owner_id: parseInt(owner_id),
       sender_id: parseInt(sender_id),
       ipfs_cid: pinataResult.ipfsHash,
-      status: 'uploaded'
+      status: 'uploaded',
+      program_id: program_id ? parseInt(program_id) : null
     };
     
     academicQueries.createCredential(credentialData, (err, results) => {
@@ -459,7 +460,7 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
 
 // POST /api/institution/upload-credential-after-blockchain - Upload credential ONLY after blockchain confirmation
 router.post('/upload-credential-after-blockchain', upload.single('credentialFile'), async (req, res) => {
-  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash } = req.body;
+  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash, program_id } = req.body;
   
   // Either credential_type_id OR custom_type must be provided, plus blockchain_id (credential ID) is required
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !blockchain_id || !req.file) {
@@ -490,7 +491,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       sender_id: parseInt(sender_id),
       ipfs_cid: pinataResult.ipfsHash,
       blockchain_id: blockchain_id, // This is now the credential ID from smart contract
-      status: 'blockchain_verified'
+      status: 'blockchain_verified',
+      program_id: program_id ? parseInt(program_id) : null
     };
     
     academicQueries.createCredential(credentialData, (err, results) => {
