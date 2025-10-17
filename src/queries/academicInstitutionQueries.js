@@ -482,6 +482,148 @@ const updateInstitutionProfile = (institutionId, profileData, callback) => {
 };
 
 
+// ============ STAFF MANAGEMENT ============
+
+// Get all staff members for an institution
+const getInstitutionStaff = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      s.id,
+      s.first_name,
+      s.middle_name,
+      s.last_name,
+      a.username,
+      a.email,
+      a.account_type
+    FROM institution_staff s
+    JOIN account a ON s.id = a.id
+    WHERE s.institution_id = ? AND a.account_type = 'institution_staff'
+    ORDER BY s.last_name, s.first_name
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Add a new staff member
+const addInstitutionStaff = (staffData, callback) => {
+  const { first_name, middle_name, last_name, username, email, password, institution_id } = staffData;
+  
+  connection.getConnection((err, conn) => {
+    if (err) {
+      return callback(err);
+    }
+
+    conn.beginTransaction((err) => {
+      if (err) {
+        conn.release();
+        return callback(err);
+      }
+      
+      // First, create the account
+      const accountQuery = `
+        INSERT INTO account (account_type, username, password, email)
+        VALUES ('institution_staff', ?, ?, ?)
+      `;
+      
+      conn.query(accountQuery, [username, password, email], (err, accountResult) => {
+        if (err) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
+          });
+        }
+        
+        const accountId = accountResult.insertId;
+        
+        // Then, create the staff record
+        const staffQuery = `
+          INSERT INTO institution_staff (id, first_name, middle_name, last_name, institution_id)
+          VALUES (?, ?, ?, ?, ?)
+        `;
+        
+        conn.query(staffQuery, [accountId, first_name, middle_name, last_name, institution_id], (err, staffResult) => {
+          if (err) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+          
+          conn.commit((err) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+            
+            conn.release();
+            callback(null, { 
+              accountId: accountId,
+              staffId: accountId,
+              message: 'Staff member created successfully'
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
+// Delete a staff member
+const deleteInstitutionStaff = (staffId, callback) => {
+  connection.getConnection((err, conn) => {
+    if (err) {
+      return callback(err);
+    }
+
+    conn.beginTransaction((err) => {
+      if (err) {
+        conn.release();
+        return callback(err);
+      }
+      
+      // First, delete from institution_staff table
+      const deleteStaffQuery = 'DELETE FROM institution_staff WHERE id = ?';
+      
+      conn.query(deleteStaffQuery, [staffId], (err, staffResult) => {
+        if (err) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
+          });
+        }
+        
+        // Then, delete from account table
+        const deleteAccountQuery = 'DELETE FROM account WHERE id = ? AND account_type = \'institution_staff\'';
+        
+        conn.query(deleteAccountQuery, [staffId], (err, accountResult) => {
+          if (err) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+          
+          conn.commit((err) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+            
+            conn.release();
+            callback(null, {
+              affectedRows: staffResult.affectedRows,
+              message: 'Staff member deleted successfully'
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
@@ -499,5 +641,8 @@ module.exports = {
   getBulkImportStats,
   getDashboardStats,
   getInstitutionProfile,
-  updateInstitutionProfile
+  updateInstitutionProfile,
+  getInstitutionStaff,
+  addInstitutionStaff,
+  deleteInstitutionStaff
 };

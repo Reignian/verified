@@ -635,6 +635,80 @@ router.put('/:institutionId/profile', (req, res) => {
   });
 });
 
+// ============ STAFF MANAGEMENT ============
+
+// GET /api/institution/:institutionId/staff - Get all staff members for an institution
+router.get('/:institutionId/staff', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getInstitutionStaff(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching institution staff:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json(results);
+  });
+});
+
+// POST /api/institution/:institutionId/staff - Add a new staff member
+router.post('/:institutionId/staff', (req, res) => {
+  const { institutionId } = req.params;
+  const { first_name, middle_name, last_name, username, email, password } = req.body;
+  
+  if (!first_name || !last_name || !username || !email || !password) {
+    return res.status(400).json({ error: 'First name, last name, username, email, and password are required' });
+  }
+  
+  const staffData = {
+    first_name,
+    middle_name: middle_name || '',
+    last_name,
+    username,
+    email,
+    password,
+    institution_id: institutionId
+  };
+  
+  academicQueries.addInstitutionStaff(staffData, (err, result) => {
+    if (err) {
+      console.error('Error adding institution staff:', err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'Username or email already exists' });
+      }
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Staff member added successfully',
+      staff_id: result.staffId
+    });
+  });
+});
+
+// DELETE /api/institution/staff/:staffId - Delete a staff member
+router.delete('/staff/:staffId', (req, res) => {
+  const { staffId } = req.params;
+  
+  academicQueries.deleteInstitutionStaff(staffId, (err, results) => {
+    if (err) {
+      console.error('Error deleting institution staff:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Staff member not found' });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Staff member deleted successfully'
+    });
+  });
+});
+
+
 // ============ BLOCKCHAIN CONTRACT INFO ============
 
 // GET /api/institution/contract-address - Get deployed contract address

@@ -257,3 +257,38 @@ export const updateInstitutionProfile = async (institutionId, profileData) => {
     throw error;
   }
 };
+
+// ============ STAFF MANAGEMENT ============
+
+// Get all staff members for an institution
+export const fetchInstitutionStaff = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/${institutionId}/staff`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching institution staff:', error);
+    throw error;
+  }
+};
+
+// Add a new staff member
+export const addInstitutionStaff = async (institutionId, staffData) => {
+  try {
+    const response = await axios.post(`${API_URL}/institution/${institutionId}/staff`, staffData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding institution staff:', error);
+    throw error;
+  }
+};
+
+// Delete a staff member
+export const deleteInstitutionStaff = async (staffId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/institution/staff/${staffId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting institution staff:', error);
+    throw error;
+  }
+};

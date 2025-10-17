@@ -1,5 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { updateInstitutionProfile } from '../../services/institutionApiService';
+import { 
+  updateInstitutionProfile, 
+  fetchInstitutionStaff, 
+  addInstitutionStaff, 
+  deleteInstitutionStaff 
+} from '../../services/institutionApiService';
 import './InstitutionSettings.css';
 
 function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
@@ -17,6 +22,21 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
   const [success, setSuccess] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
 
+  // Staff management states
+  const [staffList, setStaffList] = useState([]);
+  const [showAddStaffForm, setShowAddStaffForm] = useState(false);
+  const [staffFormData, setStaffFormData] = useState({
+    first_name: '',
+    middle_name: '',
+    last_name: '',
+    username: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+  const [staffValidationErrors, setStaffValidationErrors] = useState({});
+  const [staffLoading, setStaffLoading] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -28,6 +48,22 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
       });
     }
   }, [profile]);
+
+  // Load staff list on component mount
+  useEffect(() => {
+    if (institutionId) {
+      loadStaffList();
+    }
+  }, [institutionId]);
+
+  const loadStaffList = async () => {
+    try {
+      const staff = await fetchInstitutionStaff(institutionId);
+      setStaffList(staff);
+    } catch (err) {
+      console.error('Error loading staff:', err);
+    }
+  };
 
   // Handle ESC key to close modals
   useEffect(() => {
@@ -149,6 +185,125 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
       setError(err.response?.data?.error || 'Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Staff form validation
+  const validateStaffForm = () => {
+    const errors = {};
+
+    if (!staffFormData.first_name.trim()) {
+      errors.first_name = 'First name is required';
+    }
+
+    if (!staffFormData.last_name.trim()) {
+      errors.last_name = 'Last name is required';
+    }
+
+    if (!staffFormData.username.trim()) {
+      errors.username = 'Username is required';
+    } else if (staffFormData.username.length < 3) {
+      errors.username = 'Username must be at least 3 characters';
+    }
+
+    if (!staffFormData.email.trim()) {
+      errors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(staffFormData.email)) {
+      errors.email = 'Invalid email format';
+    }
+
+    if (!staffFormData.password) {
+      errors.password = 'Password is required';
+    } else if (staffFormData.password.length < 6) {
+      errors.password = 'Password must be at least 6 characters';
+    }
+
+    if (staffFormData.password !== staffFormData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    setStaffValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleStaffChange = (e) => {
+    const { name, value } = e.target;
+    setStaffFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear validation error for this field
+    if (staffValidationErrors[name]) {
+      setStaffValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleAddStaff = async (e) => {
+    e.preventDefault();
+    
+    if (!validateStaffForm()) {
+      setError('Please fix the validation errors in the staff form');
+      return;
+    }
+
+    setStaffLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const newStaff = {
+        first_name: staffFormData.first_name,
+        middle_name: staffFormData.middle_name,
+        last_name: staffFormData.last_name,
+        username: staffFormData.username,
+        email: staffFormData.email,
+        password: staffFormData.password
+      };
+
+      await addInstitutionStaff(institutionId, newStaff);
+      
+      setSuccess('Staff member added successfully!');
+      
+      // Reset form and reload staff list
+      setStaffFormData({
+        first_name: '',
+        middle_name: '',
+        last_name: '',
+        username: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+      });
+      setShowAddStaffForm(false);
+      await loadStaffList();
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error adding staff:', err);
+      setError(err.response?.data?.error || 'Failed to add staff member. Please try again.');
+    } finally {
+      setStaffLoading(false);
+    }
+  };
+
+  const handleDeleteStaff = async (staffId, staffName) => {
+    if (!window.confirm(`Are you sure you want to delete ${staffName}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteInstitutionStaff(staffId);
+      setSuccess('Staff member deleted successfully!');
+      await loadStaffList();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting staff:', err);
+      setError(err.response?.data?.error || 'Failed to delete staff member. Please try again.');
     }
   };
 
@@ -369,6 +524,236 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
             </button>
           </div>
         </form>
+
+        {/* Staff Management Section */}
+        <div className="settings-section staff-section">
+          <h3 className="section-title">
+            <i className="fas fa-users me-2"></i>
+            Staff Management
+          </h3>
+          
+          <button
+            type="button"
+            className="btn btn-secondary btn-add-staff"
+            onClick={() => setShowAddStaffForm(!showAddStaffForm)}
+          >
+            <i className={`fas ${showAddStaffForm ? 'fa-times' : 'fa-plus'} me-2`}></i>
+            {showAddStaffForm ? 'Cancel' : 'Add Staff Member'}
+          </button>
+
+          {/* Add Staff Form */}
+          {showAddStaffForm && (
+            <form onSubmit={handleAddStaff} className="add-staff-form">
+              <div className="row">
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="staff_first_name" className="form-label">
+                      First Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${staffValidationErrors.first_name ? 'is-invalid' : ''}`}
+                      id="staff_first_name"
+                      name="first_name"
+                      value={staffFormData.first_name}
+                      onChange={handleStaffChange}
+                      placeholder="Enter first name"
+                    />
+                    {staffValidationErrors.first_name && (
+                      <div className="invalid-feedback">{staffValidationErrors.first_name}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="staff_middle_name" className="form-label">
+                      Middle Name
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="staff_middle_name"
+                      name="middle_name"
+                      value={staffFormData.middle_name}
+                      onChange={handleStaffChange}
+                      placeholder="Enter middle name (optional)"
+                    />
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="staff_last_name" className="form-label">
+                      Last Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${staffValidationErrors.last_name ? 'is-invalid' : ''}`}
+                      id="staff_last_name"
+                      name="last_name"
+                      value={staffFormData.last_name}
+                      onChange={handleStaffChange}
+                      placeholder="Enter last name"
+                    />
+                    {staffValidationErrors.last_name && (
+                      <div className="invalid-feedback">{staffValidationErrors.last_name}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="row">
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="staff_username" className="form-label">
+                      Username <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${staffValidationErrors.username ? 'is-invalid' : ''}`}
+                      id="staff_username"
+                      name="username"
+                      value={staffFormData.username}
+                      onChange={handleStaffChange}
+                      placeholder="Enter username"
+                    />
+                    {staffValidationErrors.username && (
+                      <div className="invalid-feedback">{staffValidationErrors.username}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="staff_email" className="form-label">
+                      Email <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      className={`form-control ${staffValidationErrors.email ? 'is-invalid' : ''}`}
+                      id="staff_email"
+                      name="email"
+                      value={staffFormData.email}
+                      onChange={handleStaffChange}
+                      placeholder="Enter email"
+                    />
+                    {staffValidationErrors.email && (
+                      <div className="invalid-feedback">{staffValidationErrors.email}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="row">
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label htmlFor="staff_password" className="form-label">
+                      Password <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      className={`form-control ${staffValidationErrors.password ? 'is-invalid' : ''}`}
+                      id="staff_password"
+                      name="password"
+                      value={staffFormData.password}
+                      onChange={handleStaffChange}
+                      placeholder="Enter password"
+                    />
+                    {staffValidationErrors.password && (
+                      <div className="invalid-feedback">{staffValidationErrors.password}</div>
+                    )}
+                    <small className="form-text text-muted">
+                      Password must be at least 6 characters
+                    </small>
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="form-group">
+                    <label htmlFor="staff_confirmPassword" className="form-label">
+                      Confirm Password <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      className={`form-control ${staffValidationErrors.confirmPassword ? 'is-invalid' : ''}`}
+                      id="staff_confirmPassword"
+                      name="confirmPassword"
+                      value={staffFormData.confirmPassword}
+                      onChange={handleStaffChange}
+                      placeholder="Confirm password"
+                    />
+                    {staffValidationErrors.confirmPassword && (
+                      <div className="invalid-feedback">{staffValidationErrors.confirmPassword}</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              
+              <div className="staff-form-actions">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={staffLoading}
+                >
+                  {staffLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-user-plus me-2"></i>
+                      Add Staff Member
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Staff List */}
+          <div className="staff-list">
+            {staffList.length === 0 ? (
+              <div className="no-staff-message">
+                <i className="fas fa-users-slash"></i>
+                <p>No staff members added yet</p>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="staff-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Username</th>
+                      <th>Email</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {staffList.map((staff) => (
+                      <tr key={staff.id}>
+                        <td>
+                          {staff.first_name} {staff.middle_name} {staff.last_name}
+                        </td>
+                        <td>{staff.username}</td>
+                        <td>{staff.email}</td>
+                        <td>
+                          <button
+                            className="btn-delete-staff"
+                            onClick={() => handleDeleteStaff(
+                              staff.id,
+                              `${staff.first_name} ${staff.last_name}`
+                            )}
+                            title="Delete staff member"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

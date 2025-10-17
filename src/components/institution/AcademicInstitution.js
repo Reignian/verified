@@ -326,17 +326,6 @@ function AcademicInstitution() {
                   </div>
                 </div>
               </div>
-              <div className="col-md-4">
-                <div className="stat-card">
-                  <div className="stat-icon">
-                    <i className="fas fa-check-circle"></i>
-                  </div>
-                  <div className="stat-content">
-                    <h3>{dashboardStats.daily_verifications}</h3>
-                    <p>Daily Verifications</p>
-                  </div>
-                </div>
-              </div>
             </div>
           </div>
         )}
