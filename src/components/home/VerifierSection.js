@@ -314,9 +314,6 @@ function VerifierSection() {
                   >
                     {isLoading ? 'Verifying...' : 'Verify'}
                   </button>
-                  <button className="btn btn-outline-primary ms-2">
-                    <i className="fas fa-qrcode"></i>
-                  </button>
                 </div>
                 
                 {showVerificationResult && verificationType === 'single' && credentialData && (

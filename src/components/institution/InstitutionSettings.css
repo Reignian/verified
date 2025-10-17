@@ -1,9 +1,104 @@
-/* Institution Settings Styles - Scoped to prevent conflicts */
+/* Institution Settings Styles */
+:root {
+  --primary-color: #4050b5;
+  --primary-light: #f0f2ff;
+  --text-dark: #1f2937;
+  --text-muted: #6b7280;
+  --border-color: #e5e7eb;
+  --success-color: #4caf50;
+  --danger-color: #ef4444;
+}
 
 .institution-settings-container {
-  max-width: 1000px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 20px;
+  padding: 0;
+  min-height: calc(100vh - 80px);
+  overflow-y: auto;
+}
+
+/* Settings Tabs */
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  padding: 0 24px;
+  margin: 0;
+}
+
+.settings-tab {
+  background: transparent;
+  border: none;
+  padding: 16px 24px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border-bottom: 3px solid transparent;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.settings-tab:hover {
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+.settings-tab.active {
+  color: var(--primary-color);
+  border-bottom-color: var(--primary-color);
+  font-weight: 600;
+}
+
+.settings-tab i {
+  font-size: 15px;
+}
+
+/* Settings Content */
+.settings-content {
+  padding: 32px 24px;
+  background: #fafbfc;
+  min-height: calc(100vh - 200px);
+}
+
+/* Section Headers */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Empty State */
+.settings-section .empty-state {
+  text-align: center;
+  padding: 40px;
+  color: #9ca3af;
+}
+
+.settings-section .empty-state i {
+  font-size: 48px;
+  margin-bottom: 12px;
+  opacity: 0.5;
+}
+
+.settings-section .empty-state p {
+  margin: 0;
+  font-size: 14px;
 }
 
 /* Modal Overlay and Pop-up Styles */
@@ -718,6 +813,331 @@
   }
 
   .institution-settings-container .program-form-actions .btn-primary {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Modern Form Styling */
+.settings-form {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin-bottom: 8px;
+}
+
+.required {
+  color: var(--danger-color);
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  font-size: 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  background: white;
+  font-family: inherit;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(64, 80, 181, 0.1);
+}
+
+.form-control.is-invalid {
+  border-color: var(--danger-color);
+}
+
+.invalid-feedback {
+  display: block;
+  font-size: 13px;
+  color: var(--danger-color);
+  margin-top: 4px;
+}
+
+/* Password Section */
+.password-section {
+  margin-top: 24px;
+  padding-top: 24px;
+  border-top: 1px solid var(--border-color);
+}
+
+.btn-toggle-password {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  padding: 10px 16px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-bottom: 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-toggle-password:hover {
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  background: var(--primary-light);
+}
+
+/* Form Actions */
+.form-actions {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.btn-save-profile,
+.btn-save-staff,
+.btn-save-program {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 12px 28px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-save-profile:hover,
+.btn-save-staff:hover,
+.btn-save-program:hover {
+  background: #3644a0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 80, 181, 0.3);
+}
+
+.btn-save-profile:disabled,
+.btn-save-staff:disabled,
+.btn-save-program:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Add Buttons */
+.btn-add-staff,
+.btn-add-program {
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-add-staff:hover,
+.btn-add-program:hover {
+  background: #3644a0;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(64, 80, 181, 0.2);
+}
+
+/* Add Forms */
+.add-staff-form,
+.add-program-form {
+  background: var(--primary-light);
+  padding: 24px;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  border: 1px solid #d9deff;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+/* Tables */
+.staff-list-table,
+.program-list-table {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.staff-list-table .table,
+.program-list-table .table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.staff-list-table thead,
+.program-list-table thead {
+  background: #f9fafb;
+}
+
+.staff-list-table th,
+.program-list-table th {
+  text-align: left;
+  padding: 14px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.staff-list-table td,
+.program-list-table td {
+  padding: 16px;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 14px;
+  color: var(--text-dark);
+}
+
+.staff-list-table tbody tr:last-child td,
+.program-list-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.staff-list-table tbody tr:hover,
+.program-list-table tbody tr:hover {
+  background: #fafbfc;
+}
+
+/* Delete Buttons */
+.btn-delete-staff,
+.btn-delete-program {
+  background: transparent;
+  border: 1px solid #fee2e2;
+  color: var(--danger-color);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 14px;
+}
+
+.btn-delete-staff:hover,
+.btn-delete-program:hover {
+  background: #fef2f2;
+  border-color: var(--danger-color);
+  transform: translateY(-1px);
+}
+
+/* Program Code Badge */
+.program-code-badge {
+  display: inline-block;
+  background: var(--primary-light);
+  color: var(--primary-color);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+.text-muted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+/* Alert Messages */
+.alert {
+  padding: 14px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  animation: slideDown 0.3s ease;
+}
+
+.alert-success {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  color: #15803d;
+}
+
+.alert-danger {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #dc2626;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .settings-tabs {
+    padding: 0 12px;
+    overflow-x: auto;
+  }
+  
+  .settings-tab {
+    padding: 14px 16px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  
+  .settings-content {
+    padding: 20px 16px;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .btn-add-staff,
+  .btn-add-program {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .institution-settings-container .btn-save-program {
     width: 100%;
     justify-content: center;
   }

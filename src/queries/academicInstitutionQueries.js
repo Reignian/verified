@@ -402,22 +402,40 @@ const getInstitutionProfile = (institutionId, callback) => {
   connection.query(query, [institutionId], callback);
 };
 
+// Verify institution password
+const verifyInstitutionPassword = (institutionId, password, callback) => {
+  const query = `
+    SELECT password 
+    FROM account 
+    WHERE id = ? AND account_type = 'institution'
+  `;
+  
+  connection.query(query, [institutionId], (err, results) => {
+    if (err) {
+      return callback(err);
+    }
+    
+    if (results.length === 0) {
+      return callback(null, false);
+    }
+    
+    const isValid = results[0].password === password;
+    callback(null, isValid);
+  });
+};
+
 // Update institution profile
 const updateInstitutionProfile = (institutionId, profileData, callback) => {
   const { institution_name, username, email, password } = profileData;
   
-  console.log('updateInstitutionProfile called with:', { institutionId, profileData });
-  
   // Get a connection from the pool for the transaction
   connection.getConnection((err, conn) => {
     if (err) {
-      console.error('Error getting connection:', err);
       return callback(err);
     }
 
     conn.beginTransaction((err) => {
       if (err) {
-        console.error('Transaction begin error:', err);
         conn.release();
         return callback(err);
       }
@@ -429,18 +447,13 @@ const updateInstitutionProfile = (institutionId, profileData, callback) => {
         WHERE id = ?
       `;
       
-      console.log('Executing institution update:', { institution_name, institutionId });
-      
       conn.query(institutionQuery, [institution_name, institutionId], (err, result) => {
         if (err) {
-          console.error('Institution update error:', err);
           return conn.rollback(() => {
             conn.release();
             callback(err);
           });
         }
-
-        console.log('Institution update result:', result);
 
         // Update account table
         let accountQuery, accountValues;
@@ -460,29 +473,22 @@ const updateInstitutionProfile = (institutionId, profileData, callback) => {
           accountValues = [username, email, institutionId];
         }
 
-        console.log('Executing account update:', { username, email, hasPassword: !!password });
-
         conn.query(accountQuery, accountValues, (err, result) => {
           if (err) {
-            console.error('Account update error:', err);
             return conn.rollback(() => {
               conn.release();
               callback(err);
             });
           }
 
-          console.log('Account update result:', result);
-
           conn.commit((err) => {
             if (err) {
-              console.error('Transaction commit error:', err);
               return conn.rollback(() => {
                 conn.release();
                 callback(err);
               });
             }
 
-            console.log('Profile update successful');
             conn.release();
             callback(null, { message: 'Profile updated successfully' });
           });
@@ -726,6 +732,7 @@ module.exports = {
   getBulkImportStats,
   getDashboardStats,
   getInstitutionProfile,
+  verifyInstitutionPassword,
   updateInstitutionProfile,
   getInstitutionStaff,
   addInstitutionStaff,

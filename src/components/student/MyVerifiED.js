@@ -166,7 +166,7 @@ function MyVerifiED() {
       </div>
 
       {/* Main Content */}
-      <div className="main-content">
+      <div id="MyVerifiED" className="main-content">
         {/* Stats Section - Navigation */}
         <div className="stats-grid">
           <div 

@@ -611,30 +611,62 @@ router.get('/:institutionId/profile', (req, res) => {
 // PUT /api/institution/:institutionId/profile - Update institution profile
 router.put('/:institutionId/profile', (req, res) => {
   const { institutionId } = req.params;
-  const { institution_name, username, email, password } = req.body;
+  const { institution_name, username, email, password, currentPassword } = req.body;
   
   if (!institution_name || !username || !email) {
     return res.status(400).json({ error: 'Institution name, username, and email are required' });
   }
   
-  const profileData = { institution_name, username, email };
+  // If password change is requested, validate current password first
   if (password && password.trim() !== '') {
-    profileData.password = password;
-  }
-  
-  academicQueries.updateInstitutionProfile(institutionId, profileData, (err, results) => {
-    if (err) {
-      console.error('Error updating institution profile:', err);
-      return res.status(500).json({ error: 'Database error', details: err.message });
+    if (!currentPassword) {
+      return res.status(400).json({ error: 'Current password is required to change password' });
     }
     
-    res.json({ 
-      message: 'Institution profile updated successfully',
-      institution_name,
-      username,
-      email
+    // Verify current password
+    academicQueries.verifyInstitutionPassword(institutionId, currentPassword, (err, isValid) => {
+      if (err) {
+        console.error('Error verifying password:', err);
+        return res.status(500).json({ error: 'Database error', details: err.message });
+      }
+      
+      if (!isValid) {
+        return res.status(401).json({ error: 'Current password is incorrect' });
+      }
+      
+      // Password verified, proceed with update
+      const profileData = { institution_name, username, email, password };
+      academicQueries.updateInstitutionProfile(institutionId, profileData, (err, results) => {
+        if (err) {
+          console.error('Error updating institution profile:', err);
+          return res.status(500).json({ error: 'Database error', details: err.message });
+        }
+        
+        res.json({ 
+          message: 'Institution profile updated successfully',
+          institution_name,
+          username,
+          email
+        });
+      });
     });
-  });
+  } else {
+    // No password change, update without password
+    const profileData = { institution_name, username, email };
+    academicQueries.updateInstitutionProfile(institutionId, profileData, (err, results) => {
+      if (err) {
+        console.error('Error updating institution profile:', err);
+        return res.status(500).json({ error: 'Database error', details: err.message });
+      }
+      
+      res.json({ 
+        message: 'Institution profile updated successfully',
+        institution_name,
+        username,
+        email
+      });
+    });
+  }
 });
 
 // ============ STAFF MANAGEMENT ============

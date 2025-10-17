@@ -95,7 +95,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
   return (
     <div className="student-management">
       {/* Actions */}
-      <div className="mb-3" style={{ display: 'flex', gap: '1rem' }}>
+      <div className="d-flex">
         <button
           className="btn btn-primary-custom"
           onClick={() => setShowAddStudentModal(true)}

@@ -308,7 +308,7 @@
 .section-tabs {
   display: flex;
   border-bottom: 1px solid var(--border);
-  margin: 8px 0 16px;
+  margin: 8px 16px;
   gap: 16px;
 }
 .section-tabs .tab {
@@ -483,7 +483,6 @@
   width: 100% !important;
   max-width: 100% !important;
   margin: 0 auto !important;
-  padding: 0 16px !important;
 }
 
 .ai-page .main-content > * {
@@ -493,24 +492,6 @@
 .ai-page .table-responsive {
   width: 100% !important;
   max-width: 100% !important;
-}
-
-@media (max-width: 768px) {
-  .ai-page .main-content {
-    padding: 0 10px !important;
-  }
-}
-
-@media (max-width: 576px) {
-  .ai-page .main-content {
-    padding: 0 8px !important;
-  }
-}
-
-@media (max-width: 375px) {
-  .ai-page .main-content {
-    padding: 0 6px !important;
-  }
 }
 
 /* Force white background for the Academic Institution page */
@@ -941,10 +922,6 @@
     padding: 20px;
     margin: 0 10px 20px;
   }
-  
-  .main-content {
-    padding: 0 10px !important;
-  }
 
   .section-tabs {
     gap: 12px;
@@ -956,6 +933,7 @@
   .section-tabs .tab {
     font-size: 0.9rem;
     padding: 8px 4px;
+    margin: 0 10px;
   }
 
   .dashboard-stats-section {
@@ -1070,10 +1048,6 @@
 
   .wallet-status {
     font-size: 10px;
-  }
-
-  .main-content {
-    padding: 0 8px !important;
   }
 
   .section-tabs {
@@ -1234,10 +1208,6 @@
 
   .wallet-status i {
     font-size: 0.8rem;
-  }
-
-  .main-content {
-    padding: 0 6px !important;
   }
 
   .section-tabs {
