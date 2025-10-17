@@ -3,8 +3,8 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 03, 2025 at 10:22 PM
--- Server version: 10.4.32-MariaDB
+-- Generation Time: Oct 18, 2025 at 01:50 AM
+-- Server version: 8.0.43
 -- PHP Version: 8.2.12
 
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
@@ -28,27 +28,22 @@ SET time_zone = "+00:00";
 --
 
 CREATE TABLE `account` (
-  `id` int(11) NOT NULL,
-  `account_type` enum('student','institution','admin','') NOT NULL,
-  `username` varchar(100) DEFAULT NULL,
-  `password` varchar(100) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `institution_id` int(11) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `id` int NOT NULL,
+  `account_type` enum('student','institution','admin','institution_staff') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `username` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `account`
 --
 
-INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `institution_id`, `created_at`) VALUES
-(1, 'institution', 'wmsu', 'wmsu', 'wmsu@gmail.com', 1, '2025-09-06 17:20:14'),
-(2, 'student', '', 'reign', 'reign@wmsu.edu.ph', 1, '2025-09-06 17:20:56'),
-(3, 'student', '', 'gerby', 'gerby@adzu.edu.ph', 99, '2025-10-01 22:06:06'),
-(18, 'student', '', 'gerby', 'gerby@wmsu.edu.ph', 1, '2025-09-06 17:20:56'),
-(99, 'institution', 'adzu', 'adzu', 'adzu@gmail.com', 99, '2025-09-06 17:20:14'),
-(999, 'admin', 'admin', 'admin123', 'admin@verified.com', NULL, '2025-09-28 17:06:04'),
-(1009, 'student', NULL, 'reign', 'reign@adzu.edu.ph', 99, '2025-10-03 16:41:29');
+INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `created_at`) VALUES
+(1, 'institution', 'wmsu', '$2b$10$5QBpi7tFxS.ca.dvyQZDLuG.VbTFwTtOphtIi8R53ycXwhT3E3.4i', 'wmsu@gmail.com', '2025-09-06 17:20:14'),
+(999, 'admin', 'admin', '$2b$10$n5S1mPhT7v/vIACT4Fv1lOZBIVsbujU2tsrEUxHEje3qZA4cldJ0C', 'admin@verified.com', '2025-10-17 23:34:01'),
+(1025, 'student', 'reign', '$2b$10$yNrpxD4EpgQ8TJ2Cw/fuse0WsgDGdoQ4qaRULjW8LyBiaGX6UTtiC', 'reign@wmsu.edu.ph', '2025-10-17 23:48:58');
 
 -- --------------------------------------------------------
 
@@ -57,26 +52,51 @@ INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `i
 --
 
 CREATE TABLE `contact_messages` (
-  `id` int(11) NOT NULL,
-  `name` varchar(100) NOT NULL,
-  `email` varchar(100) NOT NULL,
-  `user_type` enum('institution','employer','student','other') NOT NULL,
-  `message` text NOT NULL,
-  `status` enum('unread','read','replied') DEFAULT 'unread',
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `id` int NOT NULL,
+  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `user_type` enum('institution','employer','student','other') COLLATE utf8mb4_general_ci NOT NULL,
+  `message` text COLLATE utf8mb4_general_ci NOT NULL,
+  `status` enum('unread','read','replied') COLLATE utf8mb4_general_ci DEFAULT 'unread',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `device_fingerprint` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ip_address` varchar(45) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `user_agent` text COLLATE utf8mb4_general_ci
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `contact_messages`
 --
 
-INSERT INTO `contact_messages` (`id`, `name`, `email`, `user_type`, `message`, `status`, `created_at`, `updated_at`) VALUES
-(1, 'John University', 'contact@johnuniv.edu', 'institution', 'We are interested in integrating VerifiED into our credential issuance system. Could you provide more information about the onboarding process?', 'replied', '2025-09-25 02:30:00', '2025-09-28 17:14:21'),
-(2, 'Sarah HR Manager', 'sarah.hr@techcorp.com', 'employer', 'Our company frequently verifies academic credentials. How can we access your verification API?', 'replied', '2025-09-24 06:15:00', '2025-09-28 17:14:21'),
-(3, 'Mike Student', 'mike.grad@email.com', 'student', 'I have an issue accessing my credentials. Can you help me troubleshoot?', 'replied', '2025-09-23 01:45:00', '2025-09-28 17:06:04'),
-(4, 'Global Education Inc', 'partnerships@globaledu.org', 'institution', 'We represent multiple educational institutions interested in blockchain credential verification. Please contact us to discuss partnership opportunities.', 'replied', '2025-09-22 08:20:00', '2025-09-28 17:14:22'),
-(5, 'Hallasgo Gerby P.', 'hallasgogerby@gmail.com', 'institution', 'haha', 'replied', '2025-09-28 17:14:40', '2025-09-28 17:15:41');
+INSERT INTO `contact_messages` (`id`, `name`, `email`, `user_type`, `message`, `status`, `created_at`, `updated_at`, `device_fingerprint`, `ip_address`, `user_agent`) VALUES
+(5, 'Hallasgo Gerby P.', 'hallasgogerby@gmail.com', 'institution', 'haha', 'replied', '2025-09-28 17:14:40', '2025-10-12 15:34:25', NULL, NULL, NULL),
+(6, 'ciao', 'eh202201076@wmsu.edu.ph', 'other', 'hi', 'replied', '2025-10-08 12:51:25', '2025-10-12 15:40:52', NULL, NULL, NULL),
+(7, 'Hallasgo Gerby P.', 'jcpowerzone@gmail.com', 'institution', 'halo', 'replied', '2025-10-12 15:24:50', '2025-10-12 15:33:58', '5i34gr', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `contact_submissions`
+--
+
+CREATE TABLE `contact_submissions` (
+  `id` int NOT NULL,
+  `device_fingerprint` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `ip_address` varchar(45) COLLATE utf8mb4_general_ci NOT NULL,
+  `email_hash` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+  `submission_count` int DEFAULT '1',
+  `last_submission` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `blocked_until` timestamp NULL DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `contact_submissions`
+--
+
+INSERT INTO `contact_submissions` (`id`, `device_fingerprint`, `ip_address`, `email_hash`, `submission_count`, `last_submission`, `created_at`, `blocked_until`) VALUES
+(1, '5i34gr', '::1', '8f318be0ba18a1d36cb81319226408b4cfeedb0cb8ba09cdeb0ae5b2c9c627ad', 1, '2025-10-12 15:24:50', '2025-10-12 15:24:50', NULL);
 
 -- --------------------------------------------------------
 
@@ -85,26 +105,18 @@ INSERT INTO `contact_messages` (`id`, `name`, `email`, `user_type`, `message`, `
 --
 
 CREATE TABLE `credential` (
-  `id` int(11) NOT NULL,
-  `credential_type_id` int(11) DEFAULT NULL,
-  `custom_type` varchar(100) DEFAULT NULL,
-  `owner_id` int(11) NOT NULL,
-  `sender_id` int(11) NOT NULL,
-  `ipfs_cid` varchar(255) NOT NULL,
-  `status` varchar(50) DEFAULT NULL,
-  `blockchain_id` varchar(255) DEFAULT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `updated_at` timestamp NOT NULL DEFAULT current_timestamp() ON UPDATE current_timestamp()
+  `id` int NOT NULL,
+  `credential_type_id` int DEFAULT NULL,
+  `custom_type` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `owner_id` int NOT NULL,
+  `sender_id` int NOT NULL,
+  `program_id` int DEFAULT NULL,
+  `ipfs_cid` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `blockchain_id` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `credential`
---
-
-INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `ipfs_cid`, `status`, `blockchain_id`, `created_at`, `updated_at`) VALUES
-(38, 1, NULL, 2, 1, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '20', '2025-10-02 01:40:31', '2025-10-02 01:44:56'),
-(39, 2, NULL, 2, 1, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '21', '2025-10-03 12:50:56', '2025-10-03 12:51:07'),
-(40, 1, NULL, 1009, 99, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '22', '2025-10-03 16:44:00', '2025-10-03 20:13:50');
 
 -- --------------------------------------------------------
 
@@ -113,23 +125,13 @@ INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`,
 --
 
 CREATE TABLE `credential_access` (
-  `id` int(11) NOT NULL,
-  `credential_id` int(11) NOT NULL,
-  `access_code` varchar(50) NOT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `is_deleted` tinyint(1) NOT NULL DEFAULT 0
+  `id` int NOT NULL,
+  `credential_id` int NOT NULL,
+  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `credential_access`
---
-
-INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_active`, `created_at`, `is_deleted`) VALUES
-(6, 38, 'ERPEY6', 1, '2025-10-02 01:46:13', 0),
-(7, 39, 'GEOJN3', 1, '2025-10-03 16:14:02', 0),
-(8, 39, '5FG6BE', 1, '2025-10-03 16:20:47', 0),
-(9, 40, 'ULHO3F', 1, '2025-10-03 16:45:16', 0);
 
 -- --------------------------------------------------------
 
@@ -138,8 +140,8 @@ INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_activ
 --
 
 CREATE TABLE `credential_types` (
-  `id` int(11) NOT NULL,
-  `type_name` varchar(100) NOT NULL
+  `id` int NOT NULL,
+  `type_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -158,55 +160,14 @@ INSERT INTO `credential_types` (`id`, `type_name`) VALUES
 --
 
 CREATE TABLE `credential_verifications` (
-  `id` int(11) NOT NULL,
-  `credential_id` int(11) NOT NULL,
-  `access_code` varchar(50) NOT NULL,
-  `verifier_ip` varchar(45) DEFAULT NULL,
-  `verifier_user_agent` text DEFAULT NULL,
-  `verification_timestamp` timestamp NOT NULL DEFAULT current_timestamp(),
-  `status` enum('success','failed') DEFAULT 'success'
+  `id` int NOT NULL,
+  `credential_id` int NOT NULL,
+  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `verifier_ip` varchar(45) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `verifier_user_agent` text COLLATE utf8mb4_general_ci,
+  `verification_timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `status` enum('success','failed') COLLATE utf8mb4_general_ci DEFAULT 'success'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `credential_verifications`
---
-
-INSERT INTO `credential_verifications` (`id`, `credential_id`, `access_code`, `verifier_ip`, `verifier_user_agent`, `verification_timestamp`, `status`) VALUES
-(9, 38, 'ERPEY6', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-02 01:47:20', 'success'),
-(12, 38, 'ERPEY6', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:22:43', 'success'),
-(16, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:10', 'success'),
-(17, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:32', 'success'),
-(18, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:35', 'success'),
-(19, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:36', 'success'),
-(20, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:36', 'success'),
-(21, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:36', 'success'),
-(22, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:36', 'success'),
-(23, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:37', 'success'),
-(24, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:37', 'success'),
-(25, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:33:37', 'success'),
-(26, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:34:28', 'success'),
-(27, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:41:35', 'success'),
-(28, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:41:58', 'success'),
-(29, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:42:11', 'success'),
-(30, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:42:13', 'success'),
-(31, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:42:16', 'success'),
-(32, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:42:43', 'success'),
-(33, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:42:44', 'success'),
-(34, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:43:14', 'success'),
-(35, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:43:44', 'success'),
-(36, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:43:56', 'success'),
-(37, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:43:57', 'success'),
-(38, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:44:08', 'success'),
-(39, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:44:43', 'success'),
-(40, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:44:55', 'success'),
-(41, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:54:40', 'success'),
-(42, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:55:02', 'success'),
-(43, 38, 'ERPEY6', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:55:25', 'success'),
-(44, 39, '5FG6BE', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:55:32', 'success'),
-(45, 39, '5FG6BE', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 19:55:55', 'success'),
-(46, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 20:12:43', 'success'),
-(47, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 20:12:53', 'success'),
-(48, 40, 'ULHO3F', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36 Edg/140.0.0.0', '2025-10-03 20:13:01', 'success');
 
 -- --------------------------------------------------------
 
@@ -215,9 +176,9 @@ INSERT INTO `credential_verifications` (`id`, `credential_id`, `access_code`, `v
 --
 
 CREATE TABLE `institution` (
-  `id` int(11) NOT NULL,
-  `institution_name` varchar(255) NOT NULL,
-  `public_address` varchar(100) NOT NULL
+  `id` int NOT NULL,
+  `institution_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
+  `public_address` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -225,8 +186,74 @@ CREATE TABLE `institution` (
 --
 
 INSERT INTO `institution` (`id`, `institution_name`, `public_address`) VALUES
-(1, 'Western Mindanao State University', '0x852A8e5c3D309626810944b1a520Dd81B3B5A7fA'),
-(99, 'Ateneo de Zamboanga University', '0x1f95BB47F91ea2d05436e30dA1b3282eD199DcF6');
+(1, 'Western Mindanao State University', '0xbda9c415c28e06bffe626313c2aa429dce2c6016');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `institution_addresses`
+--
+
+CREATE TABLE `institution_addresses` (
+  `id` int NOT NULL,
+  `institution_id` int NOT NULL,
+  `public_address` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `address_label` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `is_primary` tinyint(1) DEFAULT '0',
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Triggers `institution_addresses`
+--
+DELIMITER $$
+CREATE TRIGGER `check_max_addresses_before_insert` BEFORE INSERT ON `institution_addresses` FOR EACH ROW BEGIN
+    DECLARE address_count INT;
+    
+    SELECT COUNT(*) INTO address_count 
+    FROM `institution_addresses` 
+    WHERE `institution_id` = NEW.`institution_id` AND `is_active` = 1;
+    
+    IF address_count >= 2 THEN
+        SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Institution cannot have more than 2 active addresses';
+    END IF;
+    
+    -- Ensure only one primary address per institution
+    IF NEW.`is_primary` = 1 THEN
+        UPDATE `institution_addresses` 
+        SET `is_primary` = 0 
+        WHERE `institution_id` = NEW.`institution_id` AND `id` != NEW.`id`;
+    END IF;
+END
+$$
+DELIMITER ;
+DELIMITER $$
+CREATE TRIGGER `check_max_addresses_before_update` BEFORE UPDATE ON `institution_addresses` FOR EACH ROW BEGIN
+    -- Ensure only one primary address per institution
+    IF NEW.`is_primary` = 1 AND OLD.`is_primary` != 1 THEN
+        UPDATE `institution_addresses` 
+        SET `is_primary` = 0 
+        WHERE `institution_id` = NEW.`institution_id` AND `id` != NEW.`id`;
+    END IF;
+END
+$$
+DELIMITER ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `institution_staff`
+--
+
+CREATE TABLE `institution_staff` (
+  `id` int NOT NULL,
+  `first_name` varchar(50) NOT NULL,
+  `middle_name` varchar(50) NOT NULL,
+  `last_name` varchar(50) NOT NULL,
+  `institution_id` int NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- --------------------------------------------------------
 
@@ -235,18 +262,10 @@ INSERT INTO `institution` (`id`, `institution_name`, `public_address`) VALUES
 --
 
 CREATE TABLE `linked_accounts` (
-  `group_id` int(11) NOT NULL,
-  `student_id` int(11) NOT NULL,
-  `date_linked` timestamp NOT NULL DEFAULT current_timestamp()
+  `group_id` int NOT NULL,
+  `student_id` int NOT NULL,
+  `date_linked` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `linked_accounts`
---
-
-INSERT INTO `linked_accounts` (`group_id`, `student_id`, `date_linked`) VALUES
-(1, 2, '2025-10-03 16:46:11'),
-(1, 1009, '2025-10-03 16:46:11');
 
 -- --------------------------------------------------------
 
@@ -255,23 +274,13 @@ INSERT INTO `linked_accounts` (`group_id`, `student_id`, `date_linked`) VALUES
 --
 
 CREATE TABLE `multi_access_code` (
-  `id` int(11) NOT NULL,
-  `access_code` varchar(50) NOT NULL,
-  `student_id` int(11) NOT NULL,
-  `is_active` tinyint(1) DEFAULT 1,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp(),
-  `is_deleted` tinyint(1) NOT NULL DEFAULT 0
+  `id` int NOT NULL,
+  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `student_id` int NOT NULL,
+  `is_active` tinyint(1) DEFAULT '1',
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `multi_access_code`
---
-
-INSERT INTO `multi_access_code` (`id`, `access_code`, `student_id`, `is_active`, `created_at`, `is_deleted`) VALUES
-(5, '06JQA1', 2, 1, '2025-10-03 16:05:47', 0),
-(6, 'Q8O33N', 2, 1, '2025-10-03 16:13:52', 1),
-(7, 'FWMQ2H', 1009, 1, '2025-10-03 16:51:07', 0),
-(8, '5PLI4U', 1009, 1, '2025-10-03 17:06:37', 0);
 
 -- --------------------------------------------------------
 
@@ -280,26 +289,33 @@ INSERT INTO `multi_access_code` (`id`, `access_code`, `student_id`, `is_active`,
 --
 
 CREATE TABLE `multi_access_code_credentials` (
-  `id` int(11) NOT NULL,
-  `multi_access_code_id` int(11) NOT NULL,
-  `credential_id` int(11) NOT NULL,
-  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+  `id` int NOT NULL,
+  `multi_access_code_id` int NOT NULL,
+  `credential_id` int NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Dumping data for table `multi_access_code_credentials`
+-- Table structure for table `program`
 --
 
-INSERT INTO `multi_access_code_credentials` (`id`, `multi_access_code_id`, `credential_id`, `created_at`) VALUES
-(9, 5, 39, '2025-10-03 16:05:47'),
-(10, 5, 38, '2025-10-03 16:05:47'),
-(11, 6, 39, '2025-10-03 16:13:52'),
-(12, 6, 38, '2025-10-03 16:13:52'),
-(13, 7, 40, '2025-10-03 16:51:07'),
-(14, 7, 38, '2025-10-03 16:51:07'),
-(15, 8, 40, '2025-10-03 17:06:37'),
-(16, 8, 39, '2025-10-03 17:06:37'),
-(17, 8, 38, '2025-10-03 17:06:37');
+CREATE TABLE `program` (
+  `id` int NOT NULL,
+  `institution_id` int NOT NULL,
+  `program_name` varchar(150) NOT NULL,
+  `program_code` varchar(25) DEFAULT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `program`
+--
+
+INSERT INTO `program` (`id`, `institution_id`, `program_name`, `program_code`, `created_at`) VALUES
+(2, 1, 'Bachelor of Science in Computer Science', 'BSCS', '2025-10-17 18:42:29'),
+(3, 1, 'Bachelor of Science in Information Technology', 'BSIT', '2025-10-17 18:42:51');
 
 -- --------------------------------------------------------
 
@@ -308,23 +324,45 @@ INSERT INTO `multi_access_code_credentials` (`id`, `multi_access_code_id`, `cred
 --
 
 CREATE TABLE `student` (
-  `id` int(11) NOT NULL,
-  `student_id` varchar(50) NOT NULL,
-  `first_name` varchar(50) NOT NULL,
-  `middle_name` varchar(50) DEFAULT NULL,
-  `last_name` varchar(50) NOT NULL,
-  `institution_id` int(11) DEFAULT NULL
+  `id` int NOT NULL,
+  `program_id` int DEFAULT NULL,
+  `student_id` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `first_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `middle_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `last_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `institution_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `student`
 --
 
-INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
-(2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1),
-(3, 'ADZU202201085', 'Gerby', 'P.', 'Hallasgo', 99),
-(18, '2022-01085', 'Gerby', 'P.', 'Hallasgo', 1),
-(1009, 'ADZU202201084', 'Reign Ian', 'Carreon', 'Magno', 99);
+INSERT INTO `student` (`id`, `program_id`, `student_id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
+(1025, 2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1);
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `system_settings`
+--
+
+CREATE TABLE `system_settings` (
+  `id` int NOT NULL,
+  `setting_key` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `setting_value` text COLLATE utf8mb4_general_ci NOT NULL,
+  `setting_description` text COLLATE utf8mb4_general_ci,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `system_settings`
+--
+
+INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_description`, `created_at`, `updated_at`) VALUES
+(1, 'reply_email', 'gerby.hallasgo@gmail.com', 'Default email address used for replying to contact messages', '2025-10-12 15:33:41', '2025-10-12 15:33:41'),
+(2, 'system_name', 'VerifiED Support Team', 'Name displayed in email replies and signatures', '2025-10-12 15:33:41', '2025-10-12 15:33:41'),
+(3, 'reply_signature', 'Best regards,\nVerifiED Support Team\n\nThis is an automated response from the VerifiED credential verification system.', 'Default signature for email replies', '2025-10-12 15:33:41', '2025-10-12 15:33:41');
 
 --
 -- Indexes for dumped tables
@@ -334,14 +372,24 @@ INSERT INTO `student` (`id`, `student_id`, `first_name`, `middle_name`, `last_na
 -- Indexes for table `account`
 --
 ALTER TABLE `account`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `account_institution_fk` (`institution_id`);
+  ADD PRIMARY KEY (`id`);
 
 --
 -- Indexes for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `device_fingerprint` (`device_fingerprint`);
+
+--
+-- Indexes for table `contact_submissions`
+--
+ALTER TABLE `contact_submissions`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `device_fingerprint` (`device_fingerprint`),
+  ADD KEY `ip_address` (`ip_address`),
+  ADD KEY `email_hash` (`email_hash`),
+  ADD KEY `last_submission` (`last_submission`);
 
 --
 -- Indexes for table `credential`
@@ -351,7 +399,8 @@ ALTER TABLE `credential`
   ADD UNIQUE KEY `blockchain_id` (`blockchain_id`),
   ADD KEY `credential_type_id` (`credential_type_id`),
   ADD KEY `owner_id` (`owner_id`),
-  ADD KEY `sender_id` (`sender_id`);
+  ADD KEY `sender_id` (`sender_id`),
+  ADD KEY `program_id` (`program_id`);
 
 --
 -- Indexes for table `credential_access`
@@ -382,6 +431,24 @@ ALTER TABLE `institution`
   ADD PRIMARY KEY (`id`);
 
 --
+-- Indexes for table `institution_addresses`
+--
+ALTER TABLE `institution_addresses`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_institution_address` (`institution_id`,`public_address`),
+  ADD KEY `idx_institution_id` (`institution_id`),
+  ADD KEY `idx_is_primary` (`is_primary`),
+  ADD KEY `idx_institution_addresses_active` (`institution_id`,`is_active`),
+  ADD KEY `idx_institution_addresses_primary` (`institution_id`,`is_primary`);
+
+--
+-- Indexes for table `institution_staff`
+--
+ALTER TABLE `institution_staff`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `institution_id` (`institution_id`);
+
+--
 -- Indexes for table `linked_accounts`
 --
 ALTER TABLE `linked_accounts`
@@ -405,11 +472,26 @@ ALTER TABLE `multi_access_code_credentials`
   ADD KEY `credential_id` (`credential_id`);
 
 --
+-- Indexes for table `program`
+--
+ALTER TABLE `program`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `institution_id` (`institution_id`);
+
+--
 -- Indexes for table `student`
 --
 ALTER TABLE `student`
   ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_institution_id` (`institution_id`);
+  ADD KEY `idx_institution_id` (`institution_id`),
+  ADD KEY `program_id` (`program_id`);
+
+--
+-- Indexes for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `setting_key` (`setting_key`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -419,61 +501,91 @@ ALTER TABLE `student`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1011;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1026;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `contact_submissions`
+--
+ALTER TABLE `contact_submissions`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
 
 --
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=41;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
 
 --
 -- AUTO_INCREMENT for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
 --
 ALTER TABLE `credential_types`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=21;
 
 --
 -- AUTO_INCREMENT for table `credential_verifications`
 --
 ALTER TABLE `credential_verifications`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=52;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
 
 --
 -- AUTO_INCREMENT for table `institution`
 --
 ALTER TABLE `institution`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=100;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1025;
+
+--
+-- AUTO_INCREMENT for table `institution_addresses`
+--
+ALTER TABLE `institution_addresses`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+
+--
+-- AUTO_INCREMENT for table `institution_staff`
+--
+ALTER TABLE `institution_staff`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1023;
 
 --
 -- AUTO_INCREMENT for table `multi_access_code`
 --
 ALTER TABLE `multi_access_code`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `multi_access_code_credentials`
 --
 ALTER TABLE `multi_access_code_credentials`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+
+--
+-- AUTO_INCREMENT for table `program`
+--
+ALTER TABLE `program`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1010;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1026;
+
+--
+-- AUTO_INCREMENT for table `system_settings`
+--
+ALTER TABLE `system_settings`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- Constraints for dumped tables
@@ -485,7 +597,8 @@ ALTER TABLE `student`
 ALTER TABLE `credential`
   ADD CONSTRAINT `credential_ibfk_1` FOREIGN KEY (`credential_type_id`) REFERENCES `credential_types` (`id`),
   ADD CONSTRAINT `credential_ibfk_2` FOREIGN KEY (`owner_id`) REFERENCES `account` (`id`),
-  ADD CONSTRAINT `credential_ibfk_3` FOREIGN KEY (`sender_id`) REFERENCES `account` (`id`);
+  ADD CONSTRAINT `credential_ibfk_3` FOREIGN KEY (`sender_id`) REFERENCES `account` (`id`),
+  ADD CONSTRAINT `credential_ibfk_4` FOREIGN KEY (`program_id`) REFERENCES `program` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `credential_access`
@@ -507,6 +620,18 @@ ALTER TABLE `institution`
   ADD CONSTRAINT `institution_ibfk_1` FOREIGN KEY (`id`) REFERENCES `account` (`id`);
 
 --
+-- Constraints for table `institution_addresses`
+--
+ALTER TABLE `institution_addresses`
+  ADD CONSTRAINT `fk_institution_addresses_institution` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `institution_staff`
+--
+ALTER TABLE `institution_staff`
+  ADD CONSTRAINT `institution_staff_ibfk_1` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
 -- Constraints for table `linked_accounts`
 --
 ALTER TABLE `linked_accounts`
@@ -524,6 +649,20 @@ ALTER TABLE `multi_access_code`
 ALTER TABLE `multi_access_code_credentials`
   ADD CONSTRAINT `multi_access_code_credentials_ibfk_1` FOREIGN KEY (`multi_access_code_id`) REFERENCES `multi_access_code` (`id`) ON DELETE CASCADE,
   ADD CONSTRAINT `multi_access_code_credentials_ibfk_2` FOREIGN KEY (`credential_id`) REFERENCES `credential` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `program`
+--
+ALTER TABLE `program`
+  ADD CONSTRAINT `program_ibfk_1` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
+
+--
+-- Constraints for table `student`
+--
+ALTER TABLE `student`
+  ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`program_id`) REFERENCES `program` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `student_ibfk_2` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  ADD CONSTRAINT `student_ibfk_3` FOREIGN KEY (`id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
