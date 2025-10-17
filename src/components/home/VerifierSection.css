@@ -106,6 +106,14 @@
   font-size: 0.9rem;
 }
 
+#credential-file .text-secondary {
+  transition: color 0.2s ease;
+}
+
+#credential-file .text-secondary:hover {
+  color: var(--primary-color) !important;
+}
+
 /* Error Modal Styles */
 .verifier-modal-overlay {
   position: fixed;

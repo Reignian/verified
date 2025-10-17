@@ -56,7 +56,10 @@ function MyVerifiED() {
         middle_name: studentData.middle_name,
         last_name: studentData.last_name,
         email: studentData.email,
-        institution_name: studentData.institution_name
+        institution_name: studentData.institution_name,
+        program_id: studentData.program_id,
+        program_name: studentData.program_name,
+        program_code: studentData.program_code
       });
       
       setCredentialCount(credentialData.total_credentials);
@@ -150,6 +153,12 @@ function MyVerifiED() {
               <div className="user-info">
                 <p className="m-0 fw-semibold">{user.first_name} {user.middle_name} {user.last_name}</p>
                 <div className="fs-6 opacity-75 mb-1">Student ID: {user.student_id}</div>
+                {user.program_name && (
+                  <div className="fs-6 opacity-75">
+                    <i className="fas fa-graduation-cap me-1"></i>
+                    {user.program_name}{user.program_code ? ` (${user.program_code})` : ''}
+                  </div>
+                )}
               </div>
             </div>
           </div>

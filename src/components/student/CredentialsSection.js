@@ -139,6 +139,30 @@ function CredentialsSection({
     window.open(ipfsUrl, '_blank');
   };
 
+  const handleDownloadCredential = async (ipfsHash, studentName, credentialType) => {
+    try {
+      const url = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsHash}`;
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Clean filename: remove special characters and spaces, replace with underscores
+      const cleanStudentName = studentName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const cleanCredentialType = credentialType.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      link.download = `${cleanStudentName}-${cleanCredentialType}.pdf`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -188,6 +212,13 @@ function CredentialsSection({
                         <i className="fas fa-award me-2"></i>
                         {credential.type}
                       </h3>
+                      {credential.program_name && (
+                        <p className="credential-info">
+                          <i className="fas fa-graduation-cap me-2"></i>
+                          <strong>Program:</strong>{' '}
+                          {credential.program_name}{credential.program_code ? ` (${credential.program_code})` : ''}
+                        </p>
+                      )}
                       <p className="credential-info">
                         <i className="fas fa-university me-2"></i>
                         <strong>Issued by:</strong> {credential.issuer}
@@ -212,17 +243,62 @@ function CredentialsSection({
                   </div>
                   
                   <div className="credential-actions d-flex gap-2 mt-3">
-                    <button
-                      onClick={() => handleViewCredential(credential.ipfs_hash)}
-                      className="btn-primary-custom"
+                    <div 
+                      className="btn-primary-custom" 
+                      style={{ 
+                        flex: '1',
+                        padding: '0',
+                        overflow: 'hidden',
+                        display: 'flex'
+                      }}
                     >
-                      <i className="fas fa-eye me-2"></i>
-                      View Document
-                    </button>
+                      <button
+                        onClick={() => handleViewCredential(credential.ipfs_hash)}
+                        style={{ 
+                          flex: '1',
+                          padding: '10px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'inherit',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="fas fa-eye me-2"></i>
+                        View
+                      </button>
+                      <div style={{ width: '1px', backgroundColor: 'rgba(255,255,255,0.3)' }}></div>
+                      <button
+                        onClick={() => handleDownloadCredential(
+                          credential.ipfs_hash,
+                          `${credential.owner_first_name || ''} ${credential.owner_last_name || ''}`.trim() || 'Student',
+                          credential.type
+                        )}
+                        style={{ 
+                          flex: '1',
+                          padding: '10px',
+                          border: 'none',
+                          background: 'transparent',
+                          color: 'inherit',
+                          cursor: 'pointer',
+                          fontWeight: '600',
+                          transition: 'background-color 0.2s'
+                        }}
+                        onMouseEnter={(e) => e.target.style.backgroundColor = 'rgba(0,0,0,0.1)'}
+                        onMouseLeave={(e) => e.target.style.backgroundColor = 'transparent'}
+                      >
+                        <i className="fas fa-download me-2"></i>
+                        Download
+                      </button>
+                    </div>
                     <button
                       onClick={() => handleGenerateAccessCode(credential.id)}
                       className="btn-secondary-custom"
                       disabled={generatingId === credential.id}
+                      style={{ flex: '1' }}
                     >
                       <i className="fas fa-key me-2"></i>
                       {generatingId === credential.id ? 'Generating...' : 'Generate Access Code'}

@@ -20,11 +20,15 @@ const getCredentialData = (accessCode, callback) => {
       s.student_id,
       inst.institution_name AS issuer_name,
       inst.public_address AS issuer_public_address,
-      ca.access_code
+      ca.access_code,
+      c.program_id,
+      p.program_name,
+      p.program_code
     FROM credential c
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     JOIN student s ON c.owner_id = s.id
     JOIN institution inst ON c.sender_id = inst.id
+    LEFT JOIN program p ON c.program_id = p.id
     JOIN credential_access ca ON ca.credential_id = c.id
     WHERE ca.access_code = ?
       AND ca.is_active = 1
@@ -56,13 +60,17 @@ const getMultiCredentialData = (accessCode, callback) => {
       s.student_id,
       inst.institution_name AS issuer_name,
       inst.public_address AS issuer_public_address,
-      mac.access_code
+      mac.access_code,
+      c.program_id,
+      p.program_name,
+      p.program_code
     FROM multi_access_code mac
     INNER JOIN multi_access_code_credentials macc ON macc.multi_access_code_id = mac.id
     INNER JOIN credential c ON c.id = macc.credential_id
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     JOIN student s ON c.owner_id = s.id
     JOIN institution inst ON c.sender_id = inst.id
+    LEFT JOIN program p ON c.program_id = p.id
     WHERE mac.access_code = ?
       AND mac.is_active = 1
       AND mac.is_deleted = 0

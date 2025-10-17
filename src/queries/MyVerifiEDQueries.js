@@ -9,10 +9,14 @@ const getStudentName = (studentId, callback) => {
       s.middle_name,
       s.last_name,
       a.email,
-      i.institution_name
+      i.institution_name,
+      s.program_id,
+      p.program_name,
+      p.program_code
     FROM student s
     INNER JOIN account a ON a.id = s.id
     LEFT JOIN institution i ON s.institution_id = i.id
+    LEFT JOIN program p ON s.program_id = p.id
     WHERE s.id = ?
   `;
   connection.query(query, [studentId], callback);
@@ -74,13 +78,17 @@ const getStudentCredentials = (studentId, callback) => {
       owner.student_id AS owner_student_id,
       owner.first_name AS owner_first_name,
       owner.last_name AS owner_last_name,
-      owner_acc.email AS owner_email
+      owner_acc.email AS owner_email,
+      c.program_id,
+      p.program_name,
+      p.program_code
     FROM credential c
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
     LEFT JOIN account sender_acc ON c.sender_id = sender_acc.id
     LEFT JOIN institution i ON sender_acc.id = i.id
     LEFT JOIN student owner ON owner.id = c.owner_id
     LEFT JOIN account owner_acc ON owner_acc.id = owner.id
+    LEFT JOIN program p ON c.program_id = p.id
     LEFT JOIN (
       SELECT credential_id, GROUP_CONCAT(access_code SEPARATOR ',') AS access_codes,
              MAX(created_at) AS access_code_date 

@@ -19,6 +19,31 @@ function VerifierSection() {
   const [errorMessage, setErrorMessage] = useState('');
   // All on-chain integrity checks will be computed and logged to console only.
 
+  // Function to download file from IPFS
+  const handleDownload = async (ipfsCid, studentName, credentialType) => {
+    try {
+      const url = `${PINATA_GATEWAY}/${ipfsCid}`;
+      const response = await fetch(url);
+      const blob = await response.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      
+      // Clean filename: remove special characters and spaces, replace with underscores
+      const cleanStudentName = studentName.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      const cleanCredentialType = credentialType.replace(/[^a-zA-Z0-9\s]/g, '').replace(/\s+/g, '_');
+      link.download = `${cleanStudentName}-${cleanCredentialType}.pdf`;
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+      console.error('Download failed:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
   // Prefill access code from URL (?code=XXXXXX) and optionally auto-verify
   useEffect(() => {
     try {
@@ -313,6 +338,12 @@ function VerifierSection() {
                         <span className="fw-bold">Credential Type:</span>
                         <span>{credentialData.credential_type}</span>
                       </div>
+                      {credentialData.program_name && (
+                        <div className="d-flex justify-content-between py-2 border-bottom">
+                          <span className="fw-bold">Program:</span>
+                          <span>{credentialData.program_name}{credentialData.program_code ? ` (${credentialData.program_code})` : ''}</span>
+                        </div>
+                      )}
                       <div className="d-flex justify-content-between py-2">
                         <span className="fw-bold">Issue Date:</span>
                         <span>{new Date(credentialData.date_issued).toLocaleDateString('en-US', {
@@ -322,17 +353,27 @@ function VerifierSection() {
                         })}</span>
                       </div>
                       {credentialData?.ipfs_cid && (
-                        <div className="d-flex justify-content-between py-2">
-                          <span className="fw-bold">Credential File:</span>
+                        <div id="credential-file" className="d-flex justify-content-between py-2">
+                          <span className="fw-bold"></span>
                           <span>
                             <a 
                               href={`${PINATA_GATEWAY}/${credentialData.ipfs_cid}`} 
                               target="_blank" 
                               rel="noopener noreferrer"
-                              className="me-2"
+                              className="text-secondary text-decoration-none me-3"
+                              style={{ cursor: 'pointer' }}
                             >
+                              <i className="fas fa-eye me-1"></i>
                               View
                             </a>
+                            <button 
+                              onClick={() => handleDownload(credentialData.ipfs_cid, credentialData.recipient_name, credentialData.credential_type)}
+                              className="text-secondary border-0 bg-transparent text-decoration-none"
+                              style={{ cursor: 'pointer' }}
+                            >
+                              <i className="fas fa-download me-1"></i>
+                              Download
+                            </button>
                           </span>
                         </div>
                       )}
@@ -368,6 +409,12 @@ function VerifierSection() {
                               <span className="fw-bold">Credential Type:</span>
                               <span>{credential.credential_type}</span>
                             </div>
+                            {credential.program_name && (
+                              <div className="d-flex justify-content-between py-1 border-bottom">
+                                <span className="fw-bold">Program:</span>
+                                <span>{credential.program_name}{credential.program_code ? ` (${credential.program_code})` : ''}</span>
+                              </div>
+                            )}
                             <div className="d-flex justify-content-between py-1">
                               <span className="fw-bold">Issue Date:</span>
                               <span>{new Date(credential.date_issued).toLocaleDateString('en-US', {
@@ -377,17 +424,27 @@ function VerifierSection() {
                               })}</span>
                             </div>
                             {credential?.ipfs_cid && (
-                              <div className="d-flex justify-content-between py-1">
-                                <span className="fw-bold">Credential File:</span>
+                              <div id="credential-file" className="d-flex justify-content-between py-1">
+                                <span className="fw-bold"></span>
                                 <span>
                                   <a 
                                     href={`${PINATA_GATEWAY}/${credential.ipfs_cid}`} 
                                     target="_blank" 
                                     rel="noopener noreferrer"
-                                    className="me-2"
+                                    className="text-secondary text-decoration-none me-3"
+                                    style={{ cursor: 'pointer' }}
                                   >
+                                    <i className="fas fa-eye me-1"></i>
                                     View
                                   </a>
+                                  <button 
+                                    onClick={() => handleDownload(credential.ipfs_cid, credential.recipient_name, credential.credential_type)}
+                                    className="text-secondary border-0 bg-transparent text-decoration-none"
+                                    style={{ cursor: 'pointer' }}
+                                  >
+                                    <i className="fas fa-download me-1"></i>
+                                    Download
+                                  </button>
                                 </span>
                               </div>
                             )}
