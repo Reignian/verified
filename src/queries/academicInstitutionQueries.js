@@ -689,6 +689,26 @@ const deleteInstitutionProgram = (programId, callback) => {
   });
 };
 
+// Delete a credential (set status to 'deleted')
+const deleteCredential = (credentialId, callback) => {
+  const query = `
+    UPDATE credential 
+    SET status = 'deleted'
+    WHERE id = ?
+  `;
+  
+  connection.query(query, [credentialId], (err, result) => {
+    if (err) {
+      return callback(err);
+    }
+    
+    callback(null, {
+      affectedRows: result.affectedRows,
+      message: 'Credential deleted successfully'
+    });
+  });
+};
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
@@ -712,5 +732,6 @@ module.exports = {
   deleteInstitutionStaff,
   getInstitutionPrograms,
   addInstitutionProgram,
-  deleteInstitutionProgram
+  deleteInstitutionProgram,
+  deleteCredential
 };

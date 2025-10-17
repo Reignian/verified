@@ -103,6 +103,7 @@ const getStudentCredentials = (studentId, callback) => {
       WHERE la1.student_id = ?
       UNION SELECT ?
     )
+    AND c.status != 'deleted'
     ORDER BY c.created_at DESC
   `;
   connection.query(query, [studentId, studentId], callback);

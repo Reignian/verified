@@ -12,7 +12,8 @@ import {
   fetchStudents,
   fetchDashboardStats,
   fetchInstitutionProfile,
-  updateInstitutionProfile
+  updateInstitutionProfile,
+  deleteCredential
 } from '../../services/institutionApiService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AcademicInstitution.css';
@@ -189,6 +190,18 @@ function AcademicInstitution() {
     window.open(ipfsUrl, '_blank');
   };
 
+  const handleDeleteCredential = async (credentialId) => {
+    try {
+      await deleteCredential(credentialId);
+      // Refresh issued credentials and stats after deletion
+      await refreshIssuedData();
+    } catch (error) {
+      console.error('Error deleting credential:', error);
+      setErrorMessage('Failed to delete credential. Please try again.');
+      setShowErrorPopup(true);
+    }
+  };
+
   const handleAddressUpdated = (newAddress) => {
     setDbPublicAddress(newAddress);
     setShowSettingsModal(false);
@@ -341,6 +354,7 @@ function AcademicInstitution() {
             <IssuedCredentialsTable
               credentials={issuedCredentials}
               onView={handleViewCredential}
+              onDelete={handleDeleteCredential}
             />
           </>
         )}

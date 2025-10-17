@@ -337,3 +337,16 @@ export const deleteInstitutionProgram = async (programId) => {
     throw error;
   }
 };
+
+// ============ CREDENTIAL MANAGEMENT ============
+
+// Delete a credential (set status to 'deleted')
+export const deleteCredential = async (credentialId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/institution/credential/${credentialId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting credential:', error);
+    throw error;
+  }
+};

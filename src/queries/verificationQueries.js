@@ -1,5 +1,3 @@
-// fileName: verificationQueries.js
-
 const connection = require('../config/database');
 
 /**
@@ -33,6 +31,7 @@ const getCredentialData = (accessCode, callback) => {
     WHERE ca.access_code = ?
       AND ca.is_active = 1
       AND c.status IN ('blockchain_verified', 'uploaded')
+      AND c.status != 'deleted'
     LIMIT 1
   `;
 
@@ -75,6 +74,7 @@ const getMultiCredentialData = (accessCode, callback) => {
       AND mac.is_active = 1
       AND mac.is_deleted = 0
       AND c.status IN ('blockchain_verified', 'uploaded')
+      AND c.status != 'deleted'
     ORDER BY c.created_at DESC
   `;
 

@@ -779,6 +779,28 @@ router.delete('/programs/:programId', (req, res) => {
   });
 });
 
+// ============ CREDENTIAL MANAGEMENT ============
+
+// DELETE /api/institution/credential/:credentialId - Delete a credential (set status to 'deleted')
+router.delete('/credential/:credentialId', (req, res) => {
+  const { credentialId } = req.params;
+  
+  academicQueries.deleteCredential(credentialId, (err, results) => {
+    if (err) {
+      console.error('Error deleting credential:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Credential not found' });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Credential deleted successfully'
+    });
+  });
+});
 
 // ============ BLOCKCHAIN CONTRACT INFO ============
 
