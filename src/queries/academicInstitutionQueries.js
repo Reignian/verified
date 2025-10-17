@@ -181,15 +181,14 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
           }
 
           const accountQuery = `
-            INSERT INTO account (account_type, username, password, email, institution_id) 
-            VALUES ('student', ?, ?, ?, ?)
+            INSERT INTO account (account_type, username, password, email) 
+            VALUES ('student', ?, ?, ?)
           `;
           
           const accountValues = [
             student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
             student.password || 'student123',
-            student.email || `${student.username || student.first_name}@student.edu`,
-            institutionId
+            student.email || `${student.username || student.first_name}@student.edu`
           ];
 
           conn.query(accountQuery, accountValues, (err, accountResult) => {
@@ -296,11 +295,11 @@ const addStudent = (studentData, institutionId, callback) => {
       }
 
       const accountQuery = `
-        INSERT INTO account (account_type, username, password, email, institution_id) 
-        VALUES ('student', ?, ?, ?, ?)
+        INSERT INTO account (account_type, username, password, email) 
+        VALUES ('student', ?, ?, ?)
       `;
 
-      conn.query(accountQuery, [username, password, email, institutionId], (err, accountResult) => {
+      conn.query(accountQuery, [username, password, email], (err, accountResult) => {
         if (err) {
           return conn.rollback(() => {
             conn.release();

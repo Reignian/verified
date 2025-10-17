@@ -9,7 +9,7 @@ const getAllInstitutions = (callback) => {
       a.email,
       a.created_at,
       i.institution_name,
-      (SELECT COUNT(*) FROM account WHERE institution_id = i.id AND account_type = 'student') as student_count,
+      (SELECT COUNT(*) FROM student WHERE institution_id = i.id) as student_count,
       (SELECT COUNT(*) FROM credential WHERE sender_id = a.id) as issued_credentials
     FROM account a
     JOIN institution i ON a.id = i.id
@@ -26,15 +26,14 @@ const createInstitution = (institutionData, callback) => {
 
     // First insert into account table
     const accountQuery = `
-      INSERT INTO account (account_type, username, password, email, institution_id, created_at) 
-      VALUES ('institution', ?, ?, ?, ?, NOW())
+      INSERT INTO account (account_type, username, password, email, created_at) 
+      VALUES ('institution', ?, ?, ?, NOW())
     `;
     
     connection.query(accountQuery, [
       institutionData.username,
       institutionData.password,
-      institutionData.email,
-      null // institution_id will be set to same as account id
+      institutionData.email
     ], (err, accountResult) => {
       if (err) {
         return connection.rollback(() => callback(err));
@@ -50,19 +49,11 @@ const createInstitution = (institutionData, callback) => {
           return connection.rollback(() => callback(err));
         }
 
-        // Update account with institution_id
-        const updateQuery = `UPDATE account SET institution_id = ? WHERE id = ?`;
-        connection.query(updateQuery, [accountId, accountId], (err) => {
+        connection.commit((err) => {
           if (err) {
             return connection.rollback(() => callback(err));
           }
-
-          connection.commit((err) => {
-            if (err) {
-              return connection.rollback(() => callback(err));
-            }
-            callback(null, { insertId: accountId });
-          });
+          callback(null, { insertId: accountId });
         });
       });
     });
