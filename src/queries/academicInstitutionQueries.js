@@ -24,9 +24,18 @@ const getRecentCustomType = (callback) => {
 // UPDATED: Get students filtered by institution
 const getStudents = (institutionId, callback) => {
   const query = `
-    SELECT s.id, s.student_id, s.first_name, s.last_name
+    SELECT 
+      s.id, 
+      s.student_id, 
+      s.first_name, 
+      s.middle_name,
+      s.last_name,
+      s.program_id,
+      p.program_name,
+      p.program_code
     FROM student s 
     JOIN account a ON s.id = a.id 
+    LEFT JOIN program p ON s.program_id = p.id
     WHERE a.account_type = 'student' AND s.institution_id = ?
   `;
   connection.query(query, [institutionId], callback);
@@ -208,8 +217,8 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
             const accountId = accountResult.insertId;
 
             const studentQuery = `
-              INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
-              VALUES (?, ?, ?, ?, ?, ?)
+              INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id, program_id) 
+              VALUES (?, ?, ?, ?, ?, ?, ?)
             `;
             
             const studentValues = [
@@ -218,7 +227,8 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
               student.first_name,
               student.middle_name || null,
               student.last_name || '',
-              institutionId
+              institutionId,
+              student.program_id !== '' && student.program_id !== undefined ? student.program_id : null
             ];
 
             conn.query(studentQuery, studentValues, (err, studentResult) => {
@@ -281,7 +291,7 @@ const checkUsernameExists = (username, callback) => {
 
 // Add single student account
 const addStudent = (studentData, institutionId, callback) => {
-  const { student_id, first_name, middle_name, last_name, username, email, password } = studentData;
+  const { student_id, first_name, middle_name, last_name, username, email, password, program_id } = studentData;
 
   connection.getConnection((err, conn) => {
     if (err) {
@@ -310,11 +320,13 @@ const addStudent = (studentData, institutionId, callback) => {
         const accountId = accountResult.insertId;
 
         const studentQuery = `
-          INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id) 
-          VALUES (?, ?, ?, ?, ?, ?)
+          INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id, program_id) 
+          VALUES (?, ?, ?, ?, ?, ?, ?)
         `;
 
-        conn.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId], (err, studentResult) => {
+        const finalProgramId = program_id !== '' ? program_id : null;
+
+        conn.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId, finalProgramId], (err, studentResult) => {
           if (err) {
             return conn.rollback(() => {
               conn.release();
@@ -623,6 +635,60 @@ const deleteInstitutionStaff = (staffId, callback) => {
   });
 };
 
+// ============ PROGRAM MANAGEMENT ============
+
+// Get all programs for an institution
+const getInstitutionPrograms = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      id,
+      program_name,
+      program_code,
+      created_at
+    FROM program
+    WHERE institution_id = ?
+    ORDER BY program_name
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Add a new program
+const addInstitutionProgram = (programData, callback) => {
+  const { program_name, program_code, institution_id } = programData;
+  
+  const query = `
+    INSERT INTO program (institution_id, program_name, program_code)
+    VALUES (?, ?, ?)
+  `;
+  
+  connection.query(query, [institution_id, program_name, program_code], (err, result) => {
+    if (err) {
+      return callback(err);
+    }
+    
+    callback(null, {
+      programId: result.insertId,
+      message: 'Program added successfully'
+    });
+  });
+};
+
+// Delete a program
+const deleteInstitutionProgram = (programId, callback) => {
+  const query = 'DELETE FROM program WHERE id = ?';
+  
+  connection.query(query, [programId], (err, result) => {
+    if (err) {
+      return callback(err);
+    }
+    
+    callback(null, {
+      affectedRows: result.affectedRows,
+      message: 'Program deleted successfully'
+    });
+  });
+};
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
@@ -643,5 +709,8 @@ module.exports = {
   updateInstitutionProfile,
   getInstitutionStaff,
   addInstitutionStaff,
-  deleteInstitutionStaff
+  deleteInstitutionStaff,
+  getInstitutionPrograms,
+  addInstitutionProgram,
+  deleteInstitutionProgram
 };

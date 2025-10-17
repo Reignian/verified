@@ -131,6 +131,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                 <tr>
                   <th>Student ID</th>
                   <th>Full Name</th>
+                  <th>Program</th>
                   <th>Credentials Issued</th>
                   <th>Actions</th>
                 </tr>
@@ -144,6 +145,15 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                       </td>
                       <td>
                         {student.first_name} {student.middle_name ? student.middle_name + ' ' : ''}{student.last_name}
+                      </td>
+                      <td>
+                        {student.program_name ? (
+                          <span className="program-badge">
+                            {student.program_code ? `${student.program_code} - ` : ''}{student.program_name}
+                          </span>
+                        ) : (
+                          <span className="text-muted">No program</span>
+                        )}
                       </td>
                       <td>
                         <span className="credential-badge">

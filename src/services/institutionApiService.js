@@ -292,3 +292,38 @@ export const deleteInstitutionStaff = async (staffId) => {
     throw error;
   }
 };
+
+// ============ PROGRAM MANAGEMENT ============
+
+// Get all programs for an institution
+export const fetchInstitutionPrograms = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/${institutionId}/programs`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching institution programs:', error);
+    throw error;
+  }
+};
+
+// Add a new program
+export const addInstitutionProgram = async (institutionId, programData) => {
+  try {
+    const response = await axios.post(`${API_URL}/institution/${institutionId}/programs`, programData);
+    return response.data;
+  } catch (error) {
+    console.error('Error adding institution program:', error);
+    throw error;
+  }
+};
+
+// Delete a program
+export const deleteInstitutionProgram = async (programId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/institution/programs/${programId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting institution program:', error);
+    throw error;
+  }
+};

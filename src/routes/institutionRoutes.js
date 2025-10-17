@@ -273,7 +273,7 @@ function normalizeStudentData(rawData) {
 // POST /api/institution/students/add/:institutionId - Add single student
 router.post('/students/add/:institutionId', (req, res) => {
   const { institutionId } = req.params;
-  const { student_id, first_name, middle_name, last_name, username, email, password } = req.body;
+  const { student_id, first_name, middle_name, last_name, username, email, password, program_id } = req.body;
 
   if (!institutionId) {
     return res.status(400).json({ error: 'Institution ID is required' });
@@ -299,7 +299,7 @@ router.post('/students/add/:institutionId', (req, res) => {
         return res.status(400).json({ error: 'Username already exists' });
       }
 
-      const studentData = { student_id, first_name, middle_name, last_name, username, email, password };
+      const studentData = { student_id, first_name, middle_name, last_name, username, email, password, program_id };
 
       academicQueries.addStudent(studentData, institutionId, (err, result) => {
         if (err) {
@@ -704,6 +704,75 @@ router.delete('/staff/:staffId', (req, res) => {
     res.json({ 
       success: true,
       message: 'Staff member deleted successfully'
+    });
+  });
+});
+
+// ============ PROGRAM MANAGEMENT ============
+
+// GET /api/institution/:institutionId/programs - Get all programs for an institution
+router.get('/:institutionId/programs', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getInstitutionPrograms(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching institution programs:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json(results);
+  });
+});
+
+// POST /api/institution/:institutionId/programs - Add a new program
+router.post('/:institutionId/programs', (req, res) => {
+  const { institutionId } = req.params;
+  const { program_name, program_code } = req.body;
+  
+  if (!program_name) {
+    return res.status(400).json({ error: 'Program name is required' });
+  }
+  
+  const programData = {
+    program_name,
+    program_code: program_code || '',
+    institution_id: institutionId
+  };
+  
+  academicQueries.addInstitutionProgram(programData, (err, result) => {
+    if (err) {
+      console.error('Error adding institution program:', err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        return res.status(400).json({ error: 'Program already exists' });
+      }
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Program added successfully',
+      program_id: result.programId
+    });
+  });
+});
+
+// DELETE /api/institution/programs/:programId - Delete a program
+router.delete('/programs/:programId', (req, res) => {
+  const { programId } = req.params;
+  
+  academicQueries.deleteInstitutionProgram(programId, (err, results) => {
+    if (err) {
+      console.error('Error deleting institution program:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    if (results.affectedRows === 0) {
+      return res.status(404).json({ error: 'Program not found' });
+    }
+    
+    res.json({ 
+      success: true,
+      message: 'Program deleted successfully'
     });
   });
 });

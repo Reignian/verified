@@ -1,8 +1,8 @@
 // fileName: AddStudentModal.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AddStudentModal.css';
-import { addStudent } from '../../services/institutionApiService';
+import { addStudent, fetchInstitutionPrograms } from '../../services/institutionApiService';
 
 const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   const [formData, setFormData] = useState({
@@ -12,11 +12,31 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
     last_name: '',
     username: '',
     email: '',
-    password: ''
+    password: '',
+    program_id: ''
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [programs, setPrograms] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showProgramDropdown, setShowProgramDropdown] = useState(false);
+
+  // Load programs when modal opens
+  useEffect(() => {
+    if (show && institutionId) {
+      loadPrograms();
+    }
+  }, [show, institutionId]);
+
+  const loadPrograms = async () => {
+    try {
+      const programList = await fetchInstitutionPrograms(institutionId);
+      setPrograms(programList);
+    } catch (err) {
+      console.error('Error loading programs:', err);
+    }
+  };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -28,6 +48,25 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
     if (error) setError('');
     if (success) setSuccess('');
   };
+
+  const handleProgramSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setShowProgramDropdown(true);
+  };
+
+  const selectProgram = (program) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      program_id: program.id 
+    }));
+    setSearchTerm(program.program_name);
+    setShowProgramDropdown(false);
+  };
+
+  const filteredPrograms = programs.filter(program =>
+    program.program_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (program.program_code && program.program_code.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -51,7 +90,12 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
     setLoading(true);
 
     try {
-      const result = await addStudent(formData, institutionId);
+      const studentData = {
+        ...formData,
+        program_id: formData.program_id !== '' ? formData.program_id : null
+      };
+      
+      const result = await addStudent(studentData, institutionId);
       setSuccess(result.message || 'Student account created successfully!');
       
       // Reset form
@@ -62,8 +106,10 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
         last_name: '',
         username: '',
         email: '',
-        password: ''
+        password: '',
+        program_id: ''
       });
+      setSearchTerm('');
 
       // Notify parent component
       if (onStudentAdded) {
@@ -93,8 +139,11 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
         last_name: '',
         username: '',
         email: '',
-        password: ''
+        password: '',
+        program_id: ''
       });
+      setSearchTerm('');
+      setShowProgramDropdown(false);
       setError('');
       setSuccess('');
       onClose();
@@ -167,6 +216,47 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
                   disabled={loading}
                   required
                 />
+              </div>
+            </div>
+
+            <div className="add-student-form-row">
+              <div className="add-student-form-group program-dropdown-container">
+                <label htmlFor="program_search">
+                  Program
+                </label>
+                <input
+                  type="text"
+                  id="program_search"
+                  value={searchTerm}
+                  onChange={handleProgramSearch}
+                  onFocus={() => setShowProgramDropdown(true)}
+                  placeholder="Search and select program (optional)"
+                  disabled={loading}
+                  autoComplete="off"
+                />
+                {showProgramDropdown && filteredPrograms.length > 0 && (
+                  <div className="program-dropdown">
+                    {filteredPrograms.map(program => (
+                      <div
+                        key={program.id}
+                        className="program-dropdown-item"
+                        onClick={() => selectProgram(program)}
+                      >
+                        <div className="program-name">{program.program_name}</div>
+                        {program.program_code && (
+                          <div className="program-code-small">{program.program_code}</div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {showProgramDropdown && searchTerm && filteredPrograms.length === 0 && (
+                  <div className="program-dropdown">
+                    <div className="program-dropdown-item no-results">
+                      No programs found
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

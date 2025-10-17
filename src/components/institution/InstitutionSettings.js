@@ -3,7 +3,10 @@ import {
   updateInstitutionProfile, 
   fetchInstitutionStaff, 
   addInstitutionStaff, 
-  deleteInstitutionStaff 
+  deleteInstitutionStaff,
+  fetchInstitutionPrograms,
+  addInstitutionProgram,
+  deleteInstitutionProgram
 } from '../../services/institutionApiService';
 import './InstitutionSettings.css';
 
@@ -37,6 +40,16 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
   const [staffValidationErrors, setStaffValidationErrors] = useState({});
   const [staffLoading, setStaffLoading] = useState(false);
 
+  // Program management states
+  const [programList, setProgramList] = useState([]);
+  const [showAddProgramForm, setShowAddProgramForm] = useState(false);
+  const [programFormData, setProgramFormData] = useState({
+    program_name: '',
+    program_code: ''
+  });
+  const [programValidationErrors, setProgramValidationErrors] = useState({});
+  const [programLoading, setProgramLoading] = useState(false);
+
   useEffect(() => {
     if (profile) {
       setFormData({
@@ -53,6 +66,7 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
   useEffect(() => {
     if (institutionId) {
       loadStaffList();
+      loadProgramList();
     }
   }, [institutionId]);
 
@@ -62,6 +76,15 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
       setStaffList(staff);
     } catch (err) {
       console.error('Error loading staff:', err);
+    }
+  };
+
+  const loadProgramList = async () => {
+    try {
+      const programs = await fetchInstitutionPrograms(institutionId);
+      setProgramList(programs);
+    } catch (err) {
+      console.error('Error loading programs:', err);
     }
   };
 
@@ -304,6 +327,90 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
     } catch (err) {
       console.error('Error deleting staff:', err);
       setError(err.response?.data?.error || 'Failed to delete staff member. Please try again.');
+    }
+  };
+
+  // Program form validation
+  const validateProgramForm = () => {
+    const errors = {};
+
+    if (!programFormData.program_name.trim()) {
+      errors.program_name = 'Program name is required';
+    }
+
+    setProgramValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleProgramChange = (e) => {
+    const { name, value } = e.target;
+    setProgramFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Clear validation error for this field
+    if (programValidationErrors[name]) {
+      setProgramValidationErrors(prev => ({
+        ...prev,
+        [name]: ''
+      }));
+    }
+  };
+
+  const handleAddProgram = async (e) => {
+    e.preventDefault();
+    
+    if (!validateProgramForm()) {
+      setError('Please fix the validation errors in the program form');
+      return;
+    }
+
+    setProgramLoading(true);
+    setError('');
+    setSuccess('');
+
+    try {
+      const newProgram = {
+        program_name: programFormData.program_name,
+        program_code: programFormData.program_code
+      };
+
+      await addInstitutionProgram(institutionId, newProgram);
+      
+      setSuccess('Program added successfully!');
+      
+      // Reset form and reload program list
+      setProgramFormData({
+        program_name: '',
+        program_code: ''
+      });
+      setShowAddProgramForm(false);
+      await loadProgramList();
+
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error adding program:', err);
+      setError(err.response?.data?.error || 'Failed to add program. Please try again.');
+    } finally {
+      setProgramLoading(false);
+    }
+  };
+
+  const handleDeleteProgram = async (programId, programName) => {
+    if (!window.confirm(`Are you sure you want to delete "${programName}"? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      await deleteInstitutionProgram(programId);
+      setSuccess('Program deleted successfully!');
+      await loadProgramList();
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err) {
+      console.error('Error deleting program:', err);
+      setError(err.response?.data?.error || 'Failed to delete program. Please try again.');
     }
   };
 
@@ -742,6 +849,137 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
                               `${staff.first_name} ${staff.last_name}`
                             )}
                             title="Delete staff member"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Program Management Section */}
+        <div className="settings-section program-section">
+          <h3 className="section-title">
+            <i className="fas fa-graduation-cap me-2"></i>
+            Program Management
+          </h3>
+          
+          <button
+            type="button"
+            className="btn btn-secondary btn-add-program"
+            onClick={() => setShowAddProgramForm(!showAddProgramForm)}
+          >
+            <i className={`fas ${showAddProgramForm ? 'fa-times' : 'fa-plus'} me-2`}></i>
+            {showAddProgramForm ? 'Cancel' : 'Add Program'}
+          </button>
+
+          {/* Add Program Form */}
+          {showAddProgramForm && (
+            <form onSubmit={handleAddProgram} className="add-program-form">
+              <div className="row">
+                <div className="col-md-8">
+                  <div className="form-group">
+                    <label htmlFor="program_name" className="form-label">
+                      Program Name <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      className={`form-control ${programValidationErrors.program_name ? 'is-invalid' : ''}`}
+                      id="program_name"
+                      name="program_name"
+                      value={programFormData.program_name}
+                      onChange={handleProgramChange}
+                      placeholder="Enter program name (e.g., Bachelor of Science in Computer Science)"
+                    />
+                    {programValidationErrors.program_name && (
+                      <div className="invalid-feedback">{programValidationErrors.program_name}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-4">
+                  <div className="form-group">
+                    <label htmlFor="program_code" className="form-label">
+                      Program Code
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      id="program_code"
+                      name="program_code"
+                      value={programFormData.program_code}
+                      onChange={handleProgramChange}
+                      placeholder="e.g., BSCS"
+                    />
+                    <small className="form-text text-muted">
+                      Optional program abbreviation
+                    </small>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="program-form-actions">
+                <button
+                  type="submit"
+                  className="btn btn-primary"
+                  disabled={programLoading}
+                >
+                  {programLoading ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                      Adding...
+                    </>
+                  ) : (
+                    <>
+                      <i className="fas fa-plus me-2"></i>
+                      Add Program
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Program List */}
+          <div className="program-list">
+            {programList.length === 0 ? (
+              <div className="no-program-message">
+                <i className="fas fa-book-open"></i>
+                <p>No programs added yet</p>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="program-table">
+                  <thead>
+                    <tr>
+                      <th>Program Name</th>
+                      <th>Code</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {programList.map((program) => (
+                      <tr key={program.id}>
+                        <td>{program.program_name}</td>
+                        <td>
+                          {program.program_code ? (
+                            <span className="program-code-badge">{program.program_code}</span>
+                          ) : (
+                            <span className="text-muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            className="btn-delete-program"
+                            onClick={() => handleDeleteProgram(
+                              program.id,
+                              program.program_name
+                            )}
+                            title="Delete program"
                           >
                             <i className="fas fa-trash"></i>
                           </button>
