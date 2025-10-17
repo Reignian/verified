@@ -1,4 +1,7 @@
 const connection = require('../config/database');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 10;
 
 // Get student name by student ID
 const getStudentName = (studentId, callback) => {
@@ -303,20 +306,28 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
   connection.beginTransaction((txErr) => {
     if (txErr) return callback(txErr);
 
+    // First find the target account without password check
     const findTargetSql = `
-      SELECT a.id AS account_id
+      SELECT a.id AS account_id, a.password
       FROM account a
       INNER JOIN student s ON s.id = a.id
-      WHERE a.email = ? AND a.password = ? AND s.student_id = ?
+      WHERE a.email = ? AND s.student_id = ?
       LIMIT 1
     `;
 
-    connection.query(findTargetSql, [targetEmail, targetPassword, targetStudentNumber], (findErr, rows) => {
+    connection.query(findTargetSql, [targetEmail, targetStudentNumber], (findErr, rows) => {
       if (findErr) return rollback(findErr);
       if (!rows || rows.length === 0) return rollback(new Error('Target account not found or credentials invalid.'));
 
       const targetAccountId = rows[0].account_id;
+      const hashedPassword = rows[0].password;
+      
       if (Number(targetAccountId) === Number(currentAccountId)) return rollback(new Error('Cannot link the same account.'));
+
+      // Verify password using bcrypt
+      bcrypt.compare(targetPassword, hashedPassword, (compareErr, isMatch) => {
+        if (compareErr) return rollback(compareErr);
+        if (!isMatch) return rollback(new Error('Target account not found or credentials invalid.'));
 
       const groupLookupSql = 'SELECT student_id, group_id FROM linked_accounts WHERE student_id IN (?, ?)';
       connection.query(groupLookupSql, [currentAccountId, targetAccountId], (grpErr, grpRows) => {
@@ -364,35 +375,54 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
           });
         }
       });
+      }); // end of bcrypt.compare callback
     });
   });
 };
 
 // Change password for a student account
 const changePassword = (accountId, currentPassword, newPassword, callback) => {
-  // First verify the current password
-  const verifyQuery = 'SELECT id FROM account WHERE id = ? AND password = ? LIMIT 1';
-  connection.query(verifyQuery, [accountId, currentPassword], (verifyErr, verifyResults) => {
+  // First get the hashed password from database
+  const verifyQuery = 'SELECT password FROM account WHERE id = ? LIMIT 1';
+  connection.query(verifyQuery, [accountId], (verifyErr, verifyResults) => {
     if (verifyErr) {
       return callback(verifyErr);
     }
     
     if (verifyResults.length === 0) {
-      return callback(new Error('Current password is incorrect'));
+      return callback(new Error('Account not found'));
     }
     
-    // Update the password
-    const updateQuery = 'UPDATE account SET password = ? WHERE id = ?';
-    connection.query(updateQuery, [newPassword, accountId], (updateErr, updateResults) => {
-      if (updateErr) {
-        return callback(updateErr);
+    // Use bcrypt to verify the current password
+    bcrypt.compare(currentPassword, verifyResults[0].password, (compareErr, isMatch) => {
+      if (compareErr) {
+        return callback(compareErr);
       }
       
-      if (updateResults.affectedRows === 0) {
-        return callback(new Error('Account not found'));
+      if (!isMatch) {
+        return callback(new Error('Current password is incorrect'));
       }
       
-      callback(null, { success: true, message: 'Password changed successfully' });
+      // Hash the new password
+      bcrypt.hash(newPassword, SALT_ROUNDS, (hashErr, hashedPassword) => {
+        if (hashErr) {
+          return callback(hashErr);
+        }
+        
+        // Update the password with hashed version
+        const updateQuery = 'UPDATE account SET password = ? WHERE id = ?';
+        connection.query(updateQuery, [hashedPassword, accountId], (updateErr, updateResults) => {
+          if (updateErr) {
+            return callback(updateErr);
+          }
+          
+          if (updateResults.affectedRows === 0) {
+            return callback(new Error('Account not found'));
+          }
+          
+          callback(null, { success: true, message: 'Password changed successfully' });
+        });
+      });
     });
   });
 };

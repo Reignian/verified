@@ -1,6 +1,9 @@
 // fileName: academicInstitutionQueries.js
 
 const connection = require('../config/database');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 10; // bcrypt salt rounds
 
 const getCredentialTypes = (callback) => {
   connection.query('SELECT id, type_name FROM credential_types', callback);
@@ -189,18 +192,34 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
             return processStudent(index + 1);
           }
 
-          const accountQuery = `
-            INSERT INTO account (account_type, username, password, email) 
-            VALUES ('student', ?, ?, ?)
-          `;
-          
-          const accountValues = [
-            student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
-            student.password || 'student123',
-            student.email || `${student.username || student.first_name}@student.edu`
-          ];
+          // Hash password before storing
+          const plainPassword = student.password || 'student123';
+          bcrypt.hash(plainPassword, SALT_ROUNDS, (err, hashedPassword) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                failed++;
+                failures.push({
+                  index: index + 1,
+                  data: student,
+                  error: 'Password hashing failed: ' + err.message
+                });
+                processStudent(index + 1);
+              });
+            }
 
-          conn.query(accountQuery, accountValues, (err, accountResult) => {
+            const accountQuery = `
+              INSERT INTO account (account_type, username, password, email) 
+              VALUES ('student', ?, ?, ?)
+            `;
+            
+            const accountValues = [
+              student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
+              hashedPassword,
+              student.email || `${student.username || student.first_name}@student.edu`
+            ];
+
+            conn.query(accountQuery, accountValues, (err, accountResult) => {
             if (err) {
               return conn.rollback(() => {
                 conn.release();
@@ -265,6 +284,7 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
               });
             });
           });
+          }); // end of bcrypt.hash callback
         });
       });
     };
@@ -293,40 +313,29 @@ const checkUsernameExists = (username, callback) => {
 const addStudent = (studentData, institutionId, callback) => {
   const { student_id, first_name, middle_name, last_name, username, email, password, program_id } = studentData;
 
-  connection.getConnection((err, conn) => {
+  // Hash password before storing
+  bcrypt.hash(password, SALT_ROUNDS, (err, hashedPassword) => {
     if (err) {
       return callback(err);
     }
 
-    conn.beginTransaction((err) => {
+    connection.getConnection((err, conn) => {
       if (err) {
-        conn.release();
         return callback(err);
       }
 
-      const accountQuery = `
-        INSERT INTO account (account_type, username, password, email) 
-        VALUES ('student', ?, ?, ?)
-      `;
-
-      conn.query(accountQuery, [username, password, email], (err, accountResult) => {
+      conn.beginTransaction((err) => {
         if (err) {
-          return conn.rollback(() => {
-            conn.release();
-            callback(err);
-          });
+          conn.release();
+          return callback(err);
         }
 
-        const accountId = accountResult.insertId;
-
-        const studentQuery = `
-          INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id, program_id) 
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+        const accountQuery = `
+          INSERT INTO account (account_type, username, password, email) 
+          VALUES ('student', ?, ?, ?)
         `;
 
-        const finalProgramId = program_id !== '' ? program_id : null;
-
-        conn.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId, finalProgramId], (err, studentResult) => {
+        conn.query(accountQuery, [username, hashedPassword, email], (err, accountResult) => {
           if (err) {
             return conn.rollback(() => {
               conn.release();
@@ -334,7 +343,16 @@ const addStudent = (studentData, institutionId, callback) => {
             });
           }
 
-          conn.commit((err) => {
+          const accountId = accountResult.insertId;
+
+          const studentQuery = `
+            INSERT INTO student (id, student_id, first_name, middle_name, last_name, institution_id, program_id) 
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `;
+
+          const finalProgramId = program_id !== '' ? program_id : null;
+
+          conn.query(studentQuery, [accountId, student_id, first_name, middle_name, last_name, institutionId, finalProgramId], (err, studentResult) => {
             if (err) {
               return conn.rollback(() => {
                 conn.release();
@@ -342,21 +360,30 @@ const addStudent = (studentData, institutionId, callback) => {
               });
             }
 
-            conn.release();
-            callback(null, {
-              id: accountId,
-              student_id,
-              first_name,
-              middle_name,
-              last_name,
-              username,
-              email
+            conn.commit((err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+
+              conn.release();
+              callback(null, {
+                id: accountId,
+                student_id,
+                first_name,
+                middle_name,
+                last_name,
+                username,
+                email
+              });
             });
           });
         });
       });
     });
-  });
+  }); // end of bcrypt.hash callback
 };
 
 // UPDATED: Get bulk import stats filtered by institution
@@ -419,8 +446,13 @@ const verifyInstitutionPassword = (institutionId, password, callback) => {
       return callback(null, false);
     }
     
-    const isValid = results[0].password === password;
-    callback(null, isValid);
+    // Use bcrypt to compare the password with the hashed password
+    bcrypt.compare(password, results[0].password, (err, isValid) => {
+      if (err) {
+        return callback(err);
+      }
+      callback(null, isValid);
+    });
   });
 };
 
@@ -428,52 +460,27 @@ const verifyInstitutionPassword = (institutionId, password, callback) => {
 const updateInstitutionProfile = (institutionId, profileData, callback) => {
   const { institution_name, username, email, password } = profileData;
   
-  // Get a connection from the pool for the transaction
-  connection.getConnection((err, conn) => {
-    if (err) {
-      return callback(err);
-    }
-
-    conn.beginTransaction((err) => {
+  // Helper function to perform the update
+  const performUpdate = (hashedPassword) => {
+    connection.getConnection((err, conn) => {
       if (err) {
-        conn.release();
         return callback(err);
       }
 
-      // Update institution table
-      const institutionQuery = `
-        UPDATE institution 
-        SET institution_name = ? 
-        WHERE id = ?
-      `;
-      
-      conn.query(institutionQuery, [institution_name, institutionId], (err, result) => {
+      conn.beginTransaction((err) => {
         if (err) {
-          return conn.rollback(() => {
-            conn.release();
-            callback(err);
-          });
+          conn.release();
+          return callback(err);
         }
 
-        // Update account table
-        let accountQuery, accountValues;
-        if (password) {
-          accountQuery = `
-            UPDATE account 
-            SET username = ?, email = ?, password = ? 
-            WHERE id = ? AND account_type = 'institution'
-          `;
-          accountValues = [username, email, password, institutionId];
-        } else {
-          accountQuery = `
-            UPDATE account 
-            SET username = ?, email = ? 
-            WHERE id = ? AND account_type = 'institution'
-          `;
-          accountValues = [username, email, institutionId];
-        }
-
-        conn.query(accountQuery, accountValues, (err, result) => {
+        // Update institution table
+        const institutionQuery = `
+          UPDATE institution 
+          SET institution_name = ? 
+          WHERE id = ?
+        `;
+        
+        conn.query(institutionQuery, [institution_name, institutionId], (err, result) => {
           if (err) {
             return conn.rollback(() => {
               conn.release();
@@ -481,21 +488,60 @@ const updateInstitutionProfile = (institutionId, profileData, callback) => {
             });
           }
 
-          conn.commit((err) => {
-            if (err) {
-              return conn.rollback(() => {
-                conn.release();
-                callback(err);
-              });
-            }
+          // Update account table
+          let accountQuery, accountValues;
+          if (hashedPassword) {
+            accountQuery = `
+              UPDATE account 
+              SET username = ?, email = ?, password = ? 
+              WHERE id = ? AND account_type = 'institution'
+            `;
+            accountValues = [username, email, hashedPassword, institutionId];
+          } else {
+            accountQuery = `
+              UPDATE account 
+              SET username = ?, email = ? 
+              WHERE id = ? AND account_type = 'institution'
+            `;
+            accountValues = [username, email, institutionId];
+          }
 
-            conn.release();
-            callback(null, { message: 'Profile updated successfully' });
+          conn.query(accountQuery, accountValues, (err, result) => {
+          if (err) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+
+            conn.commit((err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+
+              conn.release();
+              callback(null, { message: 'Profile updated successfully' });
+            });
           });
         });
       });
     });
-  });
+  };
+  
+  // If password is provided, hash it first
+  if (password) {
+    bcrypt.hash(password, SALT_ROUNDS, (err, hashedPassword) => {
+      if (err) {
+        return callback(err);
+      }
+      performUpdate(hashedPassword);
+    });
+  } else {
+    performUpdate(null);
+  }
 };
 
 
@@ -524,40 +570,30 @@ const getInstitutionStaff = (institutionId, callback) => {
 const addInstitutionStaff = (staffData, callback) => {
   const { first_name, middle_name, last_name, username, email, password, institution_id } = staffData;
   
-  connection.getConnection((err, conn) => {
+  // Hash password before storing
+  bcrypt.hash(password, SALT_ROUNDS, (err, hashedPassword) => {
     if (err) {
       return callback(err);
     }
 
-    conn.beginTransaction((err) => {
+    connection.getConnection((err, conn) => {
       if (err) {
-        conn.release();
         return callback(err);
       }
-      
-      // First, create the account
-      const accountQuery = `
-        INSERT INTO account (account_type, username, password, email)
-        VALUES ('institution_staff', ?, ?, ?)
-      `;
-      
-      conn.query(accountQuery, [username, password, email], (err, accountResult) => {
+
+      conn.beginTransaction((err) => {
         if (err) {
-          return conn.rollback(() => {
-            conn.release();
-            callback(err);
-          });
+          conn.release();
+          return callback(err);
         }
         
-        const accountId = accountResult.insertId;
-        
-        // Then, create the staff record
-        const staffQuery = `
-          INSERT INTO institution_staff (id, first_name, middle_name, last_name, institution_id)
-          VALUES (?, ?, ?, ?, ?)
+        // First, create the account with hashed password
+        const accountQuery = `
+          INSERT INTO account (account_type, username, password, email)
+          VALUES ('institution_staff', ?, ?, ?)
         `;
         
-        conn.query(staffQuery, [accountId, first_name, middle_name, last_name, institution_id], (err, staffResult) => {
+        conn.query(accountQuery, [username, hashedPassword, email], (err, accountResult) => {
           if (err) {
             return conn.rollback(() => {
               conn.release();
@@ -565,7 +601,15 @@ const addInstitutionStaff = (staffData, callback) => {
             });
           }
           
-          conn.commit((err) => {
+          const accountId = accountResult.insertId;
+          
+          // Then, create the staff record
+          const staffQuery = `
+            INSERT INTO institution_staff (id, first_name, middle_name, last_name, institution_id)
+            VALUES (?, ?, ?, ?, ?)
+          `;
+          
+          conn.query(staffQuery, [accountId, first_name, middle_name, last_name, institution_id], (err, staffResult) => {
             if (err) {
               return conn.rollback(() => {
                 conn.release();
@@ -573,17 +617,26 @@ const addInstitutionStaff = (staffData, callback) => {
               });
             }
             
-            conn.release();
-            callback(null, { 
-              accountId: accountId,
-              staffId: accountId,
-              message: 'Staff member created successfully'
+            conn.commit((err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+              
+              conn.release();
+              callback(null, { 
+                accountId: accountId,
+                staffId: accountId,
+                message: 'Staff member created successfully'
+              });
             });
           });
         });
       });
     });
-  });
+  }); // end of bcrypt.hash callback
 };
 
 // Delete a staff member

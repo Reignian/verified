@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const authQueries = require('../queries/authQueries');
+const bcrypt = require('bcrypt');
 
 // POST /api/auth/login - User login
 router.post('/login', (req, res) => {
@@ -29,12 +30,23 @@ router.post('/login', (req, res) => {
     
     const user = results[0];
     
-    if (user.password !== password || (user.username !== emailOrUsername && user.email !== emailOrUsername)) {
+    // Verify username/email matches
+    if (user.username !== emailOrUsername && user.email !== emailOrUsername) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
     
-    // Special handling for admin login
-    if (user.account_type === 'admin') {
+    // Use bcrypt to verify password
+    bcrypt.compare(password, user.password, (err, isMatch) => {
+      if (err) {
+        return res.status(500).json({ error: 'Authentication error' });
+      }
+      
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Invalid credentials' });
+      }
+      
+      // Special handling for admin login
+      if (user.account_type === 'admin') {
       return res.json({
         message: 'Admin login successful',
         user: {
@@ -75,18 +87,19 @@ router.post('/login', (req, res) => {
         });
       });
     } else {
-      // For student accounts, no public_address needed
-      res.json({
-        message: 'Login successful',
-        user: {
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          account_type: user.account_type,
-          public_address: null
-        }
-      });
-    }
+        // For student accounts, no public_address needed
+        res.json({
+          message: 'Login successful',
+          user: {
+            id: user.id,
+            username: user.username,
+            email: user.email,
+            account_type: user.account_type,
+            public_address: null
+          }
+        });
+      }
+    }); // end of bcrypt.compare callback
   });
 });
 

@@ -1,4 +1,7 @@
 const connection = require('../config/database');
+const bcrypt = require('bcrypt');
+
+const SALT_ROUNDS = 10;
 
 // Get all academic institutions
 const getAllInstitutions = (callback) => {
@@ -21,83 +24,122 @@ const getAllInstitutions = (callback) => {
 
 // Create new institution account
 const createInstitution = (institutionData, callback) => {
-  connection.beginTransaction((err) => {
+  // Hash password before storing
+  bcrypt.hash(institutionData.password, SALT_ROUNDS, (err, hashedPassword) => {
     if (err) return callback(err);
 
-    // First insert into account table
-    const accountQuery = `
-      INSERT INTO account (account_type, username, password, email, created_at) 
-      VALUES ('institution', ?, ?, ?, NOW())
-    `;
-    
-    connection.query(accountQuery, [
-      institutionData.username,
-      institutionData.password,
-      institutionData.email
-    ], (err, accountResult) => {
-      if (err) {
-        return connection.rollback(() => callback(err));
-      }
+    connection.getConnection((err, conn) => {
+      if (err) return callback(err);
 
-      const accountId = accountResult.insertId;
-
-      // Insert into institution table
-      const institutionQuery = `INSERT INTO institution (id, institution_name) VALUES (?, ?)`;
-      
-      connection.query(institutionQuery, [accountId, institutionData.institution_name], (err) => {
+      conn.beginTransaction((err) => {
         if (err) {
-          return connection.rollback(() => callback(err));
+          conn.release();
+          return callback(err);
         }
 
-        connection.commit((err) => {
+        // First insert into account table with hashed password
+        const accountQuery = `
+          INSERT INTO account (account_type, username, password, email, created_at) 
+          VALUES ('institution', ?, ?, ?, NOW())
+        `;
+        
+        conn.query(accountQuery, [
+          institutionData.username,
+          hashedPassword,
+          institutionData.email
+        ], (err, accountResult) => {
           if (err) {
-            return connection.rollback(() => callback(err));
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
           }
-          callback(null, { insertId: accountId });
+
+          const accountId = accountResult.insertId;
+
+          // Insert into institution table with public_address set to NULL
+          const institutionQuery = `INSERT INTO institution (id, institution_name, public_address) VALUES (?, ?, NULL)`;
+          
+          conn.query(institutionQuery, [accountId, institutionData.institution_name], (err) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+
+            conn.commit((err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+              conn.release();
+              callback(null, { insertId: accountId });
+            });
+          });
         });
       });
     });
-  });
+  }); // end of bcrypt.hash callback
 };
 
 // Update institution
 const updateInstitution = (institutionId, updateData, callback) => {
-  connection.beginTransaction((err) => {
+  connection.getConnection((err, conn) => {
     if (err) return callback(err);
 
-    // Update account table
-    const accountQuery = `
-      UPDATE account 
-      SET username = ?, email = ? 
-      WHERE id = ? AND account_type = 'institution'
-    `;
-    
-    connection.query(accountQuery, [
-      updateData.username,
-      updateData.email,
-      institutionId
-    ], (err, accountResult) => {
+    conn.beginTransaction((err) => {
       if (err) {
-        return connection.rollback(() => callback(err));
+        conn.release();
+        return callback(err);
       }
 
-      // Update institution table
-      const institutionQuery = `
-        UPDATE institution 
-        SET institution_name = ? 
-        WHERE id = ?
+      // Update account table
+      const accountQuery = `
+        UPDATE account 
+        SET username = ?, email = ? 
+        WHERE id = ? AND account_type = 'institution'
       `;
       
-      connection.query(institutionQuery, [updateData.institution_name, institutionId], (err) => {
+      conn.query(accountQuery, [
+        updateData.username,
+        updateData.email,
+        institutionId
+      ], (err, accountResult) => {
         if (err) {
-          return connection.rollback(() => callback(err));
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
+          });
         }
 
-        connection.commit((err) => {
+        // Update institution table
+        const institutionQuery = `
+          UPDATE institution 
+          SET institution_name = ? 
+          WHERE id = ?
+        `;
+        
+        conn.query(institutionQuery, [updateData.institution_name, institutionId], (err) => {
           if (err) {
-            return connection.rollback(() => callback(err));
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
           }
-          callback(null, { affectedRows: accountResult.affectedRows });
+
+          conn.commit((err) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+            conn.release();
+            callback(null, { affectedRows: accountResult.affectedRows });
+          });
         });
       });
     });

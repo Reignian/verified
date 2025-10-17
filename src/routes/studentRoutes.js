@@ -4,6 +4,7 @@
 const express = require('express');
 const router = express.Router();
 const crypto = require('crypto');
+const bcrypt = require('bcrypt');
 const myVerifiEDQueries = require('../queries/MyVerifiEDQueries');
 
 // ============ STUDENT PROFILE ============
@@ -338,8 +339,9 @@ router.delete('/unlink-account', (req, res) => {
 
   try {
     const db = require('../config/database');
-    const pwSql = 'SELECT 1 FROM account WHERE id = ? AND password = ? LIMIT 1';
-    db.query(pwSql, [Number(current_account_id), String(current_password)], (pwErr, pwRows) => {
+    // Get the hashed password from database
+    const pwSql = 'SELECT password FROM account WHERE id = ? LIMIT 1';
+    db.query(pwSql, [Number(current_account_id)], (pwErr, pwRows) => {
       if (pwErr) {
         return res.status(500).json({ error: 'Database error' });
       }
@@ -347,16 +349,26 @@ router.delete('/unlink-account', (req, res) => {
         return res.status(401).json({ error: 'Invalid password' });
       }
 
-      myVerifiEDQueries.unlinkAccount(
-        Number(current_account_id),
-        Number(target_account_id),
-        (err, result) => {
-          if (err) {
-            return res.status(400).json({ error: err.message || 'Unlink failed' });
-          }
-          res.json({ success: true, ...result });
+      // Use bcrypt to verify the password
+      bcrypt.compare(String(current_password), pwRows[0].password, (compareErr, isMatch) => {
+        if (compareErr) {
+          return res.status(500).json({ error: 'Authentication error' });
         }
-      );
+        if (!isMatch) {
+          return res.status(401).json({ error: 'Invalid password' });
+        }
+
+        myVerifiEDQueries.unlinkAccount(
+          Number(current_account_id),
+          Number(target_account_id),
+          (err, result) => {
+            if (err) {
+              return res.status(400).json({ error: err.message || 'Unlink failed' });
+            }
+            res.json({ success: true, ...result });
+          }
+        );
+      });
     });
   } catch (e) {
     return res.status(500).json({ error: 'Server error' });
