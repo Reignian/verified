@@ -147,16 +147,6 @@
   text-align: center;
 }
 
-.program-badge {
-  background: linear-gradient(135deg, #9b59b6, #8e44ad);
-  color: white;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  display: inline-block;
-}
-
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -246,6 +236,155 @@
   to { transform: rotate(360deg); }
 }
 
+/* Student Management Filters Section */
+.student-filters {
+  padding: 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.student-filters-row {
+  display: flex;
+  gap: 15px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+
+.student-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.student-filter-group.search-group {
+  flex: 1;
+  min-width: 250px;
+}
+
+.student-filter-group.date-group {
+  min-width: 180px;
+}
+
+.student-filter-group label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-dark);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-filter-group label i {
+  color: var(--primary-color);
+  font-size: 0.85rem;
+}
+
+.student-filter-group .form-control {
+  padding: 10px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 0.9rem;
+  transition: var(--transition);
+}
+
+.student-filter-group .form-control:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(64, 80, 181, 0.1);
+}
+
+/* Student Management Pagination Styles */
+.student-pagination-container {
+  padding: 20px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.student-pagination-info {
+  font-size: 0.9rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.student-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.student-pagination-btn {
+  padding: 8px 16px;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-dark);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.student-pagination-btn:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.student-pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--background-light);
+}
+
+.student-pagination-numbers {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.student-pagination-number {
+  min-width: 36px;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--border-color);
+  background: white;
+  color: var(--text-dark);
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.student-pagination-number:hover {
+  background: var(--background-light);
+  border-color: var(--primary-color);
+}
+
+.student-pagination-number.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+.student-pagination-ellipsis {
+  padding: 0 8px;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
 @media (max-width: 768px) {
   
   .table-card {
@@ -267,5 +406,62 @@
 
   .table th, .table td {
     padding: 10px;
+  }
+
+  /* Responsive filters */
+  .student-filters {
+    padding: 15px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .student-filters-row {
+    gap: 12px;
+    flex-direction: column;
+  }
+
+  .student-filter-group.search-group,
+  .student-filter-group.date-group {
+    min-width: 100%;
+    width: 100%;
+  }
+
+  .student-filter-group .form-control {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+
+  .student-filter-group .btn-primary-custom {
+    width: 100%;
+  }
+
+  /* Responsive Pagination */
+  .student-pagination-container {
+    flex-direction: column;
+    gap: 15px;
+    padding: 15px;
+  }
+
+  .student-pagination-info {
+    width: 100%;
+    text-align: center;
+    font-size: 0.85rem;
+  }
+
+  .student-pagination-controls {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .student-pagination-btn {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+  }
+
+  .student-pagination-number {
+    min-width: 32px;
+    height: 32px;
+    font-size: 0.8rem;
   }
 }

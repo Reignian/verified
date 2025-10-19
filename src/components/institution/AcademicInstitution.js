@@ -174,12 +174,16 @@ function AcademicInstitution() {
     }
   };
 
-  // Students refresher for after successful bulk import
+  // Students refresher for after successful bulk import or adding individual students
   const refreshStudentsData = async () => {
     if (!institutionId) return;
     try {
-      const studentData = await fetchStudents(institutionId);
+      const [studentData, dashStats] = await Promise.all([
+        fetchStudents(institutionId),
+        fetchDashboardStats(institutionId)
+      ]);
       setStudents(studentData);
+      setDashboardStats(dashStats);
     } catch (err) {
       console.error('Failed to refresh students:', err);
     }
@@ -344,19 +348,12 @@ function AcademicInstitution() {
         )}
 
         {activeSection === 'issued' && (
-          <>
-            <div className="button-group mb-3">
-              <button className="btn btn-primary-custom" onClick={() => setShowModal(true)}>
-                <i className="fas fa-plus-circle me-2"></i>
-                Issue Credential
-              </button>
-            </div>
-            <IssuedCredentialsTable
-              credentials={issuedCredentials}
-              onView={handleViewCredential}
-              onDelete={handleDeleteCredential}
-            />
-          </>
+          <IssuedCredentialsTable
+            credentials={issuedCredentials}
+            onView={handleViewCredential}
+            onDelete={handleDeleteCredential}
+            onIssueCredential={() => setShowModal(true)}
+          />
         )}
 
         {activeSection === 'students' && (
@@ -364,6 +361,7 @@ function AcademicInstitution() {
             institutionId={institutionId}
             onOpenBulkImport={() => setShowBulkImportModal(true)}
             refreshTrigger={studentsRefreshTick}
+            onStudentListChanged={refreshStudentsData}
           />
         )}
 

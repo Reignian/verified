@@ -6,8 +6,12 @@ import './AcademicInstitution.css';
 // Pinata gateway URL from environment variable
 const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
 
-function IssuedCredentialsTable({ credentials, onView, onDelete }) {
+function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredential }) {
   const [deletingId, setDeletingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [filterDate, setFilterDate] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -67,8 +71,151 @@ function IssuedCredentialsTable({ credentials, onView, onDelete }) {
     }
   };
 
+  // Filter credentials based on search term and date
+  const filteredCredentials = (credentials || []).filter((credential) => {
+    // Search filter (student name or credential type)
+    const searchMatch = searchTerm === '' ||
+      credential.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      credential.credential_type.toLowerCase().includes(searchTerm.toLowerCase());
+
+    // Date filter (exact date match)
+    let dateMatch = true;
+    if (filterDate) {
+      const credentialDate = new Date(credential.date_issued).toDateString();
+      const selectedDate = new Date(filterDate).toDateString();
+      dateMatch = credentialDate === selectedDate;
+    }
+
+    return searchMatch && dateMatch;
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setFilterDate('');
+    setCurrentPage(1); // Reset to first page when clearing filters
+  };
+
+  const hasActiveFilters = searchTerm !== '' || filterDate !== '';
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, filterDate]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredCredentials.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentCredentials = filteredCredentials.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
+  };
+
   return (
     <div className="table-card">
+      {/* Filters Section */}
+      <div className="credentials-filters">
+        <div className="filters-row">
+          <div className="filter-group search-group">
+            <label htmlFor="search">
+              <i className="fas fa-search"></i>
+              Search
+            </label>
+            <input
+              type="text"
+              id="search"
+              placeholder="Search by student name or credential type..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="form-control"
+            />
+          </div>
+
+          <div className="filter-group date-group">
+            <label htmlFor="filterDate">
+              <i className="fas fa-calendar"></i>
+              Filter by Date
+            </label>
+            <input
+              type="date"
+              id="filterDate"
+              value={filterDate}
+              onChange={(e) => setFilterDate(e.target.value)}
+              className="form-control"
+            />
+          </div>
+
+          {hasActiveFilters && (
+            <div className="filter-group">
+              <label>&nbsp;</label>
+              <button
+                className="btn btn-danger btn-sm"
+                onClick={clearFilters}
+                title="Clear all filters"
+              >
+                Clear Filters
+              </button>
+            </div>
+          )}
+
+        </div>
+
+        <div className="filter-group">
+            <label>&nbsp;</label>
+            <button 
+              className="btn btn-primary-custom" 
+              onClick={onIssueCredential}
+            >
+              <i className="fas fa-plus-circle me-2"></i>
+              Issue Credential
+            </button>
+          </div>        
+      </div>
 
       <div className="table-responsive">
         <table className="table">
@@ -82,8 +229,8 @@ function IssuedCredentialsTable({ credentials, onView, onDelete }) {
             </tr>
           </thead>
           <tbody>
-            {(credentials && credentials.length > 0) ? (
-              credentials.map((credential) => (
+            {(currentCredentials && currentCredentials.length > 0) ? (
+              currentCredentials.map((credential) => (
                 <tr key={credential.id}>
                   <td>
                     <strong>{credential.student_name}</strong>
@@ -137,6 +284,50 @@ function IssuedCredentialsTable({ credentials, onView, onDelete }) {
           </tbody>
         </table>
       </div>
+
+      {/* Pagination Controls */}
+      {filteredCredentials.length > itemsPerPage && (
+        <div className="pagination-container">
+          <div className="pagination-info">
+            Showing {startIndex + 1} - {Math.min(endIndex, filteredCredentials.length)} of {filteredCredentials.length} credentials
+          </div>
+          <div className="pagination-controls">
+            <button
+              className="pagination-btn"
+              onClick={handlePrevious}
+              disabled={currentPage === 1}
+            >
+              <i className="fas fa-chevron-left"></i>
+              Previous
+            </button>
+
+            <div className="pagination-numbers">
+              {getPageNumbers().map((page, index) => (
+                page === '...' ? (
+                  <span key={`ellipsis-${index}`} className="pagination-ellipsis">...</span>
+                ) : (
+                  <button
+                    key={page}
+                    className={`pagination-number ${currentPage === page ? 'active' : ''}`}
+                    onClick={() => handlePageChange(page)}
+                  >
+                    {page}
+                  </button>
+                )
+              ))}
+            </div>
+
+            <button
+              className="pagination-btn"
+              onClick={handleNext}
+              disabled={currentPage === totalPages}
+            >
+              Next
+              <i className="fas fa-chevron-right"></i>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

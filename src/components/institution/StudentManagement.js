@@ -14,7 +14,7 @@ import {
 // Pinata gateway URL from environment variable
 const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
 
-const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOpenBulkImport, refreshTrigger }) => {
+const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOpenBulkImport, refreshTrigger, onStudentListChanged }) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedStudent, setSelectedStudent] = useState(null);
@@ -22,6 +22,9 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
   const [showCredentialsModal, setShowCredentialsModal] = useState(false);
   const [credentialsLoading, setCredentialsLoading] = useState(false);
   const [showAddStudentModal, setShowAddStudentModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   useEffect(() => {
     loadStudents();
@@ -90,34 +93,149 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
   const handleStudentAdded = () => {
     // Reload students list after adding a new student
     loadStudents();
+    // Also refresh parent component's students list
+    if (onStudentListChanged) {
+      onStudentListChanged();
+    }
+  };
+
+  // Filter students based on search term
+  const filteredStudents = students.filter((student) => {
+    if (searchTerm === '') return true;
+    const searchLower = searchTerm.toLowerCase();
+    const fullName = `${student.first_name} ${student.middle_name || ''} ${student.last_name}`.toLowerCase();
+    const programName = (student.program_name || '').toLowerCase();
+    const programCode = (student.program_code || '').toLowerCase();
+    
+    return student.student_id.toLowerCase().includes(searchLower) ||
+           fullName.includes(searchLower) ||
+           programName.includes(searchLower) ||
+           programCode.includes(searchLower);
+  });
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setCurrentPage(1);
+  };
+
+  const hasActiveFilters = searchTerm !== '';
+
+  // Reset to page 1 when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredStudents.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentStudents = filteredStudents.slice(startIndex, endIndex);
+
+  const handlePageChange = (page) => {
+    setCurrentPage(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handlePrevious = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  const handleNext = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxPagesToShow = 5;
+    
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pages.push(1);
+        pages.push('...');
+        for (let i = totalPages - 3; i <= totalPages; i++) pages.push(i);
+      } else {
+        pages.push(1);
+        pages.push('...');
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) pages.push(i);
+        pages.push('...');
+        pages.push(totalPages);
+      }
+    }
+    return pages;
   };
 
   return (
     <div className="student-management">
-      {/* Actions */}
-      <div className="d-flex">
-        <button
-          className="btn btn-primary-custom"
-          onClick={() => setShowAddStudentModal(true)}
-        >
-          <i className="fas fa-user-plus me-2"></i>
-          Add Student
-        </button>
-        <button
-          className="btn btn-primary-custom"
-          onClick={() => onOpenBulkImport && onOpenBulkImport()}
-        >
-          <i className="fas fa-users me-2"></i>
-          Bulk Import Students
-        </button>
-      </div>
-      {/* Students Table */}
       <div className="table-card">
-        <h2 className="card-title">
-          <div className="card-icon">
-            <i className="fas fa-user-graduate"></i>
+        <div className="student-filters">
+          <div className="student-filters-row">
+            <div className="student-filter-group search-group">
+              <label htmlFor="studentSearch">
+                <i className="fas fa-search"></i>
+                Search
+              </label>
+              <input
+                type="text"
+                id="studentSearch"
+                placeholder="Search by student ID, name, or program..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="form-control"
+              />
+            </div>
+
+            {hasActiveFilters && (
+              <div className="student-filter-group">
+                <label>&nbsp;</label>
+                <button
+                  className="btn btn-danger btn-sm"
+                  onClick={clearFilters}
+                  title="Clear all filters"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
           </div>
-        </h2>
+          <div className="student-filters-row">
+            <div className="student-filter-group">
+              <label>&nbsp;</label>
+              <button
+                className="btn btn-primary-custom"
+                onClick={() => setShowAddStudentModal(true)}
+              >
+                <i className="fas fa-user-plus me-2"></i>
+                Add Student
+              </button>
+            </div>
+
+            <div className="student-filter-group">
+              <label>&nbsp;</label>
+              <button
+                className="btn btn-primary-custom"
+                onClick={() => onOpenBulkImport && onOpenBulkImport()}
+              >
+                <i className="fas fa-users me-2"></i>
+                Bulk Import
+              </button>
+            </div>
+          </div>
+        </div>
 
         {loading ? (
           <div className="text-center py-5">
@@ -137,8 +255,8 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                 </tr>
               </thead>
               <tbody>
-                {students.length > 0 ? (
-                  students.map((student) => (
+                {currentStudents.length > 0 ? (
+                  currentStudents.map((student) => (
                     <tr key={student.id}>
                       <td>
                         <strong>{student.student_id}</strong>
@@ -149,7 +267,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                       <td>
                         {student.program_name ? (
                           <span className="program-badge">
-                            {student.program_code ? `${student.program_code} - ` : ''}{student.program_name}
+                            {student.program_name}  <strong>{student.program_code ? `(${student.program_code})` : ''} </strong>
                           </span>
                         ) : (
                           <span className="text-muted">No program</span>
@@ -182,6 +300,50 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                 )}
               </tbody>
             </table>
+          </div>
+        )}
+
+        {/* Pagination Controls */}
+        {!loading && filteredStudents.length > itemsPerPage && (
+          <div className="student-pagination-container">
+            <div className="student-pagination-info">
+              Showing {startIndex + 1} - {Math.min(endIndex, filteredStudents.length)} of {filteredStudents.length} students
+            </div>
+            <div className="student-pagination-controls">
+              <button
+                className="student-pagination-btn"
+                onClick={handlePrevious}
+                disabled={currentPage === 1}
+              >
+                <i className="fas fa-chevron-left"></i>
+                Previous
+              </button>
+
+              <div className="student-pagination-numbers">
+                {getPageNumbers().map((page, index) => (
+                  page === '...' ? (
+                    <span key={`ellipsis-${index}`} className="student-pagination-ellipsis">...</span>
+                  ) : (
+                    <button
+                      key={page}
+                      className={`student-pagination-number ${currentPage === page ? 'active' : ''}`}
+                      onClick={() => handlePageChange(page)}
+                    >
+                      {page}
+                    </button>
+                  )
+                ))}
+              </div>
+
+              <button
+                className="student-pagination-btn"
+                onClick={handleNext}
+                disabled={currentPage === totalPages}
+              >
+                Next
+                <i className="fas fa-chevron-right"></i>
+              </button>
+            </div>
           </div>
         )}
       </div>
