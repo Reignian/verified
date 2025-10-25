@@ -293,14 +293,24 @@ function normalizeStudentData(rawData) {
 // POST /api/institution/students/add/:institutionId - Add single student
 router.post('/students/add/:institutionId', (req, res) => {
   const { institutionId } = req.params;
-  const { student_id, first_name, middle_name, last_name, username, email, password, program_id } = req.body;
+  let { student_id, first_name, middle_name, last_name, username, email, password, program_id } = req.body;
 
   if (!institutionId) {
     return res.status(400).json({ error: 'Institution ID is required' });
   }
 
-  if (!student_id || !first_name || !last_name || !username || !email || !password) {
-    return res.status(400).json({ error: 'All required fields must be provided' });
+  if (!student_id || !first_name || !last_name || !email) {
+    return res.status(400).json({ error: 'Student ID, First Name, Last Name, and Email are required' });
+  }
+
+  // Auto-generate username if not provided
+  if (!username) {
+    username = `${first_name.toLowerCase()}${student_id}`;
+  }
+
+  // Auto-generate password if not provided
+  if (!password) {
+    password = 'student123'; // Default password, will be hashed
   }
 
   academicQueries.checkStudentIdExists(student_id, (err, exists) => {
@@ -340,6 +350,7 @@ router.post('/students/add/:institutionId', (req, res) => {
 // POST /api/institution/students/bulk-import/:institutionId - Bulk import students
 router.post('/students/bulk-import/:institutionId', upload.single('studentFile'), async (req, res) => {
   const { institutionId } = req.params;
+  const { program_id } = req.body;
   
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
@@ -360,6 +371,13 @@ router.post('/students/bulk-import/:institutionId', upload.single('studentFile')
     
     if (normalizedData.length === 0) {
       return res.status(400).json({ error: 'No valid student records found after normalization' });
+    }
+
+    // Add program_id to each student if provided
+    if (program_id) {
+      normalizedData.forEach(student => {
+        student.program_id = program_id;
+      });
     }
 
     const results = await academicQueries.bulkCreateStudents(normalizedData, institutionId);
@@ -401,6 +419,26 @@ router.get('/students/by-id/:studentId/credentials-management', (req, res) => {
     }
     
     res.json(results || []);
+  });
+});
+
+// DELETE /api/institution/students/:studentId - Delete student account (only if no credentials)
+router.delete('/students/:studentId', (req, res) => {
+  const { studentId } = req.params;
+  
+  academicQueries.deleteStudent(studentId, (err, result) => {
+    if (err) {
+      console.error('Error deleting student:', err);
+      if (err.message === 'Cannot delete student with blockchain-verified credentials') {
+        return res.status(400).json({ error: err.message });
+      }
+      return res.status(500).json({ error: 'Failed to delete student account' });
+    }
+    
+    res.json({
+      success: true,
+      message: result.message || 'Student deleted successfully'
+    });
   });
 });
 

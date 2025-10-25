@@ -5,7 +5,8 @@ import './StudentManagement.css';
 import AddStudentModal from './AddStudentModal';
 import { 
   fetchStudents, 
-  fetchStudentCredentialsForManagement
+  fetchStudentCredentialsForManagement,
+  deleteStudent
 } from '../../services/institutionApiService';
 import { 
   fetchStudentCredentialCount
@@ -56,6 +57,31 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
       console.error('Error loading students:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteStudent = async (student) => {
+    if (student.credential_count > 0) {
+      alert('Cannot delete student with blockchain-verified credentials');
+      return;
+    }
+
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${student.first_name} ${student.last_name}?\n\nThis action cannot be undone.`
+    );
+
+    if (!confirmDelete) return;
+
+    try {
+      await deleteStudent(student.id);
+      alert('Student deleted successfully');
+      loadStudents(); // Refresh the list
+      if (onStudentListChanged) {
+        onStudentListChanged();
+      }
+    } catch (error) {
+      console.error('Error deleting student:', error);
+      alert(error.response?.data?.error || 'Failed to delete student');
     }
   };
 
@@ -280,13 +306,23 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                       </td>
                       <td>
                         <button
-                          className="btn btn-primary-custom btn-sm"
+                          className="btn btn-primary-custom btn-sm me-2"
                           onClick={() => handleViewCredentials(student)}
                           title="View student credentials"
                         >
                           <i className="fas fa-eye me-1"></i>
                           View Credentials
                         </button>
+                        {student.credential_count === 0 && (
+                          <button
+                            className="btn btn-danger btn-sm"
+                            onClick={() => handleDeleteStudent(student)}
+                            title="Delete student (no blockchain-verified credentials)"
+                          >
+                            <i className="fas fa-trash me-1"></i>
+                            Delete
+                          </button>
+                        )}
                       </td>
                     </tr>
                   ))

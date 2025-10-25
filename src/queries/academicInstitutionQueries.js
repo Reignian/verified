@@ -401,6 +401,82 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
   });
 };
 
+// Delete student account (only if no credentials)
+const deleteStudent = (studentId, callback) => {
+  connection.getConnection((err, conn) => {
+    if (err) {
+      return callback(err);
+    }
+
+    conn.beginTransaction((err) => {
+      if (err) {
+        conn.release();
+        return callback(err);
+      }
+
+      // Check if student has any blockchain verified credentials
+      const checkCredentialsQuery = `
+        SELECT COUNT(*) as count 
+        FROM credential 
+        WHERE owner_id = ? AND status = 'blockchain_verified'
+      `;
+
+      conn.query(checkCredentialsQuery, [studentId], (err, results) => {
+        if (err) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(err);
+          });
+        }
+
+        if (results[0].count > 0) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(new Error('Cannot delete student with blockchain-verified credentials'));
+          });
+        }
+
+        // Delete from student table
+        const deleteStudentQuery = 'DELETE FROM student WHERE id = ?';
+        conn.query(deleteStudentQuery, [studentId], (err, studentResult) => {
+          if (err) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(err);
+            });
+          }
+
+          // Delete from account table
+          const deleteAccountQuery = 'DELETE FROM account WHERE id = ?';
+          conn.query(deleteAccountQuery, [studentId], (err, accountResult) => {
+            if (err) {
+              return conn.rollback(() => {
+                conn.release();
+                callback(err);
+              });
+            }
+
+            conn.commit((err) => {
+              if (err) {
+                return conn.rollback(() => {
+                  conn.release();
+                  callback(err);
+                });
+              }
+
+              conn.release();
+              callback(null, {
+                affectedRows: studentResult.affectedRows,
+                message: 'Student deleted successfully'
+              });
+            });
+          });
+        });
+      });
+    });
+  });
+};
+
 const checkStudentIdExists = (studentId, callback) => {
   const query = 'SELECT COUNT(*) as count FROM student WHERE student_id = ?';
   connection.query(query, [studentId], (err, results) => {
@@ -889,6 +965,7 @@ module.exports = {
   getCredentialStats,
   bulkCreateStudents,
   addStudent,
+  deleteStudent,
   checkStudentIdExists,
   checkUsernameExists,
   getBulkImportStats,

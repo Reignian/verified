@@ -60,6 +60,7 @@ const getStudentCredentialCount = (studentId, callback) => {
       WHERE la1.student_id = ?
       UNION SELECT ?
     )
+    AND c.status = 'blockchain_verified'
   `;
   connection.query(query, [studentId, studentId], callback);
 };

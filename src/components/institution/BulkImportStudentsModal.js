@@ -1,8 +1,8 @@
 // fileName: BulkImportStudentsModal.js
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './AcademicInstitution.css';
-import { bulkImportStudents } from '../../services/institutionApiService';
+import { bulkImportStudents, fetchInstitutionPrograms } from '../../services/institutionApiService';
 
 function BulkImportStudentsModal({
   show,
@@ -17,6 +17,29 @@ function BulkImportStudentsModal({
   const [importSuccess, setImportSuccess] = useState(false);
   const [showFormatInfo, setShowFormatInfo] = useState(false);
   const [modalError, setModalError] = useState('');
+  const [programs, setPrograms] = useState([]);
+  const [selectedProgram, setSelectedProgram] = useState('');
+  const [loadingPrograms, setLoadingPrograms] = useState(false);
+
+  useEffect(() => {
+    if (show && institutionId) {
+      fetchPrograms();
+    }
+  }, [show, institutionId]);
+
+  const fetchPrograms = async () => {
+    setLoadingPrograms(true);
+    try {
+      const data = await fetchInstitutionPrograms(institutionId);
+      // Backend returns array directly, not wrapped in an object
+      setPrograms(Array.isArray(data) ? data : (data.programs || []));
+    } catch (error) {
+      console.error('Error fetching programs:', error);
+      setPrograms([]);
+    } finally {
+      setLoadingPrograms(false);
+    }
+  };
 
   const handleBulkImportFileChange = (e) => {
     const file = e.target.files?.[0] || null;
@@ -25,12 +48,31 @@ function BulkImportStudentsModal({
     if (modalError) setModalError('');
   };
 
+  const handleDownloadTemplate = () => {
+    // Create CSV template with headers only (no sample data)
+    const csvContent = `student_id,first_name,last_name,middle_name,email,username,password
+`;
+
+    // Create blob and download
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'student_import_template.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const resetBulkImportForm = () => {
     setBulkImportFile(null);
     setBulkImportMessage('');
     setImportSuccess(false);
     setShowFormatInfo(false);
     setModalError('');
+    setSelectedProgram('');
     const fileInput = document.getElementById('bulkImportFile');
     if (fileInput) fileInput.value = '';
   };
@@ -49,6 +91,10 @@ function BulkImportStudentsModal({
       setModalError('Please select a file to import');
       return;
     }
+    if (!selectedProgram) {
+      setModalError('Please select a program for the students');
+      return;
+    }
     if (!institutionId) {
       setModalError('Institution ID not found. Please log in again.');
       return;
@@ -58,7 +104,7 @@ function BulkImportStudentsModal({
     setBulkImportMessage('Processing file and importing students...');
 
     try {
-      const response = await bulkImportStudents(bulkImportFile, institutionId);
+      const response = await bulkImportStudents(bulkImportFile, institutionId, selectedProgram);
 
       setBulkImportMessage(
         `Import completed! \nSuccessfully imported: ${response.imported_count} students\nFailed: ${response.failed_count} records\nTotal processed: ${response.total_processed} records`
@@ -174,6 +220,66 @@ function BulkImportStudentsModal({
           ) : (
             // Default Form View
             <form onSubmit={handleBulkImportSubmit}>
+              {/* Download Template Button */}
+              <div className="template-download-section mb-4">
+                <div className="alert alert-info" style={{ marginBottom: '1rem' }}>
+                  <i className="fas fa-info-circle me-2"></i>
+                  <strong>Quick Start:</strong> Download the template below and add your student data.
+                </div>
+                <button
+                  type="button"
+                  className="btn btn-success w-100"
+                  onClick={handleDownloadTemplate}
+                >
+                  <i className="fas fa-download me-2"></i>
+                  Download CSV Template
+                </button>
+                <small><i className="fas fa-exclamation-triangle me-1"></i><strong>Important:</strong> Do not modify the header row (first row).</small>
+              </div>
+
+              {/* Program Selection */}
+              <div className="form-group">
+                <label className="form-label">
+                  <i className="fas fa-graduation-cap me-2"></i>
+                  Assign to Program <span className="text-danger">*</span>
+                </label>
+                {loadingPrograms ? (
+                  <div className="text-muted" style={{ padding: '0.75rem' }}>
+                    <i className="fas fa-spinner fa-spin me-2"></i>
+                    Loading programs...
+                  </div>
+                ) : programs.length === 0 ? (
+                  <div className="alert alert-warning" style={{ padding: '0.75rem', marginBottom: 0 }}>
+                    <i className="fas fa-exclamation-triangle me-2"></i>
+                    No programs available. Please create a program first.
+                  </div>
+                ) : (
+                  <select
+                    className="form-control"
+                    value={selectedProgram}
+                    onChange={(e) => setSelectedProgram(e.target.value)}
+                    required
+                    style={{
+                      padding: '0.75rem',
+                      border: '2px solid #e1e5e9',
+                      borderRadius: '6px',
+                      fontSize: '0.9rem'
+                    }}
+                  >
+                    <option value="">-- Select a Program --</option>
+                    {programs.map((program) => (
+                      <option key={program.id} value={program.id}>
+                        {program.program_code} - {program.program_name}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <small className="text-muted mt-1 d-block">
+                  <i className="fas fa-info-circle me-1"></i>
+                  All imported students will be assigned to this program
+                </small>
+              </div>
+
               <div className="form-group">
                 <label className="form-label">
                   <i className="fas fa-file-upload me-2"></i>
@@ -185,7 +291,7 @@ function BulkImportStudentsModal({
                     id="bulkImportFile"
                     name="bulkImportFile"
                     onChange={handleBulkImportFileChange}
-                    accept=".pdf,.txt,.csv,.xlsx,.xls,.doc,.docx"
+                    accept=".csv,.xlsx,.xls"
                     className="file-input"
                     required
                   />
@@ -207,7 +313,7 @@ function BulkImportStudentsModal({
                   <button
                     type="submit"
                     className="btn-secondary-custom"
-                    disabled={bulkImporting || !bulkImportFile}
+                    disabled={bulkImporting || !bulkImportFile || !selectedProgram}
                   >
                     {bulkImporting && <div className="loading-spinner"></div>}
                     <i className={`fas ${bulkImporting ? '' : 'fa-upload'} me-2`}></i>
@@ -222,35 +328,72 @@ function BulkImportStudentsModal({
                     onClick={() => (setShowFormatInfo ? setShowFormatInfo(!showFormatInfo) : null)}
                   >
                     <span>
-                      <i className="fas fa-info-circle me-2"></i>
-                      Supported Formats & Data Guide
+                      <i className="fas fa-question-circle me-2"></i>
+                      Need Help? View Format Guide
                     </span>
                     <i className={`fas ${showFormatInfo ? 'fa-chevron-up' : 'fa-chevron-down'}`}></i>
                   </div>
 
                   {(showFormatInfo || showFormatInfo === undefined) && (
                     <div className="mt-2">
-                      <ul>
-                        <li><strong>Excel (.xlsx, .xls):</strong> Column headers should match field names.</li>
-                        <li><strong>CSV:</strong> Comma-separated with headers in the first row.</li>
-                        <li><strong>Text (.txt):</strong> Structured data with clear field labels (e.g., "name: John Doe").</li>
-                        <li><strong>Word (.docx) / PDF:</strong> Text-based records (not scanned images).</li>
-                      </ul>
-                      <h6>Required/Recognized Fields:</h6>
-                      <ul>
-                        <li><strong>student_id</strong> (Required) - Unique student identifier</li>
-                        <li><strong>first_name</strong> (Required) - Student's first name</li>
-                        <li><strong>last_name</strong> - Student's last name</li>
-                        <li><strong>middle_name</strong> - Student's middle name</li>
-                        <li><strong>username</strong> - Login username (auto-generated if not provided)</li>
-                        <li><strong>password</strong> - Login password (auto-generated if not provided)</li>
-                        <li><strong>email</strong> - Email address (auto-generated if not provided)</li>
-                      </ul>
+                      <div className="alert alert-success" style={{ padding: '0.75rem', marginBottom: '1rem' }}>
+                        <i className="fas fa-check-circle me-2"></i>
+                        <strong>Accepted Formats:</strong> CSV (.csv), Excel (.xlsx, .xls)
+                      </div>
+
+                      <h6><i className="fas fa-table me-2"></i>Column Headers (First Row):</h6>
+                      <div className="format-example mb-3">
+                        <code style={{ fontSize: '0.85rem', display: 'block', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                          student_id,first_name,last_name,middle_name,email,username,password
+                        </code>
+                      </div>
+
+                      <h6><i className="fas fa-clipboard-list me-2"></i>Field Information:</h6>
+                      <table className="table table-sm" style={{ fontSize: '0.85rem' }}>
+                        <tbody>
+                          <tr>
+                            <td><strong>student_id</strong></td>
+                            <td><span className="badge bg-danger">Required</span></td>
+                            <td>Unique student identifier</td>
+                          </tr>
+                          <tr>
+                            <td><strong>first_name</strong></td>
+                            <td><span className="badge bg-danger">Required</span></td>
+                            <td>Student's first name</td>
+                          </tr>
+                          <tr>
+                            <td><strong>last_name</strong></td>
+                            <td><span className="badge bg-danger">Required</span></td>
+                            <td>Student's last name</td>
+                          </tr>
+                          <tr>
+                            <td><strong>email</strong></td>
+                            <td><span className="badge bg-danger">Required</span></td>
+                            <td>Email address</td>
+                          </tr>
+                          <tr>
+                            <td><strong>middle_name</strong></td>
+                            <td><span className="badge bg-secondary">Optional</span></td>
+                            <td>Student's middle name</td>
+                          </tr>
+                          <tr>
+                            <td><strong>username</strong></td>
+                            <td><span className="badge bg-info">Optional auto-generated</span></td>
+                            <td>Login username</td>
+                          </tr>
+                          <tr>
+                            <td><strong>password</strong></td>
+                            <td><span className="badge bg-info">Optional auto-generated</span></td>
+                            <td>Login password</td>
+                          </tr>
+                        </tbody>
+                      </table>
+
+                      <h6><i className="fas fa-file-csv me-2"></i>Example Data Row:</h6>
                       <div className="format-example">
-                        <strong>CSV Example:</strong><br />
-                        student_id,first_name,last_name,email<br />
-                        2022-01084,John,Doe,john.doe@student.edu<br />
-                        2022-01085,Jane,Smith,jane.smith@student.edu
+                        <code style={{ fontSize: '0.85rem', display: 'block', padding: '0.5rem', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
+                          2024-00001,Juan,Dela Cruz,Santos,juan.delacruz@student.edu,juan.delacruz,Student@123
+                        </code>
                       </div>
                     </div>
                   )}

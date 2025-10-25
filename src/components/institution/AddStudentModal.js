@@ -74,9 +74,8 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
     setSuccess('');
 
     // Validation
-    if (!formData.student_id || !formData.first_name || !formData.last_name || 
-        !formData.username || !formData.email || !formData.password) {
-      setError('All fields except Middle Name are required');
+    if (!formData.student_id || !formData.first_name || !formData.last_name || !formData.email) {
+      setError('Student ID, First Name, Last Name, and Email are required');
       return;
     }
 
@@ -204,7 +203,7 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
 
               <div className="add-student-form-group">
                 <label htmlFor="username">
-                  Username <span className="required">*</span>
+                  Username <span className="text-muted" style={{ fontWeight: 'normal' }}>(Optional)</span>
                 </label>
                 <input
                   type="text"
@@ -212,10 +211,13 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
                   name="username"
                   value={formData.username}
                   onChange={handleChange}
-                  placeholder="Enter username"
+                  placeholder="Leave empty for auto-generated username"
                   disabled={loading}
-                  required
                 />
+                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                  <i className="fas fa-info-circle me-1"></i>
+                  If left empty, username will be auto-generated
+                </small>
               </div>
             </div>
 
@@ -328,7 +330,7 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
 
               <div className="add-student-form-group">
                 <label htmlFor="password">
-                  Password <span className="required">*</span>
+                  Password <span className="text-muted" style={{ fontWeight: 'normal' }}>(Optional)</span>
                 </label>
                 <input
                   type="password"
@@ -336,10 +338,13 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
-                  placeholder="Enter password"
+                  placeholder="Leave empty for auto-generated password"
                   disabled={loading}
-                  required
                 />
+                <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
+                  <i className="fas fa-info-circle me-1"></i>
+                  If left empty, password will be auto-generated
+                </small>
               </div>
             </div>
 

@@ -69,11 +69,14 @@ export const addStudent = async (studentData, institutionId) => {
   }
 };
 
-// Bulk import students with institution ID
-export const bulkImportStudents = async (file, institutionId) => {
+// Bulk import students with institution ID and optional program ID
+export const bulkImportStudents = async (file, institutionId, programId = null) => {
   try {
     const formData = new FormData();
     formData.append('studentFile', file);
+    if (programId) {
+      formData.append('program_id', programId);
+    }
 
     const response = await axios.post(`${API_URL}/institution/students/bulk-import/${institutionId}`, formData, {
       headers: {
@@ -94,6 +97,17 @@ export const fetchStudents = async (institutionId) => {
     return response.data;
   } catch (error) {
     console.error('Error fetching students:', error);
+    throw error;
+  }
+};
+
+// Delete student account (only if no credentials issued)
+export const deleteStudent = async (studentId) => {
+  try {
+    const response = await axios.delete(`${API_URL}/institution/students/${studentId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting student:', error);
     throw error;
   }
 };
