@@ -33,6 +33,7 @@ CREATE TABLE `account` (
   `username` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
   `password` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
   `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
+  `status` enum('pending','approved','rejected') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'approved',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -61,6 +62,8 @@ CREATE TABLE `contact_messages` (
   `user_type` enum('institution','employer','student','other') COLLATE utf8mb4_general_ci NOT NULL,
   `message` text COLLATE utf8mb4_general_ci NOT NULL,
   `status` enum('unread','read','replied') COLLATE utf8mb4_general_ci DEFAULT 'unread',
+  `message_type` enum('contact','signup_request') COLLATE utf8mb4_general_ci DEFAULT 'contact',
+  `account_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `device_fingerprint` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,

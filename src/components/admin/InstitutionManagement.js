@@ -5,7 +5,9 @@ import {
   fetchAllInstitutions, 
   createInstitution, 
   updateInstitution, 
-  deleteInstitution 
+  deleteInstitution,
+  approveInstitution,
+  rejectInstitution
 } from '../../services/adminApiService';
 
 function InstitutionManagement({ onStatsUpdate }) {
@@ -102,6 +104,36 @@ function InstitutionManagement({ onStatsUpdate }) {
     }
   };
 
+  const handleApprove = async (institutionId) => {
+    if (!window.confirm('Are you sure you want to approve this institution account?')) {
+      return;
+    }
+
+    try {
+      await approveInstitution(institutionId);
+      await loadInstitutions();
+      if (onStatsUpdate) onStatsUpdate();
+    } catch (error) {
+      console.error('Failed to approve institution:', error);
+      setError('Failed to approve institution');
+    }
+  };
+
+  const handleReject = async (institutionId) => {
+    if (!window.confirm('Are you sure you want to reject this institution account? This action cannot be undone.')) {
+      return;
+    }
+
+    try {
+      await rejectInstitution(institutionId);
+      await loadInstitutions();
+      if (onStatsUpdate) onStatsUpdate();
+    } catch (error) {
+      console.error('Failed to reject institution:', error);
+      setError('Failed to reject institution');
+    }
+  };
+
   const resetForm = () => {
     setFormData({
       username: '',
@@ -162,6 +194,7 @@ function InstitutionManagement({ onStatsUpdate }) {
                 <th>Institution Name</th>
                 <th>Username</th>
                 <th>Email</th>
+                <th>Status</th>
                 <th>Students</th>
                 <th>Credentials</th>
                 <th>Created</th>
@@ -177,6 +210,26 @@ function InstitutionManagement({ onStatsUpdate }) {
                   <td>{institution.username}</td>
                   <td>{institution.email}</td>
                   <td>
+                    {institution.status === 'pending' && (
+                      <span className="badge bg-warning text-dark">
+                        <i className="fas fa-clock me-1"></i>
+                        Pending
+                      </span>
+                    )}
+                    {institution.status === 'approved' && (
+                      <span className="badge bg-success">
+                        <i className="fas fa-check me-1"></i>
+                        Approved
+                      </span>
+                    )}
+                    {institution.status === 'rejected' && (
+                      <span className="badge bg-danger">
+                        <i className="fas fa-times me-1"></i>
+                        Rejected
+                      </span>
+                    )}
+                  </td>
+                  <td>
                     <span className="badge bg-info">
                       {institution.student_count}
                     </span>
@@ -188,22 +241,42 @@ function InstitutionManagement({ onStatsUpdate }) {
                   </td>
                   <td>{formatDate(institution.created_at)}</td>
                   <td>
-                    <div className="btn-group" role="group">
-                      <button
-                        className="btn btn-sm btn-outline-primary"
-                        onClick={() => handleEdit(institution)}
-                        title="Edit"
-                      >
-                        <i className="fas fa-edit"></i>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger"
-                        onClick={() => handleDelete(institution.id)}
-                        title="Delete"
-                      >
-                        <i className="fas fa-trash"></i>
-                      </button>
-                    </div>
+                    {institution.status === 'pending' ? (
+                      <div className="btn-group" role="group">
+                        <button
+                          className="btn btn-sm btn-success"
+                          onClick={() => handleApprove(institution.id)}
+                          title="Approve"
+                        >
+                          <i className="fas fa-check"></i>
+                        </button>
+                        <button
+                          className="btn btn-sm btn-danger"
+                          onClick={() => handleReject(institution.id)}
+                          title="Reject"
+                        >
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="btn-group" role="group">
+                        <button
+                          className="btn btn-sm btn-outline-primary"
+                          onClick={() => handleEdit(institution)}
+                          title="Edit"
+                          disabled={institution.status === 'rejected'}
+                        >
+                          <i className="fas fa-edit"></i>
+                        </button>
+                        <button
+                          className="btn btn-sm btn-outline-danger"
+                          onClick={() => handleDelete(institution.id)}
+                          title="Delete"
+                        >
+                          <i className="fas fa-trash"></i>
+                        </button>
+                      </div>
+                    )}
                   </td>
                 </tr>
               ))}

@@ -5,6 +5,8 @@ const express = require('express');
 const router = express.Router();
 const adminQueries = require('../queries/adminQueries');
 const SystemSettingsService = require('../services/systemSettingsService');
+const emailService = require('../services/emailService');
+const db = require('../config/database');
 
 // GET /api/admin/stats - Get system statistics for admin dashboard
 router.get('/stats', (req, res) => {
@@ -25,6 +27,59 @@ router.get('/institutions', (req, res) => {
       return res.status(500).json({ error: 'Database error' });
     }
     res.json(results);
+  });
+});
+
+// GET /api/admin/institutions/pending - Get pending institution requests
+router.get('/institutions/pending', (req, res) => {
+  adminQueries.getPendingInstitutions((err, results) => {
+    if (err) {
+      console.error('Error fetching pending institutions:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// PUT /api/admin/institutions/:id/approve - Approve institution account
+router.put('/institutions/:id/approve', (req, res) => {
+  const { id } = req.params;
+  
+  adminQueries.approveInstitution(id, (err, result) => {
+    if (err) {
+      console.error('Error approving institution:', err);
+      return res.status(500).json({ error: 'Failed to approve institution' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Institution approved successfully'
+    });
+  });
+});
+
+// PUT /api/admin/institutions/:id/reject - Reject institution account
+router.put('/institutions/:id/reject', (req, res) => {
+  const { id } = req.params;
+  
+  adminQueries.rejectInstitution(id, (err, result) => {
+    if (err) {
+      console.error('Error rejecting institution:', err);
+      return res.status(500).json({ error: 'Failed to reject institution' });
+    }
+    
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Institution not found' });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Institution rejected successfully'
+    });
   });
 });
 
@@ -206,6 +261,152 @@ router.put('/system-settings', async (req, res) => {
     console.error('Error updating system settings:', error);
     res.status(500).json({ error: 'Failed to update system settings' });
   }
+});
+
+// POST /api/admin/contact-messages/:id/approve-signup - Approve signup request from Messages tab
+router.post('/contact-messages/:id/approve-signup', async (req, res) => {
+  const { id } = req.params;
+  
+  // Get the message to find the account_id
+  const query = 'SELECT * FROM contact_messages WHERE id = ? AND message_type = "signup_request"';
+  db.query(query, [id], async (err, messages) => {
+    if (err) {
+      console.error('Error fetching message:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (messages.length === 0) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+    
+    const message = messages[0];
+    const accountId = message.account_id;
+    
+    // Get institution details
+    const accountQuery = `
+      SELECT a.*, i.institution_name 
+      FROM account a 
+      JOIN institution i ON a.id = i.id 
+      WHERE a.id = ?
+    `;
+    
+    db.query(accountQuery, [accountId], async (err, accounts) => {
+      if (err) {
+        console.error('Error fetching account:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (accounts.length === 0) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
+      
+      const account = accounts[0];
+      
+      // Approve the institution
+      adminQueries.approveInstitution(accountId, async (err, result) => {
+        if (err) {
+          console.error('Error approving institution:', err);
+          return res.status(500).json({ error: 'Failed to approve institution' });
+        }
+        
+        // Update message status to 'replied'
+        adminQueries.updateContactMessageStatus(id, 'replied', (err) => {
+          if (err) {
+            console.error('Error updating message status:', err);
+          }
+        });
+        
+        // Generate Gmail compose URL for approval email
+        try {
+          const emailResult = await emailService.generateApprovalEmailUrl(account.email, account.institution_name, account.username);
+          res.json({
+            success: true,
+            message: 'Institution approved successfully',
+            gmailUrl: emailResult.gmailUrl
+          });
+        } catch (error) {
+          console.error('Error generating approval email URL:', error);
+          res.json({
+            success: true,
+            message: 'Institution approved successfully (email URL generation failed)'
+          });
+        }
+      });
+    });
+  });
+});
+
+// POST /api/admin/contact-messages/:id/reject-signup - Reject signup request from Messages tab
+router.post('/contact-messages/:id/reject-signup', async (req, res) => {
+  const { id } = req.params;
+  
+  // Get the message to find the account_id
+  const query = 'SELECT * FROM contact_messages WHERE id = ? AND message_type = "signup_request"';
+  db.query(query, [id], async (err, messages) => {
+    if (err) {
+      console.error('Error fetching message:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    if (messages.length === 0) {
+      return res.status(404).json({ error: 'Signup request not found' });
+    }
+    
+    const message = messages[0];
+    const accountId = message.account_id;
+    
+    // Get institution details
+    const accountQuery = `
+      SELECT a.*, i.institution_name 
+      FROM account a 
+      JOIN institution i ON a.id = i.id 
+      WHERE a.id = ?
+    `;
+    
+    db.query(accountQuery, [accountId], async (err, accounts) => {
+      if (err) {
+        console.error('Error fetching account:', err);
+        return res.status(500).json({ error: 'Database error' });
+      }
+      
+      if (accounts.length === 0) {
+        return res.status(404).json({ error: 'Account not found' });
+      }
+      
+      const account = accounts[0];
+      
+      // Reject the institution
+      adminQueries.rejectInstitution(accountId, async (err, result) => {
+        if (err) {
+          console.error('Error rejecting institution:', err);
+          return res.status(500).json({ error: 'Failed to reject institution' });
+        }
+        
+        // Update message status to 'replied'
+        adminQueries.updateContactMessageStatus(id, 'replied', (err) => {
+          if (err) {
+            console.error('Error updating message status:', err);
+          }
+        });
+        
+        // Generate Gmail compose URL for rejection email
+        try {
+          const emailResult = await emailService.generateRejectionEmailUrl(account.email, account.institution_name, account.username);
+          res.json({
+            success: true,
+            message: 'Institution rejected successfully',
+            gmailUrl: emailResult.gmailUrl
+          });
+        } catch (error) {
+          console.error('Error generating rejection email URL:', error);
+          res.json({
+            success: true,
+            message: 'Institution rejected successfully (email URL generation failed)'
+          });
+        }
+      });
+    });
+  });
 });
 
 // POST /api/admin/contact-messages/:id/gmail-reply - Generate Gmail reply URL

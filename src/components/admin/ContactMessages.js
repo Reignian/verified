@@ -5,7 +5,9 @@ import {
   fetchAllContactMessages, 
   updateContactMessageStatus, 
   deleteContactMessage,
-  generateGmailReplyUrl
+  generateGmailReplyUrl,
+  approveSignupRequest,
+  rejectSignupRequest
 } from '../../services/adminApiService';
 
 function ContactMessages({ onStatsUpdate }) {
@@ -115,6 +117,50 @@ function ContactMessages({ onStatsUpdate }) {
     }
   };
 
+  const handleApproveSignup = async (messageId) => {
+    if (!window.confirm('Are you sure you want to approve this institution signup request? A Gmail compose window will open to send the approval email.')) {
+      return;
+    }
+
+    try {
+      const response = await approveSignupRequest(messageId);
+      
+      // Open Gmail compose window if URL is provided
+      if (response.gmailUrl) {
+        window.open(response.gmailUrl, '_blank');
+      }
+      
+      await loadMessages();
+      if (onStatsUpdate) onStatsUpdate();
+      alert('Institution approved successfully! Please send the approval email from Gmail.');
+    } catch (error) {
+      console.error('Failed to approve signup request:', error);
+      setError('Failed to approve signup request');
+    }
+  };
+
+  const handleRejectSignup = async (messageId) => {
+    if (!window.confirm('Are you sure you want to reject this institution signup request? A Gmail compose window will open to send the rejection email.')) {
+      return;
+    }
+
+    try {
+      const response = await rejectSignupRequest(messageId);
+      
+      // Open Gmail compose window if URL is provided
+      if (response.gmailUrl) {
+        window.open(response.gmailUrl, '_blank');
+      }
+      
+      await loadMessages();
+      if (onStatsUpdate) onStatsUpdate();
+      alert('Institution rejected successfully! Please send the rejection email from Gmail.');
+    } catch (error) {
+      console.error('Failed to reject signup request:', error);
+      setError('Failed to reject signup request');
+    }
+  };
+
   const openMessageModal = async (message) => {
     setSelectedMessage(message);
     setShowModal(true);
@@ -151,6 +197,18 @@ function ContactMessages({ onStatsUpdate }) {
     
     const config = typeConfig[userType];
     return <span className={`badge ${config.class}`}>{config.text}</span>;
+  };
+
+  const getMessageTypeBadge = (messageType) => {
+    if (messageType === 'signup_request') {
+      return (
+        <span className="badge bg-warning text-dark">
+          <i className="fas fa-user-plus me-1"></i>
+          Signup Request
+        </span>
+      );
+    }
+    return null;
   };
 
   const formatDate = (dateString) => {
@@ -323,6 +381,11 @@ function ContactMessages({ onStatsUpdate }) {
                         <strong>{message.name}</strong>
                         <br />
                         <small className="text-muted">{message.email}</small>
+                        {message.message_type === 'signup_request' && (
+                          <div className="mt-1">
+                            {getMessageTypeBadge(message.message_type)}
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td>{getUserTypeBadge(message.user_type)}</td>
@@ -338,41 +401,69 @@ function ContactMessages({ onStatsUpdate }) {
                     <td>{getStatusBadge(message.status)}</td>
                     <td>{formatDate(message.created_at)}</td>
                     <td>
-                      <div className="btn-group" role="group">
-                        <button
-                          className="btn btn-sm btn-outline-primary"
-                          onClick={() => openMessageModal(message)}
-                          title="View Message"
-                        >
-                          <i className="fas fa-eye"></i>
-                        </button>
-                        
-                        <button
-                          className="btn btn-sm btn-outline-info"
-                          onClick={() => handleGmailReply(message.id)}
-                          title="Reply via Gmail"
-                        >
-                          <i className="fab fa-google"></i>
-                        </button>
-                        
-                        {message.status !== 'replied' && (
+                      {message.message_type === 'signup_request' && message.status !== 'replied' ? (
+                        <div className="btn-group" role="group">
                           <button
-                            className="btn btn-sm btn-outline-success"
-                            onClick={() => handleStatusUpdate(message.id, 'replied')}
-                            title="Mark as Replied"
+                            className="btn btn-sm btn-success"
+                            onClick={() => handleApproveSignup(message.id)}
+                            title="Approve Signup"
                           >
-                            <i className="fas fa-check"></i>
+                            <i className="fas fa-check me-1"></i>
+                            Approve
                           </button>
-                        )}
-                        
-                        <button
-                          className="btn btn-sm btn-outline-danger"
-                          onClick={() => handleDelete(message.id)}
-                          title="Delete"
-                        >
-                          <i className="fas fa-trash"></i>
-                        </button>
-                      </div>
+                          <button
+                            className="btn btn-sm btn-danger"
+                            onClick={() => handleRejectSignup(message.id)}
+                            title="Reject Signup"
+                          >
+                            <i className="fas fa-times me-1"></i>
+                            Reject
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => openMessageModal(message)}
+                            title="View Details"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="btn-group" role="group">
+                          <button
+                            className="btn btn-sm btn-outline-primary"
+                            onClick={() => openMessageModal(message)}
+                            title="View Message"
+                          >
+                            <i className="fas fa-eye"></i>
+                          </button>
+                          
+                          <button
+                            className="btn btn-sm btn-outline-info"
+                            onClick={() => handleGmailReply(message.id)}
+                            title="Reply via Gmail"
+                          >
+                            <i className="fab fa-google"></i>
+                          </button>
+                          
+                          {message.status !== 'replied' && (
+                            <button
+                              className="btn btn-sm btn-outline-success"
+                              onClick={() => handleStatusUpdate(message.id, 'replied')}
+                              title="Mark as Replied"
+                            >
+                              <i className="fas fa-check"></i>
+                            </button>
+                          )}
+                          
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => handleDelete(message.id)}
+                            title="Delete"
+                          >
+                            <i className="fas fa-trash"></i>
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
                 ))}

@@ -224,6 +224,26 @@ function Login({ onLoginSuccess }) {
             </small>
           </div>
         )}
+
+        {!isAdminLogin && (
+          <div className="text-center mt-4">
+            <div className="signup-divider">
+              <span>Don't have an account?</span>
+            </div>
+            <button
+              type="button"
+              className="btn btn-outline-primary w-100 mt-3"
+              onClick={() => navigate('/signup')}
+              disabled={loading}
+            >
+              <i className="fas fa-user-plus me-2"></i>
+              Sign Up as Institution
+            </button>
+            <small className="text-muted d-block mt-2">
+              Create an institution account and wait for admin approval
+            </small>
+          </div>
+        )}
       </div>
     </div>
   );

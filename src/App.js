@@ -7,6 +7,7 @@ import AcademicInstitution from './components/institution/AcademicInstitution';
 import MyVerifiED from './components/student/MyVerifiED';
 import AdminDashboard from './components/admin/AdminDashboard';
 import Login from './components/common/Login';
+import SignUp from './components/common/SignUp';
 import Navigation from './components/common/Navigation';
 
 function AppContent() {
@@ -14,8 +15,9 @@ function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  // Check if current page is login page
-  const isLoginPage = location.pathname === '/login' || location.pathname === '/verified/login';
+  // Check if current page is login or signup page
+  const isLoginPage = location.pathname === '/login' || location.pathname === '/verified/login' || 
+                      location.pathname === '/signup' || location.pathname === '/verified/signup';
 
   // Determine current page type
   const getCurrentPage = () => {
@@ -71,6 +73,8 @@ function AppContent() {
         <Route path="/verified" element={<HomePage />} />
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/verified/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/verified/signup" element={<SignUp />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/verified/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />

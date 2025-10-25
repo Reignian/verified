@@ -69,6 +69,26 @@ export const deleteInstitution = async (institutionId) => {
   }
 };
 
+export const approveInstitution = async (institutionId) => {
+  try {
+    const response = await axios.put(`${API_URL}/admin/institutions/${institutionId}/approve`);
+    return response.data;
+  } catch (error) {
+    console.error('Error approving institution:', error);
+    throw error;
+  }
+};
+
+export const rejectInstitution = async (institutionId) => {
+  try {
+    const response = await axios.put(`${API_URL}/admin/institutions/${institutionId}/reject`);
+    return response.data;
+  } catch (error) {
+    console.error('Error rejecting institution:', error);
+    throw error;
+  }
+};
+
 // Credential Monitoring
 export const fetchAllCredentials = async () => {
   try {
@@ -148,6 +168,26 @@ export const generateGmailReplyUrl = async (messageId) => {
     return response.data;
   } catch (error) {
     console.error('Error generating Gmail reply URL:', error);
+    throw error;
+  }
+};
+
+export const approveSignupRequest = async (messageId) => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/contact-messages/${messageId}/approve-signup`);
+    return response.data;
+  } catch (error) {
+    console.error('Error approving signup request:', error);
+    throw error;
+  }
+};
+
+export const rejectSignupRequest = async (messageId) => {
+  try {
+    const response = await axios.post(`${API_URL}/admin/contact-messages/${messageId}/reject-signup`);
+    return response.data;
+  } catch (error) {
+    console.error('Error rejecting signup request:', error);
     throw error;
   }
 };

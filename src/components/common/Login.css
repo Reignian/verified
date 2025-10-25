@@ -109,6 +109,33 @@
   margin-bottom: 16px !important;
 }
 
+/* Signup Divider */
+.signup-divider {
+  position: relative;
+  text-align: center;
+  margin: 20px 0;
+}
+
+.signup-divider::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #e0e0e0;
+  z-index: 0;
+}
+
+.signup-divider span {
+  background: white;
+  padding: 0 15px;
+  position: relative;
+  z-index: 1;
+  color: #666;
+  font-size: 14px;
+}
+
 @media (max-width: 576px) {
   .login-page {
     padding: 30px 12px;

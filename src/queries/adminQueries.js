@@ -10,6 +10,7 @@ const getAllInstitutions = (callback) => {
       a.id,
       a.username,
       a.email,
+      a.status,
       a.created_at,
       i.institution_name,
       (SELECT COUNT(*) FROM student WHERE institution_id = i.id) as student_count,
@@ -17,9 +18,53 @@ const getAllInstitutions = (callback) => {
     FROM account a
     JOIN institution i ON a.id = i.id
     WHERE a.account_type = 'institution'
+    ORDER BY 
+      CASE a.status 
+        WHEN 'pending' THEN 1 
+        WHEN 'approved' THEN 2 
+        WHEN 'rejected' THEN 3 
+      END,
+      a.created_at DESC
+  `;
+  connection.query(query, callback);
+};
+
+// Get pending institution requests
+const getPendingInstitutions = (callback) => {
+  const query = `
+    SELECT 
+      a.id,
+      a.username,
+      a.email,
+      a.status,
+      a.created_at,
+      i.institution_name
+    FROM account a
+    JOIN institution i ON a.id = i.id
+    WHERE a.account_type = 'institution' AND a.status = 'pending'
     ORDER BY a.created_at DESC
   `;
   connection.query(query, callback);
+};
+
+// Approve institution account
+const approveInstitution = (institutionId, callback) => {
+  const query = `
+    UPDATE account 
+    SET status = 'approved' 
+    WHERE id = ? AND account_type = 'institution'
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Reject institution account
+const rejectInstitution = (institutionId, callback) => {
+  const query = `
+    UPDATE account 
+    SET status = 'rejected' 
+    WHERE id = ? AND account_type = 'institution'
+  `;
+  connection.query(query, [institutionId], callback);
 };
 
 // Create new institution account
@@ -37,10 +82,10 @@ const createInstitution = (institutionData, callback) => {
           return callback(err);
         }
 
-        // First insert into account table with hashed password
+        // First insert into account table with hashed password and status 'approved'
         const accountQuery = `
-          INSERT INTO account (account_type, username, password, email, created_at) 
-          VALUES ('institution', ?, ?, ?, NOW())
+          INSERT INTO account (account_type, username, password, email, status, created_at) 
+          VALUES ('institution', ?, ?, ?, 'approved', NOW())
         `;
         
         conn.query(accountQuery, [
@@ -247,9 +292,19 @@ const getSystemStats = (callback) => {
 // Contact Messages
 const getAllContactMessages = (callback) => {
   const query = `
-    SELECT id, name, email, user_type, message, status, created_at, updated_at
+    SELECT id, name, email, user_type, message, status, message_type, account_id, created_at, updated_at
     FROM contact_messages
-    ORDER BY created_at DESC
+    ORDER BY 
+      CASE message_type 
+        WHEN 'signup_request' THEN 1 
+        WHEN 'contact' THEN 2 
+      END,
+      CASE status 
+        WHEN 'unread' THEN 1 
+        WHEN 'read' THEN 2 
+        WHEN 'replied' THEN 3 
+      END,
+      created_at DESC
   `;
   connection.query(query, callback);
 };
@@ -318,6 +373,9 @@ const logCredentialVerification = (verificationData, callback) => {
 
 module.exports = {
   getAllInstitutions,
+  getPendingInstitutions,
+  approveInstitution,
+  rejectInstitution,
   createInstitution,
   updateInstitution,
   deleteInstitution,
