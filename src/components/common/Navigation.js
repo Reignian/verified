@@ -6,6 +6,21 @@ import './Navigation.css';
 function Navigation({ onLoginClick, isLoggedIn = false, onLogout, userType, currentPage = 'home' }) {
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
+  // Get display name for user type
+  const getUserTypeDisplay = () => {
+    switch(userType) {
+      case 'student':
+        return 'Student';
+      case 'institution':
+      case 'institution_staff':
+        return 'Institution';
+      case 'admin':
+        return 'Admin';
+      default:
+        return 'User';
+    }
+  };
+
   return (
     <>
       
@@ -53,7 +68,7 @@ function Navigation({ onLoginClick, isLoggedIn = false, onLogout, userType, curr
                 {isLoggedIn ? (
                   <div className="d-flex align-items-center">
                     <span className="me-3" style={{ color: '#666', fontSize: '14px' }}>
-                      {userType === 'student' ? 'Student' : 'Institution'}
+                      {getUserTypeDisplay()}
                     </span>
                     <button 
                       className="btn btn-primary-custom ms-2"

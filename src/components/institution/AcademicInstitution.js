@@ -97,6 +97,7 @@ function AcademicInstitution() {
       try {
         // Get logged-in user info
         const loggedInUserId = localStorage.getItem('userId');
+        const userType = localStorage.getItem('userType');
         
         if (!loggedInUserId) {
           setErrorMessage('Please log in again');
@@ -104,25 +105,37 @@ function AcademicInstitution() {
           return;
         }
 
-        // Set institution ID from logged-in user
-        setInstitutionId(parseInt(loggedInUserId));
+        // Determine institution ID based on account type
+        let actualInstitutionId;
+        let publicAddress;
+        
+        if (userType === 'institution_staff') {
+          // For staff, use the stored institution_id and public_address from login
+          actualInstitutionId = parseInt(localStorage.getItem('institutionId'));
+          publicAddress = localStorage.getItem('publicAddress');
+        } else {
+          // For regular institutions, userId IS the institution ID
+          actualInstitutionId = parseInt(loggedInUserId);
+          // Fetch public address from database
+          const addressData = await fetchInstitutionPublicAddress(loggedInUserId);
+          publicAddress = addressData.public_address;
+        }
 
-        // Fetch institution name and public address
-        const [institutionData, addressData] = await Promise.all([
-          fetchInstitutionName(loggedInUserId),
-          fetchInstitutionPublicAddress(loggedInUserId)
-        ]);
+        setInstitutionId(actualInstitutionId);
+        setDbPublicAddress(publicAddress);
+
+        // Fetch institution name using the actual institution ID
+        const institutionData = await fetchInstitutionName(actualInstitutionId);
         setInstitutionName(institutionData.institution_name);
-        setDbPublicAddress(addressData.public_address);
 
-        // Load institution-specific data
+        // Load institution-specific data using the actual institution ID
         const [types, studentData, credentials, stats, dashStats, profile] = await Promise.all([
           fetchCredentialTypes(),
-          fetchStudents(loggedInUserId), // Pass institution ID
-          fetchIssuedCredentials(loggedInUserId), // Pass institution ID
-          fetchCredentialStats(loggedInUserId), // Pass institution ID
-          fetchDashboardStats(loggedInUserId), // Pass institution ID
-          fetchInstitutionProfile(loggedInUserId) // Pass institution ID
+          fetchStudents(actualInstitutionId),
+          fetchIssuedCredentials(actualInstitutionId),
+          fetchCredentialStats(actualInstitutionId),
+          fetchDashboardStats(actualInstitutionId),
+          fetchInstitutionProfile(actualInstitutionId)
         ]);
         
         setCredentialTypes(types);

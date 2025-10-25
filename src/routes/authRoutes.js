@@ -59,7 +59,11 @@ router.post('/login', (req, res) => {
     }
     
     // Validate that the selected user type matches the account type in database
-    if (user.account_type !== userType) {
+    // Allow institution_staff to login with userType='institution'
+    const isValidUserType = user.account_type === userType || 
+                           (userType === 'institution' && user.account_type === 'institution_staff');
+    
+    if (!isValidUserType) {
       return res.status(401).json({ 
         error: 'Invalid credentials' 
       });
@@ -84,6 +88,41 @@ router.post('/login', (req, res) => {
             account_type: user.account_type,
             public_address: publicAddress
           }
+        });
+      });
+    } else if (user.account_type === 'institution_staff') {
+      // For institution staff, fetch institution_id and institution's public_address
+      const db = require('../config/database');
+      db.query('SELECT institution_id FROM institution_staff WHERE id = ?', [user.id], (staffErr, staffResults) => {
+        if (staffErr) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (!staffResults || staffResults.length === 0) {
+          return res.status(500).json({ error: 'Staff record not found' });
+        }
+        
+        const institutionId = staffResults[0].institution_id;
+        
+        // Fetch institution's public_address
+        db.query('SELECT public_address FROM institution WHERE id = ?', [institutionId], (instErr, instResults) => {
+          if (instErr) {
+            return res.status(500).json({ error: 'Database error' });
+          }
+          
+          const publicAddress = instResults && instResults[0] ? instResults[0].public_address : null;
+          
+          return res.json({
+            message: 'Login successful',
+            user: {
+              id: user.id,
+              username: user.username,
+              email: user.email,
+              account_type: user.account_type,
+              institution_id: institutionId,
+              public_address: publicAddress
+            }
+          });
         });
       });
     } else {

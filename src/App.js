@@ -39,6 +39,8 @@ function AppContent() {
   const handleLogout = () => {
     localStorage.removeItem('userId');
     localStorage.removeItem('userType');
+    localStorage.removeItem('institutionId');
+    localStorage.removeItem('publicAddress');
     setUser(null);
     navigate('/');
   };

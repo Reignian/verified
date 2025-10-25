@@ -56,13 +56,21 @@ function Login({ onLoginSuccess }) {
       localStorage.setItem('userId', response.user.id);
       localStorage.setItem('userType', response.user.account_type);
       
+      // For institution_staff, store the institution_id and public_address
+      if (response.user.institution_id) {
+        localStorage.setItem('institutionId', response.user.institution_id);
+      }
+      if (response.user.public_address) {
+        localStorage.setItem('publicAddress', response.user.public_address);
+      }
+      
       // Call success callback to update app state
       if (onLoginSuccess) onLoginSuccess();
       
       // Navigate based on account type using React Router
       if (response.user.account_type === 'student') {
         navigate('/student-dashboard');
-      } else if (response.user.account_type === 'institution') {
+      } else if (response.user.account_type === 'institution' || response.user.account_type === 'institution_staff') {
         navigate('/institution-dashboard');
       } else if (response.user.account_type === 'admin') {
         navigate('/admin-dashboard');
