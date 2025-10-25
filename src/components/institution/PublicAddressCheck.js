@@ -46,7 +46,7 @@ function PublicAddressCheck({ institutionId, dbPublicAddress, onAddressUpdated, 
             <h2>Public Address Required</h2>
             <p>
               To access the full institution dashboard and issue blockchain-verified credentials, 
-              you need to add your institution's public Ethereum address.
+              you need to add your institution's public blockchain wallet address.
             </p>
             <button 
               className="btn btn-primary add-address-btn"

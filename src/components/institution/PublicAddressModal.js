@@ -1,22 +1,40 @@
 // fileName: PublicAddressModal.js
 // Modal for adding/editing institution public address
 
-import React, { useState, useEffect } from 'react';
-import { updateInstitutionPublicAddress } from '../../services/institutionApiService';
+import React, { useState, useEffect, useCallback } from 'react';
+import { updateInstitutionPublicAddress, getInstitutionAddresses } from '../../services/institutionApiService';
 import './PublicAddressModal.css';
 
 function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAddressUpdated }) {
   const [publicAddress, setPublicAddress] = useState('');
+  const [addresses, setAddresses] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingAddresses, setIsLoadingAddresses] = useState(false);
   const [error, setError] = useState('');
   const [isConnecting, setIsConnecting] = useState(false);
+
+  const fetchAddresses = useCallback(async () => {
+    if (!institutionId) return;
+    
+    setIsLoadingAddresses(true);
+    try {
+      const response = await getInstitutionAddresses(institutionId);
+      setAddresses(response.addresses || []);
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+      // Don't show error to user, just log it
+    } finally {
+      setIsLoadingAddresses(false);
+    }
+  }, [institutionId]);
 
   useEffect(() => {
     if (show) {
       setPublicAddress(currentAddress || '');
       setError('');
+      fetchAddresses();
     }
-  }, [show, currentAddress]);
+  }, [show, currentAddress, fetchAddresses]);
 
   const validateEthereumAddress = (address) => {
     return /^0x[a-fA-F0-9]{40}$/.test(address);
@@ -61,6 +79,7 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
 
     try {
       await updateInstitutionPublicAddress(institutionId, publicAddress);
+      await fetchAddresses(); // Refresh address list
       onAddressUpdated(publicAddress);
       onClose();
     } catch (error) {
@@ -102,7 +121,7 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
             <p className="info-text">
               <i className="fas fa-info-circle me-2"></i>
               Your public address is required to issue blockchain-verified credentials. 
-              This should be your institution's Ethereum wallet address.
+              This should be your institution's Polygon wallet address.
             </p>
           </div>
 
@@ -110,7 +129,7 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
             <div className="form-group">
               <label htmlFor="publicAddress">
                 <i className="fas fa-key me-2"></i>
-                Ethereum Public Address
+                Polygon Public Address
               </label>
               <div className="input-group">
                 <input
@@ -135,7 +154,6 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
                     </>
                   ) : (
                     <>
-                      <i className="fab fa-ethereum me-2"></i>
                       Connect MetaMask
                     </>
                   )}
@@ -144,13 +162,26 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
               {error && <div className="error-message">{error}</div>}
             </div>
 
-            <div className="address-validation">
-              <small className="text-muted">
-                <i className="fas fa-shield-alt me-1"></i>
-                Address format: 0x followed by 40 hexadecimal characters
-              </small>
+            {addresses.length > 0 && (
+            <div className="address-history">
+              <label>Address History ({addresses.length})</label>
+              {isLoadingAddresses ? (
+                <div className="loading-addresses">Loading...</div>
+              ) : (
+                <div className="address-list">
+                  {addresses.map((addr, index) => (
+                    <div 
+                      key={addr.id || index} 
+                      className={`address-item ${addr.is_current === 1 ? 'current' : ''}`}
+                    >
+                      <code>{addr.public_address}</code>
+                      {addr.is_current === 1 && <span className="current-tag">Current</span>}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
-
+          )}
             <div className="modal-actions">
               <button
                 type="button"

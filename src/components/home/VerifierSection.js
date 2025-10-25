@@ -104,9 +104,19 @@ function VerifierSection() {
         return { isValid: false, error: 'Credential not found on blockchain' };
       }
 
-      const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase();
+      // Check blockchain issuer against all institution addresses (current + historical)
       const chainIssuer = (chainData.issuer || '').trim().toLowerCase();
-      const issuerMatch = dbIssuer && chainIssuer ? dbIssuer === chainIssuer : false;
+      const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase(); // Current address
+      
+      // Get all institution addresses (includes historical addresses)
+      const institutionAddresses = credential.institution_addresses 
+        ? credential.institution_addresses.split(',').map(addr => addr.trim().toLowerCase())
+        : [dbIssuer];
+      
+      // Check if blockchain issuer matches ANY of the institution's addresses
+      const issuerMatch = chainIssuer && institutionAddresses.length > 0 
+        ? institutionAddresses.includes(chainIssuer)
+        : false;
 
       const dbStudentId = (credential.student_id ?? '').toString().trim();
       const chainStudentId = (chainData.studentId ?? '').toString().trim();

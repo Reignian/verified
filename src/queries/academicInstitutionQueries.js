@@ -64,14 +64,122 @@ const getInstitutionPublicAddress = (accountId, callback) => {
   connection.query(query, [accountId], callback);
 };
 
-// Update institution public address by account ID
-const updateInstitutionPublicAddress = (accountId, publicAddress, callback) => {
+// Get all institution addresses with history
+const getInstitutionAddresses = (institutionId, callback) => {
   const query = `
-    UPDATE institution 
-    SET public_address = ? 
-    WHERE id = ?
+    SELECT 
+      ia.id,
+      ia.public_address,
+      ia.created_at,
+      CASE 
+        WHEN ia.public_address = i.public_address THEN 1
+        ELSE 0
+      END AS is_current
+    FROM institution_addresses ia
+    JOIN institution i ON i.id = ia.institution_id
+    WHERE ia.institution_id = ?
+    ORDER BY is_current DESC, ia.created_at DESC
   `;
-  connection.query(query, [publicAddress, accountId], callback);
+  connection.query(query, [institutionId], callback);
+};
+
+// Update institution public address by account ID
+// Also creates a record in institution_addresses table for historical tracking
+const updateInstitutionPublicAddress = (accountId, publicAddress, callback) => {
+  // Get a connection from the pool for transaction
+  connection.getConnection((err, conn) => {
+    if (err) {
+      return callback(err);
+    }
+
+    // Start transaction
+    conn.beginTransaction((transErr) => {
+      if (transErr) {
+        conn.release();
+        return callback(transErr);
+      }
+
+      // Step 1: Update the primary public_address in institution table
+      const updateQuery = `
+        UPDATE institution 
+        SET public_address = ? 
+        WHERE id = ?
+      `;
+      
+      conn.query(updateQuery, [publicAddress, accountId], (updateErr, updateResult) => {
+        if (updateErr) {
+          return conn.rollback(() => {
+            conn.release();
+            callback(updateErr);
+          });
+        }
+
+        // Step 2: Check if this address already exists for this institution
+        const checkQuery = `
+          SELECT id 
+          FROM institution_addresses 
+          WHERE institution_id = ? AND public_address = ?
+          LIMIT 1
+        `;
+        
+        conn.query(checkQuery, [accountId, publicAddress], (checkErr, checkResults) => {
+          if (checkErr) {
+            return conn.rollback(() => {
+              conn.release();
+              callback(checkErr);
+            });
+          }
+
+          // If address already exists in history, skip insert
+          if (checkResults && checkResults.length > 0) {
+            // Address already exists, just commit the institution table update
+            return conn.commit((commitErr) => {
+              conn.release();
+              if (commitErr) {
+                return callback(commitErr);
+              }
+              callback(null, { 
+                updateResult,
+                message: 'Public address updated successfully (already in history)'
+              });
+            });
+          }
+
+          // Step 3: Insert new address into institution_addresses table
+          const insertQuery = `
+            INSERT INTO institution_addresses 
+            (institution_id, public_address) 
+            VALUES (?, ?)
+          `;
+          
+          conn.query(insertQuery, [accountId, publicAddress], (insertErr, insertResult) => {
+            if (insertErr) {
+              // Rollback on any insert error
+              return conn.rollback(() => {
+                conn.release();
+                callback(insertErr);
+              });
+            }
+
+            // Both operations succeeded, commit the transaction
+            conn.commit((commitErr) => {
+              conn.release();
+              if (commitErr) {
+                return callback(commitErr);
+              }
+              
+              // Return success with both results
+              callback(null, { 
+                updateResult, 
+                insertResult,
+                message: 'Public address updated and recorded in history'
+              });
+            });
+          });
+        });
+      });
+    });
+  });
 };
 
 // UPDATED: Handle custom types without creating new credential types
@@ -774,6 +882,7 @@ module.exports = {
   getStudents,
   getInstitutionName,
   getInstitutionPublicAddress,
+  getInstitutionAddresses,
   updateInstitutionPublicAddress,
   createCredential,
   getIssuedCredentials,

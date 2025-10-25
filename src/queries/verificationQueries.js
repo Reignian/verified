@@ -18,6 +18,11 @@ const getCredentialData = (accessCode, callback) => {
       s.student_id,
       inst.institution_name AS issuer_name,
       inst.public_address AS issuer_public_address,
+      (
+        SELECT GROUP_CONCAT(ia.public_address SEPARATOR ',')
+        FROM institution_addresses ia
+        WHERE ia.institution_id = inst.id
+      ) AS institution_addresses,
       ca.access_code,
       c.program_id,
       p.program_name,
@@ -59,6 +64,11 @@ const getMultiCredentialData = (accessCode, callback) => {
       s.student_id,
       inst.institution_name AS issuer_name,
       inst.public_address AS issuer_public_address,
+      (
+        SELECT GROUP_CONCAT(ia.public_address SEPARATOR ',')
+        FROM institution_addresses ia
+        WHERE ia.institution_id = inst.id
+      ) AS institution_addresses,
       mac.access_code,
       c.program_id,
       p.program_name,

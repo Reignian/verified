@@ -21,7 +21,7 @@ export const fetchInstitutionName = async (accountId) => {
 };
 
 // Get institution public address by account ID
-export const fetchInstitutionPublicAddress = async (accountId) => {
+export const getInstitutionPublicAddress = async (accountId) => {
   try {
     const response = await axios.get(`${API_URL}/institution/${accountId}/public-address`);
     return response.data;
@@ -31,7 +31,19 @@ export const fetchInstitutionPublicAddress = async (accountId) => {
   }
 };
 
+// Get all institution addresses with history
+export const getInstitutionAddresses = async (accountId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/${accountId}/addresses`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching institution addresses:', error);
+    throw error;
+  }
+};
+
 // Update institution public address by account ID
+// Also creates a record in institution_addresses table for historical tracking
 export const updateInstitutionPublicAddress = async (accountId, publicAddress) => {
   try {
     const response = await axios.put(`${API_URL}/institution/${accountId}/public-address`, {

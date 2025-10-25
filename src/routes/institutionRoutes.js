@@ -84,6 +84,23 @@ router.get('/:accountId/public-address', (req, res) => {
   });
 });
 
+// GET /api/institution/:accountId/addresses - Get all institution addresses with history
+router.get('/:accountId/addresses', (req, res) => {
+  const { accountId } = req.params;
+  
+  academicQueries.getInstitutionAddresses(accountId, (err, results) => {
+    if (err) {
+      console.error('Error fetching institution addresses:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    
+    res.json({
+      addresses: results || [],
+      count: results ? results.length : 0
+    });
+  });
+});
+
 // PUT /api/institution/:accountId/public-address - Update institution public address
 router.put('/:accountId/public-address', (req, res) => {
   const { accountId } = req.params;
@@ -98,19 +115,22 @@ router.put('/:accountId/public-address', (req, res) => {
     return res.status(400).json({ error: 'Invalid Ethereum address format' });
   }
   
+  // Call updated function (no label parameter needed)
   academicQueries.updateInstitutionPublicAddress(accountId, public_address, (err, results) => {
     if (err) {
       console.error('Error updating public address:', err);
       return res.status(500).json({ error: 'Database error' });
     }
     
-    if (results.affectedRows === 0) {
+    // Check if institution was found and updated
+    if (results.updateResult && results.updateResult.affectedRows === 0) {
       return res.status(404).json({ error: 'Institution not found' });
     }
     
     res.json({ 
-      message: 'Public address updated successfully',
-      public_address: public_address
+      message: results.message || 'Public address updated successfully',
+      public_address: public_address,
+      success: true
     });
   });
 });

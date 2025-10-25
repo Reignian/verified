@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 18, 2025 at 01:50 AM
+-- Generation Time: Oct 25, 2025 at 04:35 PM
 -- Server version: 8.0.43
 -- PHP Version: 8.2.12
 
@@ -43,7 +43,10 @@ CREATE TABLE `account` (
 INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `created_at`) VALUES
 (1, 'institution', 'wmsu', '$2b$10$5QBpi7tFxS.ca.dvyQZDLuG.VbTFwTtOphtIi8R53ycXwhT3E3.4i', 'wmsu@gmail.com', '2025-09-06 17:20:14'),
 (999, 'admin', 'admin', '$2b$10$n5S1mPhT7v/vIACT4Fv1lOZBIVsbujU2tsrEUxHEje3qZA4cldJ0C', 'admin@verified.com', '2025-10-17 23:34:01'),
-(1025, 'student', 'reign', '$2b$10$yNrpxD4EpgQ8TJ2Cw/fuse0WsgDGdoQ4qaRULjW8LyBiaGX6UTtiC', 'reign@wmsu.edu.ph', '2025-10-17 23:48:58');
+(1025, 'student', 'reign', '$2b$10$yNrpxD4EpgQ8TJ2Cw/fuse0WsgDGdoQ4qaRULjW8LyBiaGX6UTtiC', 'reign@wmsu.edu.ph', '2025-10-17 23:48:58'),
+(1026, 'student', 'gerby', '$2b$10$sb33aZeB1F3.lDCyLquzw.4lmIK1puBW1u3DdoHkq1QSMM39eaH.u', 'gerby@wmsu.edu.ph', '2025-10-19 06:58:40'),
+(1027, 'student', 'huifon', '$2b$10$nKWmUnFje4OlSPJELbeVn.y3.jaFwHYJzXzwDHcpqb7.hLQNWuqUO', 'huifon@wmsu.edu.ph', '2025-10-19 07:04:18'),
+(1028, 'institution_staff', 'jamal', '$2b$10$GbZpJM1BcH6ZYcH6L.JmLu9Wem2dg5Ayg4qo2KWt2BcnxyikREFhu', 'jamal@gmail.com', '2025-10-22 07:25:11');
 
 -- --------------------------------------------------------
 
@@ -118,6 +121,20 @@ CREATE TABLE `credential` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `credential`
+--
+
+INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `program_id`, `ipfs_cid`, `status`, `blockchain_id`, `created_at`, `updated_at`) VALUES
+(51, 1, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '12', '2025-10-19 06:56:34', '2025-10-19 06:56:34'),
+(52, 2, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '13', '2025-10-19 07:19:10', '2025-10-19 07:19:10'),
+(53, NULL, 'test credential', 1027, 1, 3, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '14', '2025-10-19 07:20:18', '2025-10-19 07:20:18'),
+(54, NULL, 'test credential', 1026, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '15', '2025-10-19 14:54:08', '2025-10-19 14:54:08'),
+(55, NULL, 'test credential', 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '16', '2025-10-19 16:11:00', '2025-10-19 16:11:00'),
+(56, 3, NULL, 1027, 1, 3, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '17', '2025-10-19 16:11:34', '2025-10-19 16:11:34'),
+(57, NULL, 'test 2', 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '18', '2025-10-22 07:21:10', '2025-10-22 07:21:10'),
+(58, NULL, 'test 3', 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '19', '2025-10-22 07:21:51', '2025-10-22 07:21:51');
+
 -- --------------------------------------------------------
 
 --
@@ -132,6 +149,13 @@ CREATE TABLE `credential_access` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `credential_access`
+--
+
+INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_active`, `created_at`, `is_deleted`) VALUES
+(13, 58, '9UC7JC', 1, '2025-10-25 14:24:01', 0);
 
 -- --------------------------------------------------------
 
@@ -169,6 +193,14 @@ CREATE TABLE `credential_verifications` (
   `status` enum('success','failed') COLLATE utf8mb4_general_ci DEFAULT 'success'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `credential_verifications`
+--
+
+INSERT INTO `credential_verifications` (`id`, `credential_id`, `access_code`, `verifier_ip`, `verifier_user_agent`, `verification_timestamp`, `status`) VALUES
+(60, 58, '9UC7JC', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', '2025-10-25 14:24:08', 'success'),
+(61, 58, '9UC7JC', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', '2025-10-25 14:24:45', 'success');
+
 -- --------------------------------------------------------
 
 --
@@ -198,11 +230,7 @@ CREATE TABLE `institution_addresses` (
   `id` int NOT NULL,
   `institution_id` int NOT NULL,
   `public_address` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `address_label` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `is_primary` tinyint(1) DEFAULT '0',
-  `is_active` tinyint(1) DEFAULT '1',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -254,6 +282,13 @@ CREATE TABLE `institution_staff` (
   `last_name` varchar(50) NOT NULL,
   `institution_id` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+--
+-- Dumping data for table `institution_staff`
+--
+
+INSERT INTO `institution_staff` (`id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
+(1028, 'Jamal', 'Alumbre', 'Al badi', 1);
 
 -- --------------------------------------------------------
 
@@ -338,7 +373,9 @@ CREATE TABLE `student` (
 --
 
 INSERT INTO `student` (`id`, `program_id`, `student_id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
-(1025, 2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1);
+(1025, 2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1),
+(1026, 2, '2022-01085', 'Gerby', '', 'Hallasgo', 1),
+(1027, 3, '2022-01086', 'Hui Fon', '', 'Tulawe', 1);
 
 -- --------------------------------------------------------
 
@@ -437,9 +474,8 @@ ALTER TABLE `institution_addresses`
   ADD PRIMARY KEY (`id`),
   ADD UNIQUE KEY `unique_institution_address` (`institution_id`,`public_address`),
   ADD KEY `idx_institution_id` (`institution_id`),
-  ADD KEY `idx_is_primary` (`is_primary`),
-  ADD KEY `idx_institution_addresses_active` (`institution_id`,`is_active`),
-  ADD KEY `idx_institution_addresses_primary` (`institution_id`,`is_primary`);
+  ADD KEY `idx_institution_addresses_active` (`institution_id`),
+  ADD KEY `idx_institution_addresses_primary` (`institution_id`);
 
 --
 -- Indexes for table `institution_staff`
@@ -501,7 +537,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1026;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1029;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
@@ -519,13 +555,13 @@ ALTER TABLE `contact_submissions`
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=51;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=59;
 
 --
 -- AUTO_INCREMENT for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
@@ -537,7 +573,7 @@ ALTER TABLE `credential_types`
 -- AUTO_INCREMENT for table `credential_verifications`
 --
 ALTER TABLE `credential_verifications`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=62;
 
 --
 -- AUTO_INCREMENT for table `institution`
@@ -555,7 +591,7 @@ ALTER TABLE `institution_addresses`
 -- AUTO_INCREMENT for table `institution_staff`
 --
 ALTER TABLE `institution_staff`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1023;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1029;
 
 --
 -- AUTO_INCREMENT for table `multi_access_code`
@@ -579,7 +615,7 @@ ALTER TABLE `program`
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1026;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1028;
 
 --
 -- AUTO_INCREMENT for table `system_settings`

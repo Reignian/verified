@@ -7,7 +7,7 @@ import {
   fetchIssuedCredentials,
   fetchCredentialStats,
   fetchInstitutionName,
-  fetchInstitutionPublicAddress,
+  getInstitutionPublicAddress,
   updateInstitutionPublicAddress,
   fetchStudents,
   fetchDashboardStats,
@@ -117,7 +117,7 @@ function AcademicInstitution() {
           // For regular institutions, userId IS the institution ID
           actualInstitutionId = parseInt(loggedInUserId);
           // Fetch public address from database
-          const addressData = await fetchInstitutionPublicAddress(loggedInUserId);
+          const addressData = await getInstitutionPublicAddress(loggedInUserId);
           publicAddress = addressData.public_address;
         }
 
