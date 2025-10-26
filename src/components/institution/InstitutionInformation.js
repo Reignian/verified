@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { updateInstitutionProfile } from '../../services/institutionApiService';
+import { logProfileUpdate } from '../../services/activityLogService';
 
 function InstitutionInformation({ institutionId, profile, onProfileUpdate }) {
   const [formData, setFormData] = useState({
@@ -123,6 +124,21 @@ function InstitutionInformation({ institutionId, profile, onProfileUpdate }) {
       }
       
       await updateInstitutionProfile(institutionId, updateData);
+      
+      // Log the activity
+      const changes = [];
+      if (formData.username !== profile.username) changes.push('username');
+      if (formData.email !== profile.email) changes.push('email');
+      if (showPasswordFields && formData.password) changes.push('password');
+      
+      if (changes.length > 0) {
+        const loggedInUserId = localStorage.getItem('userId');
+        await logProfileUpdate(
+          institutionId,
+          loggedInUserId,
+          changes.join(', ')
+        );
+      }
       
       setSuccess('Profile updated successfully!');
       

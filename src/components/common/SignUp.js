@@ -1,9 +1,9 @@
 // fileName: SignUp.js
-// Institution account sign-up with MetaMask instructions
+// Modern institution account sign-up with Polygon blockchain integration
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './SignUp.css';
+import './SignUpPage.css';
 
 function SignUp() {
   const navigate = useNavigate();
@@ -18,6 +18,7 @@ function SignUp() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [showModal, setShowModal] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -95,52 +96,49 @@ function SignUp() {
   };
 
   const renderStepIndicator = () => (
-    <div className="step-indicator mb-4">
-      <div className={`step ${currentStep >= 1 ? 'active' : ''} ${currentStep > 1 ? 'completed' : ''}`}>
-        <div className="step-number">1</div>
-        <div className="step-label">Instructions</div>
+    <div className="signup-step-indicator">
+      <div className={`signup-step-item ${currentStep >= 1 ? 'active' : ''}`}>
+        <span className="signup-step-num">1</span>
+        <span className="signup-step-text">Setup</span>
       </div>
-      <div className="step-line"></div>
-      <div className={`step ${currentStep >= 2 ? 'active' : ''} ${currentStep > 2 ? 'completed' : ''}`}>
-        <div className="step-number">2</div>
-        <div className="step-label">MetaMask Setup</div>
-      </div>
-      <div className="step-line"></div>
-      <div className={`step ${currentStep >= 3 ? 'active' : ''}`}>
-        <div className="step-number">3</div>
-        <div className="step-label">Account Details</div>
+      <div className="signup-step-divider"></div>
+      <div className={`signup-step-item ${currentStep >= 2 ? 'active' : ''}`}>
+        <span className="signup-step-num">2</span>
+        <span className="signup-step-text">Account</span>
       </div>
     </div>
   );
 
   if (success) {
     return (
-      <div className="signup-page">
-        <div className="signup-card success-card">
-          <div className="text-center">
-            <div className="success-icon mb-4">
+      <div className="signup-page-container">
+        <div className="signup-page-card">
+          <div className="signup-success-content">
+            <div className="signup-success-icon">
               <i className="fas fa-check-circle"></i>
             </div>
-            <h2 className="mb-3">Request Submitted Successfully!</h2>
-            <p className="text-muted mb-4">
-              Your institution account request has been sent to the administrator for approval.
-              You will be notified via email once your account is approved.
+            <h2 className="signup-success-title">Request Submitted!</h2>
+            <p className="signup-success-subtitle">
+              Your account request has been sent to the administrator.
             </p>
-            <div className="alert alert-info">
-              <i className="fas fa-info-circle me-2"></i>
-              <strong>Next Steps:</strong>
-              <ul className="text-start mt-2 mb-0">
-                <li>Wait for admin approval (usually within 24-48 hours)</li>
-                <li>Check your email for approval notification</li>
-                <li>Once approved, you can login with your credentials</li>
-                <li>After login, you'll be prompted to add your MetaMask public address</li>
-              </ul>
+            <div className="signup-info-box">
+              <div className="signup-info-item">
+                <i className="fas fa-clock"></i>
+                <span>Approval within 24-48 hours</span>
+              </div>
+              <div className="signup-info-item">
+                <i className="fas fa-envelope"></i>
+                <span>Email notification sent</span>
+              </div>
+              <div className="signup-info-item">
+                <i className="fas fa-sign-in-alt"></i>
+                <span>Login after approval</span>
+              </div>
             </div>
             <button 
-              className="btn btn-primary mt-3"
+              className="signup-btn-primary"
               onClick={() => navigate('/login')}
             >
-              <i className="fas fa-sign-in-alt me-2"></i>
               Back to Login
             </button>
           </div>
@@ -150,266 +148,215 @@ function SignUp() {
   }
 
   return (
-    <div className="signup-page">
-      <div className="signup-card">
-        <div className="text-center mb-4">
-          <h1 className="signup-title">Institution Account Sign Up</h1>
-          <p className="text-muted">Create your institution account to start issuing verified credentials</p>
+    <div className="signup-page-container">
+      <div className="signup-page-card">
+        <div className="signup-page-header">
+          <h1 className="signup-page-title">Create Institution Account</h1>
+          <p className="signup-page-subtitle">Join VerifiED to issue blockchain-verified credentials</p>
         </div>
 
         {renderStepIndicator()}
 
         {error && (
-          <div className="alert alert-danger" role="alert">
-            <i className="fas fa-exclamation-triangle me-2"></i>
-            {error}
+          <div className="signup-error-box">
+            <i className="fas fa-exclamation-circle"></i>
+            <span>{error}</span>
           </div>
         )}
 
-        {/* Step 1: Instructions */}
+        {/* Step 1: Setup & MetaMask */}
         {currentStep === 1 && (
-          <div className="step-content">
-            <h3 className="mb-3">
-              <i className="fas fa-info-circle me-2"></i>
-              Welcome to VerifiED
-            </h3>
-            <div className="instruction-box">
-              <h5>What You'll Need:</h5>
-              <ul>
-                <li><strong>Institution Information:</strong> Official name, email, and credentials</li>
-                <li><strong>MetaMask Wallet:</strong> A blockchain wallet for credential verification</li>
-                <li><strong>Admin Approval:</strong> Your account will be reviewed before activation</li>
-              </ul>
-
-              <h5 className="mt-4">Sign-Up Process:</h5>
-              <ol>
-                <li><strong>Read Instructions:</strong> Understand the requirements (this step)</li>
-                <li><strong>Set Up MetaMask:</strong> Install and create your blockchain wallet</li>
-                <li><strong>Create Account:</strong> Fill in your institution details</li>
-                <li><strong>Wait for Approval:</strong> Admin will review your request</li>
-                <li><strong>Login & Add Address:</strong> Once approved, login and add your MetaMask public address</li>
-              </ol>
-
-              <div className="alert alert-warning mt-3">
-                <i className="fas fa-exclamation-triangle me-2"></i>
-                <strong>Important:</strong> Your account will be in "pending" status until approved by an administrator.
-                You will receive an email notification once your account is approved.
+          <div className="signup-setup-grid">
+            {/* Blockchain Info */}
+            <div className="signup-info-card">
+              <div className="signup-info-card-header">
+                <i className="fab fa-ethereum"></i>
+                <h3>Polygon Blockchain</h3>
+              </div>
+              <p className="signup-info-text">VerifiED uses <strong>Polygon (Matic) Network</strong> for fast, low-cost credential verification.</p>
+              <div className="signup-blockchain-features">
+                <div className="signup-feature-item">
+                  <i className="fas fa-bolt"></i>
+                  <span>Fast transactions</span>
+                </div>
+                <div className="signup-feature-item">
+                  <i className="fas fa-dollar-sign"></i>
+                  <span>Low gas fees</span>
+                </div>
+                <div className="signup-feature-item">
+                  <i className="fas fa-shield-alt"></i>
+                  <span>Secure & verified</span>
+                </div>
               </div>
             </div>
 
-            <div className="d-flex justify-content-between mt-4">
+            {/* MetaMask Setup */}
+            <div className="signup-info-card">
+              <div className="signup-info-card-header">
+                <i className="fab fa-ethereum"></i>
+                <h3>MetaMask Wallet</h3>
+              </div>
+              <p className="signup-info-text">Install MetaMask browser extension to interact with Polygon blockchain.</p>
+              <div className="signup-steps-compact">
+                <div className="signup-compact-step">
+                  <span className="signup-badge-num">1</span>
+                  <span>Visit <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">metamask.io</a></span>
+                </div>
+                <div className="signup-compact-step">
+                  <span className="signup-badge-num">2</span>
+                  <span>Install browser extension</span>
+                </div>
+                <div className="signup-compact-step">
+                  <span className="signup-badge-num">3</span>
+                  <span>Create new wallet & save recovery phrase</span>
+                </div>
+                <div className="signup-compact-step">
+                  <span className="signup-badge-num">4</span>
+                  <span>Copy your public address (0x...)</span>
+                </div>
+              </div>
               <button 
                 type="button"
-                className="btn btn-secondary"
+                className="signup-btn-info-link"
+                onClick={() => setShowModal(true)}
+              >
+                <i className="fas fa-info-circle"></i>
+                View Detailed Instructions
+              </button>
+            </div>
+
+            {/* Requirements */}
+            <div className="signup-info-card full-width">
+              <div className="signup-info-card-header">
+                <i className="fas fa-clipboard-list"></i>
+                <h3>What You'll Need</h3>
+              </div>
+              <div className="signup-requirements-grid">
+                <div className="signup-req-item">
+                  <i className="fas fa-university"></i>
+                  <div>
+                    <strong>Institution Details</strong>
+                    <p>Official name & email</p>
+                  </div>
+                </div>
+                <div className="signup-req-item">
+                  <i className="fas fa-wallet"></i>
+                  <div>
+                    <strong>MetaMask Wallet</strong>
+                    <p>Polygon-compatible wallet</p>
+                  </div>
+                </div>
+                <div className="signup-req-item">
+                  <i className="fas fa-user-check"></i>
+                  <div>
+                    <strong>Admin Approval</strong>
+                    <p>24-48 hour review</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Important Note */}
+            <div className="signup-note-box full-width">
+              <i className="fas fa-info-circle"></i>
+              <div>
+                <strong>Note:</strong> You'll add your MetaMask address <em>after</em> account approval. 
+                Just have it ready for when you login.
+              </div>
+            </div>
+
+            {/* Navigation */}
+            <div className="signup-nav-buttons full-width">
+              <button 
+                type="button"
+                className="signup-btn-secondary"
                 onClick={() => navigate('/login')}
               >
-                <i className="fas fa-arrow-left me-2"></i>
+                <i className="fas fa-arrow-left"></i>
                 Back to Login
               </button>
               <button 
                 type="button"
-                className="btn btn-primary"
+                className="signup-btn-primary"
                 onClick={handleNextStep}
               >
-                Next: MetaMask Setup
-                <i className="fas fa-arrow-right ms-2"></i>
+                Continue to Account Setup
+                <i className="fas fa-arrow-right"></i>
               </button>
             </div>
           </div>
         )}
 
-        {/* Step 2: MetaMask Instructions */}
+        {/* Step 2: Account Creation Form */}
         {currentStep === 2 && (
-          <div className="step-content">
-            <h3 className="mb-3">
-              <i className="fab fa-ethereum me-2"></i>
-              MetaMask Wallet Setup
-            </h3>
-            <div className="instruction-box">
-              <p className="lead">
-                MetaMask is a blockchain wallet that allows you to interact with the Ethereum blockchain.
-                You'll need it to issue and verify credentials on VerifiED.
-              </p>
+          <div className="signup-form-container">
+            <form onSubmit={handleSubmit} className="signup-form">
+              <div className="signup-form-row">
+                <div className="signup-form-group">
+                  <label htmlFor="institution_name">Institution Name *</label>
+                  <input
+                    type="text"
+                    id="institution_name"
+                    name="institution_name"
+                    value={formData.institution_name}
+                    onChange={handleInputChange}
+                    placeholder="Harvard University"
+                    required
+                    disabled={loading}
+                  />
+                </div>
 
-              <h5 className="mt-4">Step-by-Step Guide:</h5>
-              
-              <div className="metamask-step">
-                <div className="step-badge">1</div>
-                <div className="step-details">
-                  <h6>Install MetaMask Browser Extension</h6>
-                  <p>Visit <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">metamask.io</a> and click "Download"</p>
-                  <p>Choose your browser (Chrome, Firefox, Brave, or Edge) and install the extension</p>
+                <div className="signup-form-group">
+                  <label htmlFor="email">Official Email *</label>
+                  <input
+                    type="email"
+                    id="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="contact@institution.edu"
+                    required
+                    disabled={loading}
+                  />
                 </div>
               </div>
 
-              <div className="metamask-step">
-                <div className="step-badge">2</div>
-                <div className="step-details">
-                  <h6>Create a New Wallet</h6>
-                  <p>Click the MetaMask icon in your browser</p>
-                  <p>Select "Create a new wallet"</p>
-                  <p>Create a strong password for your wallet</p>
+              <div className="signup-form-row">
+                <div className="signup-form-group">
+                  <label htmlFor="username">Username *</label>
+                  <input
+                    type="text"
+                    id="username"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                    placeholder="username (min. 3 chars)"
+                    required
+                    disabled={loading}
+                    minLength="3"
+                  />
+                </div>
+
+                <div className="signup-form-group">
+                  <label htmlFor="password">Password *</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    placeholder="Min. 8 characters"
+                    required
+                    disabled={loading}
+                    minLength="8"
+                  />
                 </div>
               </div>
 
-              <div className="metamask-step">
-                <div className="step-badge">3</div>
-                <div className="step-details">
-                  <h6>Secure Your Recovery Phrase</h6>
-                  <p>MetaMask will show you a 12-word recovery phrase</p>
-                  <p><strong className="text-danger">CRITICAL:</strong> Write this down and store it safely offline</p>
-                  <p>Never share your recovery phrase with anyone</p>
-                  <p>You'll need this to recover your wallet if you lose access</p>
-                </div>
-              </div>
-
-              <div className="metamask-step">
-                <div className="step-badge">4</div>
-                <div className="step-details">
-                  <h6>Get Your Public Address</h6>
-                  <p>After setup, click the MetaMask icon</p>
-                  <p>Your public address is shown at the top (starts with "0x...")</p>
-                  <p>Click it to copy - you'll add this after your account is approved</p>
-                </div>
-              </div>
-
-              <div className="alert alert-info mt-3">
-                <i className="fas fa-lightbulb me-2"></i>
-                <strong>Note:</strong> You don't need to add your public address during sign-up. 
-                After your account is approved and you login, you'll be prompted to add your MetaMask public address to your institution profile.
-              </div>
-
-              <div className="alert alert-warning mt-3">
-                <i className="fas fa-shield-alt me-2"></i>
-                <strong>Security Tips:</strong>
-                <ul className="mb-0 mt-2">
-                  <li>Never share your recovery phrase or private key</li>
-                  <li>MetaMask will never ask for your recovery phrase</li>
-                  <li>Only share your public address (starts with 0x...)</li>
-                  <li>Keep your password secure and unique</li>
-                </ul>
-              </div>
-            </div>
-
-            <div className="d-flex justify-content-between mt-4">
-              <button 
-                type="button"
-                className="btn btn-secondary"
-                onClick={handlePrevStep}
-              >
-                <i className="fas fa-arrow-left me-2"></i>
-                Previous
-              </button>
-              <button 
-                type="button"
-                className="btn btn-primary"
-                onClick={handleNextStep}
-              >
-                Next: Account Details
-                <i className="fas fa-arrow-right ms-2"></i>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Account Creation Form */}
-        {currentStep === 3 && (
-          <div className="step-content">
-            <h3 className="mb-3">
-              <i className="fas fa-university me-2"></i>
-              Create Your Institution Account
-            </h3>
-            
-            <form onSubmit={handleSubmit}>
-              <div className="mb-3">
-                <label htmlFor="institution_name" className="form-label">
-                  Institution Name <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="institution_name"
-                  name="institution_name"
-                  value={formData.institution_name}
-                  onChange={handleInputChange}
-                  placeholder="e.g., Harvard University"
-                  required
-                  disabled={loading}
-                />
-                <small className="form-text text-muted">
-                  Enter the official name of your academic institution
-                </small>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="username" className="form-label">
-                  Username <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="username"
-                  name="username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  placeholder="Choose a unique username"
-                  required
-                  disabled={loading}
-                  minLength="3"
-                />
-                <small className="form-text text-muted">
-                  This will be used for login (minimum 3 characters)
-                </small>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="email" className="form-label">
-                  Official Email Address <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="email"
-                  className="form-control"
-                  id="email"
-                  name="email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  placeholder="contact@institution.edu"
-                  required
-                  disabled={loading}
-                />
-                <small className="form-text text-muted">
-                  Use your institution's official email address
-                </small>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="password" className="form-label">
-                  Password <span className="text-danger">*</span>
-                </label>
+              <div className="signup-form-group full-width">
+                <label htmlFor="confirmPassword">Confirm Password *</label>
                 <input
                   type="password"
-                  className="form-control"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  placeholder="Create a strong password"
-                  required
-                  disabled={loading}
-                  minLength="8"
-                />
-                <small className="form-text text-muted">
-                  Minimum 8 characters
-                </small>
-              </div>
-
-              <div className="mb-3">
-                <label htmlFor="confirmPassword" className="form-label">
-                  Confirm Password <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="password"
-                  className="form-control"
                   id="confirmPassword"
                   name="confirmPassword"
                   value={formData.confirmPassword}
@@ -421,41 +368,37 @@ function SignUp() {
                 />
               </div>
 
-              <div className="alert alert-info">
-                <i className="fas fa-info-circle me-2"></i>
-                <strong>What happens next?</strong>
-                <ul className="mb-0 mt-2">
-                  <li>Your account request will be sent to the administrator</li>
-                  <li>Admin will review and approve your request</li>
-                  <li>You'll receive an email notification once approved</li>
-                  <li>After approval, login and add your MetaMask public address</li>
-                </ul>
+              <div className="signup-note-box">
+                <i className="fas fa-clock"></i>
+                <div>
+                  <strong>After Submission:</strong> Admin reviews your request (24-48 hrs) → Email notification → Login & add MetaMask address
+                </div>
               </div>
 
-              <div className="d-flex justify-content-between mt-4">
+              <div className="signup-nav-buttons">
                 <button 
                   type="button"
-                  className="btn btn-secondary"
+                  className="signup-btn-secondary"
                   onClick={handlePrevStep}
                   disabled={loading}
                 >
-                  <i className="fas fa-arrow-left me-2"></i>
+                  <i className="fas fa-arrow-left"></i>
                   Previous
                 </button>
                 <button 
                   type="submit"
-                  className="btn btn-success"
+                  className="signup-btn-primary"
                   disabled={loading}
                 >
                   {loading ? (
                     <>
-                      <span className="spinner-border spinner-border-sm me-2"></span>
-                      Submitting Request...
+                      <span className="signup-spinner"></span>
+                      Submitting...
                     </>
                   ) : (
                     <>
-                      <i className="fas fa-paper-plane me-2"></i>
-                      Submit Account Request
+                      Submit Request
+                      <i className="fas fa-paper-plane"></i>
                     </>
                   )}
                 </button>
@@ -464,6 +407,206 @@ function SignUp() {
           </div>
         )}
       </div>
+
+      {/* Detailed Instructions Modal */}
+      {showModal && (
+        <div className="signup-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="signup-modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="signup-modal-header">
+              <h2>
+                <i className="fab fa-ethereum"></i>
+                MetaMask Setup Guide
+              </h2>
+              <button className="signup-modal-close" onClick={() => setShowModal(false)}>
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+
+            <div className="signup-modal-body">
+              {/* What is MetaMask */}
+              <div className="signup-modal-section">
+                <h3><i className="fas fa-question-circle"></i> What is MetaMask?</h3>
+                <p>
+                  MetaMask is a cryptocurrency wallet that runs as a browser extension. It allows you to interact 
+                  with blockchain networks like Polygon (Matic) directly from your web browser. For VerifiED, 
+                  you'll use it to issue and manage blockchain-verified credentials.
+                </p>
+              </div>
+
+              {/* Installation Steps */}
+              <div className="signup-modal-section">
+                <h3><i className="fas fa-download"></i> Installation Steps</h3>
+                
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">1</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Download MetaMask</h4>
+                    <p>Visit <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">metamask.io</a> and click the "Download" button.</p>
+                    <p>Select your browser:</p>
+                    <ul>
+                      <li><strong>Chrome:</strong> Most popular, recommended</li>
+                      <li><strong>Firefox:</strong> Privacy-focused option</li>
+                      <li><strong>Brave:</strong> Built-in crypto features</li>
+                      <li><strong>Edge:</strong> Windows default browser</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">2</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Install the Extension</h4>
+                    <p>Click "Add to [Browser]" or "Install" button</p>
+                    <p>Confirm the installation when prompted</p>
+                    <p>Pin the extension to your browser toolbar for easy access</p>
+                  </div>
+                </div>
+
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">3</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Create a New Wallet</h4>
+                    <p>Click the MetaMask fox icon in your browser</p>
+                    <p>Select "Create a new wallet"</p>
+                    <p>Create a strong password (minimum 8 characters)</p>
+                    <p className="signup-warning-text">
+                      <i className="fas fa-exclamation-triangle"></i>
+                      <strong>Important:</strong> This password encrypts your wallet on this device only
+                    </p>
+                  </div>
+                </div>
+
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">4</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Secure Your Recovery Phrase</h4>
+                    <p className="signup-critical-text">
+                      <i className="fas fa-shield-alt"></i>
+                      <strong>CRITICAL STEP - DO NOT SKIP!</strong>
+                    </p>
+                    <p>MetaMask will show you a 12-word Secret Recovery Phrase</p>
+                    <p><strong>Write it down on paper</strong> in the exact order shown</p>
+                    <p>Store it in a safe place (fireproof safe, safety deposit box)</p>
+                    <div className="signup-warning-box">
+                      <strong>⚠️ Security Warnings:</strong>
+                      <ul>
+                        <li>NEVER share your recovery phrase with anyone</li>
+                        <li>NEVER type it into any website or app</li>
+                        <li>NEVER take a screenshot or photo of it</li>
+                        <li>NEVER store it digitally (email, cloud, notes app)</li>
+                        <li>MetaMask support will NEVER ask for your recovery phrase</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">5</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Confirm Your Recovery Phrase</h4>
+                    <p>MetaMask will ask you to select words in the correct order</p>
+                    <p>This ensures you wrote it down correctly</p>
+                    <p>Click "Confirm" when done</p>
+                  </div>
+                </div>
+
+                <div className="signup-detail-step">
+                  <div className="signup-step-number-large">6</div>
+                  <div className="signup-step-content-detail">
+                    <h4>Get Your Public Address</h4>
+                    <p>After setup, click the MetaMask icon</p>
+                    <p>Your public address is shown at the top (starts with "0x...")</p>
+                    <p>Click the address to copy it to clipboard</p>
+                    <p className="signup-info-text-box">
+                      <i className="fas fa-info-circle"></i>
+                      You'll add this address to VerifiED after your account is approved
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Polygon Network */}
+              <div className="signup-modal-section">
+                <h3><i className="fas fa-network-wired"></i> Connecting to Polygon Network</h3>
+                <p>
+                  VerifiED uses the <strong>Polygon (Matic) Network</strong>, not Ethereum mainnet. 
+                  You'll need to add Polygon to MetaMask:
+                </p>
+                <div className="signup-network-info">
+                  <p><strong>Network Name:</strong> Polygon Mainnet</p>
+                  <p><strong>RPC URL:</strong> https://polygon-rpc.com</p>
+                  <p><strong>Chain ID:</strong> 137</p>
+                  <p><strong>Currency Symbol:</strong> MATIC</p>
+                </div>
+                <p className="info-text">
+                  <i className="fas fa-lightbulb"></i>
+                  Don't worry - VerifiED will guide you through adding Polygon network when you first login.
+                </p>
+              </div>
+
+              {/* Security Best Practices */}
+              <div className="signup-modal-section">
+                <h3><i className="fas fa-lock"></i> Security Best Practices</h3>
+                <div className="signup-security-grid">
+                  <div className="signup-security-item">
+                    <i className="fas fa-check-circle"></i>
+                    <div>
+                      <strong>DO:</strong>
+                      <ul>
+                        <li>Keep your recovery phrase offline and secure</li>
+                        <li>Use a strong, unique password</li>
+                        <li>Lock MetaMask when not in use</li>
+                        <li>Only share your public address (0x...)</li>
+                        <li>Verify transaction details before confirming</li>
+                      </ul>
+                    </div>
+                  </div>
+                  <div className="signup-security-item">
+                    <i className="fas fa-times-circle"></i>
+                    <div>
+                      <strong>DON'T:</strong>
+                      <ul>
+                        <li>Share your recovery phrase or private key</li>
+                        <li>Store recovery phrase digitally</li>
+                        <li>Click suspicious links or connect to unknown sites</li>
+                        <li>Give MetaMask access to untrusted websites</li>
+                        <li>Ignore security warnings</li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Troubleshooting */}
+              <div className="signup-modal-section">
+                <h3><i className="fas fa-tools"></i> Common Issues</h3>
+                <div className="signup-faq-item">
+                  <strong>Q: I lost my recovery phrase. What do I do?</strong>
+                  <p>A: Unfortunately, there's no way to recover it. You'll need to create a new wallet. This is why it's critical to store it safely!</p>
+                </div>
+                <div className="signup-faq-item">
+                  <strong>Q: Can I use the same MetaMask wallet on multiple devices?</strong>
+                  <p>A: Yes! Install MetaMask on each device and import using your recovery phrase.</p>
+                </div>
+                <div className="signup-faq-item">
+                  <strong>Q: Do I need cryptocurrency to use VerifiED?</strong>
+                  <p>A: You'll need a small amount of MATIC for transaction fees (gas). VerifiED will provide guidance on obtaining MATIC.</p>
+                </div>
+                <div className="signup-faq-item">
+                  <strong>Q: Is MetaMask safe?</strong>
+                  <p>A: Yes, when used properly. MetaMask is open-source and trusted by millions. Just follow security best practices!</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="signup-modal-footer">
+              <button className="signup-btn-primary" onClick={() => setShowModal(false)}>
+                Got it, thanks!
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

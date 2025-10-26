@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import InstitutionInformation from './InstitutionInformation';
 import StaffManagement from './StaffManagement';
 import ProgramManagement from './ProgramManagement';
+import ActivityLog from './ActivityLog';
 import './InstitutionSettings.css';
 
 function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
@@ -31,6 +32,13 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
           <i className="fas fa-graduation-cap me-2"></i>
           Program Management
         </button>
+        <button
+          className={`settings-tab ${activeTab === 'activity' ? 'active' : ''}`}
+          onClick={() => setActiveTab('activity')}
+        >
+          <i className="fas fa-history me-2"></i>
+          Activity Log
+        </button>
       </div>
 
       <div className="settings-content">
@@ -43,11 +51,21 @@ function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
         )}
 
         {activeTab === 'staff' && (
-          <StaffManagement institutionId={institutionId} />
+          <StaffManagement 
+            institutionId={institutionId}
+            profile={profile}
+          />
         )}
 
         {activeTab === 'programs' && (
-          <ProgramManagement institutionId={institutionId} />
+          <ProgramManagement 
+            institutionId={institutionId}
+            profile={profile}
+          />
+        )}
+
+        {activeTab === 'activity' && (
+          <ActivityLog institutionId={institutionId} />
         )}
       </div>
     </div>

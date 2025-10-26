@@ -4,8 +4,9 @@ import {
   addInstitutionStaff, 
   deleteInstitutionStaff
 } from '../../services/institutionApiService';
+import { logStaffAdded, logStaffDeleted } from '../../services/activityLogService';
 
-function StaffManagement({ institutionId }) {
+function StaffManagement({ institutionId, profile }) {
   const [staffList, setStaffList] = useState([]);
   const [showAddStaffForm, setShowAddStaffForm] = useState(false);
   const [staffFormData, setStaffFormData] = useState({
@@ -113,6 +114,15 @@ function StaffManagement({ institutionId }) {
 
       await addInstitutionStaff(institutionId, newStaff);
       
+      // Log the activity
+      const staffName = `${staffFormData.first_name} ${staffFormData.last_name}`;
+      const loggedInUserId = localStorage.getItem('userId');
+      await logStaffAdded(
+        institutionId,
+        loggedInUserId,
+        staffName
+      );
+      
       setSuccess('Staff member added successfully!');
       
       setStaffFormData({
@@ -143,6 +153,15 @@ function StaffManagement({ institutionId }) {
 
     try {
       await deleteInstitutionStaff(staffId);
+      
+      // Log the activity
+      const loggedInUserId = localStorage.getItem('userId');
+      await logStaffDeleted(
+        institutionId,
+        loggedInUserId,
+        staffName
+      );
+      
       setSuccess('Staff member deleted successfully!');
       await loadStaffList();
       setTimeout(() => setSuccess(''), 3000);

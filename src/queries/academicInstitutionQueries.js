@@ -952,6 +952,71 @@ const deleteCredential = (credentialId, callback) => {
   });
 };
 
+// ============ ACTIVITY LOG QUERIES ============
+
+// Get activity logs for an institution
+const getActivityLogs = (institutionId, action, callback) => {
+  let query = `
+    SELECT 
+      al.id,
+      al.user_id,
+      al.action,
+      al.description,
+      al.target_id,
+      al.target_type,
+      al.ip_address,
+      al.created_at,
+      a.username,
+      a.account_type,
+      CASE 
+        WHEN a.account_type = 'institution' THEN a.username
+        WHEN a.account_type = 'institution_staff' THEN CONCAT(ist.first_name, ' ', IFNULL(CONCAT(ist.middle_name, ' '), ''), ist.last_name)
+        ELSE a.username
+      END AS user_display_name,
+      CASE 
+        WHEN a.account_type = 'institution' THEN 'Main Admin'
+        WHEN a.account_type = 'institution_staff' THEN 'Staff'
+        ELSE a.account_type
+      END AS user_role
+    FROM activity_log al
+    JOIN account a ON al.user_id = a.id
+    LEFT JOIN institution_staff ist ON al.user_id = ist.id AND a.account_type = 'institution_staff'
+    WHERE al.institution_id = ?
+  `;
+  
+  const params = [institutionId];
+  
+  if (action && action !== 'all') {
+    query += ' AND al.action = ?';
+    params.push(action);
+  }
+  
+  query += ' ORDER BY al.created_at DESC LIMIT 500';
+  
+  connection.query(query, params, callback);
+};
+
+// Create a new activity log entry
+const createActivityLog = (logData, callback) => {
+  const query = `
+    INSERT INTO activity_log 
+    (user_id, institution_id, action, description, target_type, target_id, ip_address, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+  `;
+  
+  const params = [
+    logData.user_id,
+    logData.institution_id,
+    logData.action,
+    logData.description,
+    logData.target_type,
+    logData.target_id,
+    logData.ip_address
+  ];
+  
+  connection.query(query, params, callback);
+};
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
@@ -979,5 +1044,7 @@ module.exports = {
   getInstitutionPrograms,
   addInstitutionProgram,
   deleteInstitutionProgram,
-  deleteCredential
+  deleteCredential,
+  getActivityLogs,
+  createActivityLog
 };

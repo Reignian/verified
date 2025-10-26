@@ -892,6 +892,55 @@ router.delete('/credential/:credentialId', (req, res) => {
   });
 });
 
+// ============ ACTIVITY LOG ============
+
+// GET /api/institution/:institutionId/activity-logs - Get activity logs for an institution
+router.get('/:institutionId/activity-logs', (req, res) => {
+  const { institutionId } = req.params;
+  const { action } = req.query;
+  
+  academicQueries.getActivityLogs(institutionId, action, (err, results) => {
+    if (err) {
+      console.error('Error fetching activity logs:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json(results);
+  });
+});
+
+// POST /api/institution/activity-logs - Create a new activity log entry
+router.post('/activity-logs', (req, res) => {
+  const { user_id, institution_id, action, description, target_type, target_id } = req.body;
+  
+  if (!user_id || !institution_id || !action) {
+    return res.status(400).json({ error: 'User ID, institution ID, and action are required' });
+  }
+  
+  const logData = {
+    user_id,
+    institution_id,
+    action,
+    description: description || null,
+    target_type: target_type || null,
+    target_id: target_id || null,
+    ip_address: req.ip || req.connection.remoteAddress
+  };
+  
+  academicQueries.createActivityLog(logData, (err, result) => {
+    if (err) {
+      console.error('Error creating activity log:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
+    
+    res.json({
+      success: true,
+      message: 'Activity logged successfully',
+      log_id: result.insertId
+    });
+  });
+});
+
 // ============ BLOCKCHAIN CONTRACT INFO ============
 
 // GET /api/institution/contract-address - Get deployed contract address
