@@ -91,6 +91,14 @@ function Login({ onLoginSuccess }) {
   return (
     <div className="login-page">
       <div className="login-card">
+        <button
+          type="button"
+          className="btn-home"
+          onClick={() => navigate('/')}
+          title="Return to Homepage"
+        >
+          <i className="fas fa-home"></i>
+        </button>
         <div className="text-center mb-4">
           <h1 className="login-title">Welcome to VerifiED</h1>
           <div className="login-toggle">

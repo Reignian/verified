@@ -22,6 +22,38 @@
   box-shadow: 0 20px 40px rgba(2, 6, 23, 0.08);
   padding: 32px;
   backdrop-filter: saturate(180%) blur(2px);
+  position: relative;
+}
+
+.btn-home {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color, #e5e7eb);
+  background: var(--card-bg, #ffffff);
+  color: var(--text-color, #1f2937);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 18px;
+  z-index: 10;
+}
+
+.btn-home:hover {
+  background: var(--primary-color, #4F46E5);
+  color: #ffffff;
+  border-color: var(--primary-color, #4F46E5);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);
+}
+
+.btn-home:active {
+  transform: translateY(0);
 }
 
 .login-title {
@@ -110,6 +142,19 @@
 }
 
 /* Signup Divider */
+.login-toggle {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.login-toggle .btn {
+  flex: 1;
+  max-width: 200px;
+  min-width: 0;
+}
+
 .signup-divider {
   position: relative;
   text-align: center;
@@ -136,6 +181,57 @@
   font-size: 14px;
 }
 
+/* Tablet and below (768px and smaller) */
+@media (max-width: 768px) {
+  .login-page {
+    padding: 32px 16px;
+    min-height: calc(100vh - 75px);
+  }
+
+  .login-card {
+    padding: 28px;
+    border-radius: 14px;
+    max-width: 100%;
+  }
+
+  .login-title {
+    font-size: 24px;
+    margin-bottom: 14px;
+  }
+
+  .login-toggle {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+  }
+
+  .login-toggle .btn {
+    flex: 1;
+    font-size: 0.95rem;
+    padding: 10px 16px;
+    min-width: 0;
+  }
+
+  .login-form .form-control {
+    height: 44px;
+    font-size: 1rem;
+  }
+
+  .login-form .form-label {
+    font-size: 0.95rem;
+  }
+
+  .login-radios {
+    gap: 14px;
+  }
+
+  .alert {
+    font-size: 0.9rem;
+    padding: 10px 12px;
+  }
+}
+
+/* Mobile devices (576px and smaller) */
 @media (max-width: 576px) {
   .login-page {
     padding: 30px 12px;
@@ -147,6 +243,14 @@
     border-radius: 14px;
   }
 
+  .btn-home {
+    width: 36px;
+    height: 36px;
+    font-size: 16px;
+    top: 12px;
+    left: 12px;
+  }
+
   .login-title {
     font-size: 22px;
     margin-bottom: 12px;
@@ -155,11 +259,14 @@
   .login-toggle {
     display: flex;
     gap: 8px;
+    width: 100%;
   }
 
   .login-toggle .btn {
+    flex: 1;
     font-size: 0.9rem;
     padding: 8px 16px;
+    min-width: 0;
   }
 
   .login-form .form-control {
@@ -201,20 +308,30 @@
     max-width: 100%;
   }
 
+  .btn-home {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    top: 10px;
+    left: 10px;
+  }
+
   .login-title {
     font-size: 20px;
     margin-bottom: 10px;
   }
 
   .login-toggle {
-    flex-direction: column;
+    display: flex;
     gap: 8px;
+    width: 100%;
   }
 
   .login-toggle .btn {
-    width: 100%;
+    flex: 1;
     font-size: 0.85rem;
     padding: 10px 12px;
+    min-width: 0;
   }
 
   .login-form .form-control,
