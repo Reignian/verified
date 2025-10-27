@@ -4,7 +4,6 @@ import {
   addInstitutionProgram,
   deleteInstitutionProgram
 } from '../../services/institutionApiService';
-import { logProgramAdded, logProgramDeleted } from '../../services/activityLogService';
 
 function ProgramManagement({ institutionId, profile }) {
   const [programList, setProgramList] = useState([]);
@@ -77,15 +76,8 @@ function ProgramManagement({ institutionId, profile }) {
         program_code: programFormData.program_code
       };
 
-      await addInstitutionProgram(institutionId, newProgram);
-      
-      // Log the activity
       const loggedInUserId = localStorage.getItem('userId');
-      await logProgramAdded(
-        institutionId,
-        loggedInUserId,
-        programFormData.program_name
-      );
+      await addInstitutionProgram(institutionId, newProgram, loggedInUserId);
       
       setSuccess('Program added successfully!');
       
@@ -111,15 +103,8 @@ function ProgramManagement({ institutionId, profile }) {
     }
 
     try {
-      await deleteInstitutionProgram(programId);
-      
-      // Log the activity
       const loggedInUserId = localStorage.getItem('userId');
-      await logProgramDeleted(
-        institutionId,
-        loggedInUserId,
-        programName
-      );
+      await deleteInstitutionProgram(programId, loggedInUserId, institutionId, programName);
       
       setSuccess('Program deleted successfully!');
       await loadProgramList();

@@ -136,6 +136,10 @@ router.post('/login', (req, res) => {
       return res.status(403).json({ error: 'Your account request has been rejected. Please contact the administrator for more information.' });
     }
     
+    if (user.account_type !== 'admin' && user.status === 'deleted') {
+      return res.status(403).json({ error: 'This account has been deleted. Please contact the administrator for more information.' });
+    }
+    
     // Verify username/email matches
     if (user.username !== emailOrUsername && user.email !== emailOrUsername) {
       return res.status(401).json({ error: 'Invalid credentials' });

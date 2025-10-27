@@ -744,10 +744,13 @@ const getInstitutionStaff = (institutionId, callback) => {
       s.last_name,
       a.username,
       a.email,
-      a.account_type
+      a.account_type,
+      a.status
     FROM institution_staff s
     JOIN account a ON s.id = a.id
-    WHERE s.institution_id = ? AND a.account_type = 'institution_staff'
+    WHERE s.institution_id = ? 
+      AND a.account_type = 'institution_staff'
+      AND (a.status IS NULL OR a.status != 'deleted')
     ORDER BY s.last_name, s.first_name
   `;
   connection.query(query, [institutionId], callback);
@@ -826,57 +829,19 @@ const addInstitutionStaff = (staffData, callback) => {
   }); // end of bcrypt.hash callback
 };
 
-// Delete a staff member
+// Delete a staff member (soft delete - updates status to 'deleted')
 const deleteInstitutionStaff = (staffId, callback) => {
-  connection.getConnection((err, conn) => {
+  // Soft delete: Update account status to 'deleted' instead of removing the record
+  const updateStatusQuery = 'UPDATE account SET status = ? WHERE id = ? AND account_type = ?';
+  
+  connection.query(updateStatusQuery, ['deleted', staffId, 'institution_staff'], (err, result) => {
     if (err) {
       return callback(err);
     }
-
-    conn.beginTransaction((err) => {
-      if (err) {
-        conn.release();
-        return callback(err);
-      }
-      
-      // First, delete from institution_staff table
-      const deleteStaffQuery = 'DELETE FROM institution_staff WHERE id = ?';
-      
-      conn.query(deleteStaffQuery, [staffId], (err, staffResult) => {
-        if (err) {
-          return conn.rollback(() => {
-            conn.release();
-            callback(err);
-          });
-        }
-        
-        // Then, delete from account table
-        const deleteAccountQuery = 'DELETE FROM account WHERE id = ? AND account_type = \'institution_staff\'';
-        
-        conn.query(deleteAccountQuery, [staffId], (err, accountResult) => {
-          if (err) {
-            return conn.rollback(() => {
-              conn.release();
-              callback(err);
-            });
-          }
-          
-          conn.commit((err) => {
-            if (err) {
-              return conn.rollback(() => {
-                conn.release();
-                callback(err);
-              });
-            }
-            
-            conn.release();
-            callback(null, {
-              affectedRows: staffResult.affectedRows,
-              message: 'Staff member deleted successfully'
-            });
-          });
-        });
-      });
+    
+    callback(null, {
+      affectedRows: result.affectedRows,
+      message: 'Staff member deleted successfully (soft delete)'
     });
   });
 };

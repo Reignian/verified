@@ -308,9 +308,10 @@ export const fetchInstitutionStaff = async (institutionId) => {
 };
 
 // Add a new staff member
-export const addInstitutionStaff = async (institutionId, staffData) => {
+export const addInstitutionStaff = async (institutionId, staffData, userId) => {
   try {
-    const response = await axios.post(`${API_URL}/institution/${institutionId}/staff`, staffData);
+    const dataWithUserId = { ...staffData, user_id: userId };
+    const response = await axios.post(`${API_URL}/institution/${institutionId}/staff`, dataWithUserId);
     return response.data;
   } catch (error) {
     console.error('Error adding institution staff:', error);
@@ -319,9 +320,15 @@ export const addInstitutionStaff = async (institutionId, staffData) => {
 };
 
 // Delete a staff member
-export const deleteInstitutionStaff = async (staffId) => {
+export const deleteInstitutionStaff = async (staffId, userId, institutionId, staffName) => {
   try {
-    const response = await axios.delete(`${API_URL}/institution/staff/${staffId}`);
+    const response = await axios.delete(`${API_URL}/institution/staff/${staffId}`, {
+      params: {
+        user_id: userId,
+        institution_id: institutionId,
+        staff_name: staffName
+      }
+    });
     return response.data;
   } catch (error) {
     console.error('Error deleting institution staff:', error);
@@ -343,9 +350,10 @@ export const fetchInstitutionPrograms = async (institutionId) => {
 };
 
 // Add a new program
-export const addInstitutionProgram = async (institutionId, programData) => {
+export const addInstitutionProgram = async (institutionId, programData, userId) => {
   try {
-    const response = await axios.post(`${API_URL}/institution/${institutionId}/programs`, programData);
+    const dataWithUserId = { ...programData, user_id: userId };
+    const response = await axios.post(`${API_URL}/institution/${institutionId}/programs`, dataWithUserId);
     return response.data;
   } catch (error) {
     console.error('Error adding institution program:', error);
@@ -354,9 +362,15 @@ export const addInstitutionProgram = async (institutionId, programData) => {
 };
 
 // Delete a program
-export const deleteInstitutionProgram = async (programId) => {
+export const deleteInstitutionProgram = async (programId, userId, institutionId, programName) => {
   try {
-    const response = await axios.delete(`${API_URL}/institution/programs/${programId}`);
+    const response = await axios.delete(`${API_URL}/institution/programs/${programId}`, {
+      params: {
+        user_id: userId,
+        institution_id: institutionId,
+        program_name: programName
+      }
+    });
     return response.data;
   } catch (error) {
     console.error('Error deleting institution program:', error);

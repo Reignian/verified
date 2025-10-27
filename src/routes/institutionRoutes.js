@@ -747,7 +747,7 @@ router.get('/:institutionId/staff', (req, res) => {
 // POST /api/institution/:institutionId/staff - Add a new staff member
 router.post('/:institutionId/staff', (req, res) => {
   const { institutionId } = req.params;
-  const { first_name, middle_name, last_name, username, email, password } = req.body;
+  const { first_name, middle_name, last_name, username, email, password, user_id } = req.body;
   
   if (!first_name || !last_name || !username || !email || !password) {
     return res.status(400).json({ error: 'First name, last name, username, email, and password are required' });
@@ -772,6 +772,27 @@ router.post('/:institutionId/staff', (req, res) => {
       return res.status(500).json({ error: 'Database error', details: err.message });
     }
     
+    // Log activity if user_id is provided
+    if (user_id) {
+      const staffName = `${first_name} ${middle_name ? middle_name + ' ' : ''}${last_name}`.trim();
+      const activityLog = {
+        user_id: parseInt(user_id),
+        institution_id: parseInt(institutionId),
+        action: 'staff_added',
+        action_type: 'create',
+        description: `Added staff member: ${staffName}`
+      };
+      
+      const db = require('../config/database');
+      db.query(
+        'INSERT INTO activity_log (user_id, institution_id, action, action_type, description) VALUES (?, ?, ?, ?, ?)',
+        [activityLog.user_id, activityLog.institution_id, activityLog.action, activityLog.action_type, activityLog.description],
+        (logErr) => {
+          if (logErr) console.error('Error logging activity:', logErr);
+        }
+      );
+    }
+    
     res.json({
       success: true,
       message: 'Staff member added successfully',
@@ -783,6 +804,7 @@ router.post('/:institutionId/staff', (req, res) => {
 // DELETE /api/institution/staff/:staffId - Delete a staff member
 router.delete('/staff/:staffId', (req, res) => {
   const { staffId } = req.params;
+  const { user_id, institution_id, staff_name } = req.query;
   
   academicQueries.deleteInstitutionStaff(staffId, (err, results) => {
     if (err) {
@@ -792,6 +814,26 @@ router.delete('/staff/:staffId', (req, res) => {
     
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Staff member not found' });
+    }
+    
+    // Log activity if user_id and institution_id are provided
+    if (user_id && institution_id) {
+      const activityLog = {
+        user_id: parseInt(user_id),
+        institution_id: parseInt(institution_id),
+        action: 'staff_deleted',
+        action_type: 'delete',
+        description: `Deleted staff member: ${staff_name || 'Unknown'}`
+      };
+      
+      const db = require('../config/database');
+      db.query(
+        'INSERT INTO activity_log (user_id, institution_id, action, action_type, description) VALUES (?, ?, ?, ?, ?)',
+        [activityLog.user_id, activityLog.institution_id, activityLog.action, activityLog.action_type, activityLog.description],
+        (logErr) => {
+          if (logErr) console.error('Error logging activity:', logErr);
+        }
+      );
     }
     
     res.json({ 
@@ -820,7 +862,7 @@ router.get('/:institutionId/programs', (req, res) => {
 // POST /api/institution/:institutionId/programs - Add a new program
 router.post('/:institutionId/programs', (req, res) => {
   const { institutionId } = req.params;
-  const { program_name, program_code } = req.body;
+  const { program_name, program_code, user_id } = req.body;
   
   if (!program_name) {
     return res.status(400).json({ error: 'Program name is required' });
@@ -841,6 +883,26 @@ router.post('/:institutionId/programs', (req, res) => {
       return res.status(500).json({ error: 'Database error', details: err.message });
     }
     
+    // Log activity if user_id is provided
+    if (user_id) {
+      const activityLog = {
+        user_id: parseInt(user_id),
+        institution_id: parseInt(institutionId),
+        action: 'program_added',
+        action_type: 'create',
+        description: `Added program: ${program_name}`
+      };
+      
+      const db = require('../config/database');
+      db.query(
+        'INSERT INTO activity_log (user_id, institution_id, action, action_type, description) VALUES (?, ?, ?, ?, ?)',
+        [activityLog.user_id, activityLog.institution_id, activityLog.action, activityLog.action_type, activityLog.description],
+        (logErr) => {
+          if (logErr) console.error('Error logging activity:', logErr);
+        }
+      );
+    }
+    
     res.json({
       success: true,
       message: 'Program added successfully',
@@ -852,6 +914,7 @@ router.post('/:institutionId/programs', (req, res) => {
 // DELETE /api/institution/programs/:programId - Delete a program
 router.delete('/programs/:programId', (req, res) => {
   const { programId } = req.params;
+  const { user_id, institution_id, program_name } = req.query;
   
   academicQueries.deleteInstitutionProgram(programId, (err, results) => {
     if (err) {
@@ -861,6 +924,26 @@ router.delete('/programs/:programId', (req, res) => {
     
     if (results.affectedRows === 0) {
       return res.status(404).json({ error: 'Program not found' });
+    }
+    
+    // Log activity if user_id and institution_id are provided
+    if (user_id && institution_id) {
+      const activityLog = {
+        user_id: parseInt(user_id),
+        institution_id: parseInt(institution_id),
+        action: 'program_deleted',
+        action_type: 'delete',
+        description: `Deleted program: ${program_name || 'Unknown'}`
+      };
+      
+      const db = require('../config/database');
+      db.query(
+        'INSERT INTO activity_log (user_id, institution_id, action, action_type, description) VALUES (?, ?, ?, ?, ?)',
+        [activityLog.user_id, activityLog.institution_id, activityLog.action, activityLog.action_type, activityLog.description],
+        (logErr) => {
+          if (logErr) console.error('Error logging activity:', logErr);
+        }
+      );
     }
     
     res.json({ 
