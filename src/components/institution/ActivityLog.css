@@ -1,8 +1,7 @@
 /* Activity Log Styles - Isolated to prevent affecting other pages */
 .activity-log-container {
-  max-width: 1200px;
   margin: 0 auto;
-  padding: 0;
+  padding: 30px;
   padding-top: 32px;
 }
 

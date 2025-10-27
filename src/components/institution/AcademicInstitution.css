@@ -299,9 +299,8 @@
   transform: rotate(90deg) scale(0.95);
 }
 
-.status-uploaded { background-color: #fff7ed; color: #c2410c; border-color: #fdba74; }
 .status-blockchain_verified { background-color: #f0fdf4; color: #166534; border-color: #86efac; }
-.status-deleted { background-color: #fef2f2; color: #991b1b; border-color: #fca5a5; }
+.status-deleted { background-color: #fef2f2; color: #ff0000; border-color: #fca5a5; }
 .status-pending { background-color: #fef9c3; color: #854d0e; border-color: #fde047; }
 
 /* Section Tabs */
@@ -1564,4 +1563,52 @@
     height: 32px;
     font-size: 0.8rem;
   }
+}
+
+/* Transaction Link Styling */
+.transaction-link {
+  color: #4050b5;
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.transaction-link:hover {
+  color: #3d5afe;
+  text-decoration: underline;
+}
+
+.transaction-link i {
+  font-size: 0.75rem;
+}
+
+/* Deleted Credential Row Styling */
+.deleted-credential-row {
+  background-color: #fee2e2 !important;
+  color: #ff0000;
+}
+
+.deleted-credential-row td {
+  color: #ff0000;
+}
+
+.deleted-credential-row td strong {
+  color: #ff0000;
+}
+
+.deleted-credential-row:hover {
+  background-color: #fecaca !important;
+}
+
+.deleted-credential-row .transaction-link {
+  color: #dc2626;
+}
+
+.deleted-credential-row .transaction-link:hover {
+  color: #991b1b;
 }

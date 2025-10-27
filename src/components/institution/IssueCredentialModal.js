@@ -4,6 +4,7 @@ import React, { useMemo, useState, useEffect } from 'react';
 import './AcademicInstitution.css';
 import { uploadCredentialAfterBlockchain, fetchInstitutionPrograms } from '../../services/institutionApiService';
 import blockchainService from '../../services/blockchainService';
+import { logCredentialIssued } from '../../services/activityLogService';
 
 function IssueCredentialModal({
   show,
@@ -214,7 +215,7 @@ function IssueCredentialModal({
       // or a 'custom_type' string, but not both.
       const credentialData = {
         owner_id: parseInt(formData.studentAccount),
-        sender_id: parseInt(loggedInUserId),
+        sender_id: institutionId, // Use institution ID, not user ID (supports staff accounts)
       };
       if (isCustomType) {
         credentialData.custom_type = customCredentialType.trim();
@@ -241,6 +242,13 @@ function IssueCredentialModal({
       setUploadProgress(100);
       setUploadMessage('Credential issued successfully!');
       setLoaderStatus('success');
+
+      // Log the activity
+      const credentialTypeName = isCustomType 
+        ? customCredentialType.trim() 
+        : credentialTypes.find(ct => ct.id === parseInt(formData.credentialType))?.type_name || 'Unknown';
+      const studentFullName = `${selectedStudent.first_name} ${selectedStudent.middle_name ? selectedStudent.middle_name + ' ' : ''}${selectedStudent.last_name}`.trim();
+      await logCredentialIssued(institutionId, parseInt(loggedInUserId), credentialTypeName, studentFullName);
 
       // Notify parent to refresh lists
       if (typeof onIssued === 'function') {

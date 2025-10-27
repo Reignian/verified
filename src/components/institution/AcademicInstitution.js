@@ -15,6 +15,7 @@ import {
   updateInstitutionProfile,
   deleteCredential
 } from '../../services/institutionApiService';
+import { logCredentialDeleted } from '../../services/activityLogService';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import './AcademicInstitution.css';
 import StudentManagement from './StudentManagement';
@@ -209,7 +210,17 @@ function AcademicInstitution() {
 
   const handleDeleteCredential = async (credentialId) => {
     try {
+      // Find credential info before deleting for activity log
+      const credential = issuedCredentials.find(c => c.id === credentialId);
+      
       await deleteCredential(credentialId);
+      
+      // Log the activity
+      if (credential) {
+        const userId = localStorage.getItem('userId');
+        await logCredentialDeleted(institutionId, userId, credential.credential_type);
+      }
+      
       // Refresh issued credentials and stats after deletion
       await refreshIssuedData();
     } catch (error) {

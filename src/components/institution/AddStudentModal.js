@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import './AddStudentModal.css';
 import { addStudent, fetchInstitutionPrograms } from '../../services/institutionApiService';
+import { logStudentAdded } from '../../services/activityLogService';
 
 const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   const [formData, setFormData] = useState({
@@ -96,6 +97,11 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
       
       const result = await addStudent(studentData, institutionId);
       setSuccess(result.message || 'Student account created successfully!');
+      
+      // Log the activity
+      const userId = localStorage.getItem('userId');
+      const studentFullName = `${formData.first_name} ${formData.middle_name ? formData.middle_name + ' ' : ''}${formData.last_name}`.trim();
+      await logStudentAdded(institutionId, userId, studentFullName);
       
       // Reset form
       setFormData({

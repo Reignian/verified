@@ -10,8 +10,13 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
   const [deletingId, setDeletingId] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterDate, setFilterDate] = useState('');
+  const [showDeleted, setShowDeleted] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  
+  // Get user type from localStorage to check if admin or staff
+  const userType = localStorage.getItem('userType');
+  const isAdmin = userType === 'institution';
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -71,12 +76,20 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
     }
   };
 
-  // Filter credentials based on search term and date
+  // Count deleted credentials
+  const deletedCount = (credentials || []).filter(c => c.status === 'deleted').length;
+
+  // Filter credentials based on search term, date, and status
   const filteredCredentials = (credentials || []).filter((credential) => {
+    // Status filter (show deleted or active based on toggle)
+    const statusMatch = showDeleted 
+      ? credential.status === 'deleted'
+      : credential.status !== 'deleted';
+
     // Search filter (student name or credential type)
     const searchMatch = searchTerm === '' ||
-      credential.student_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      credential.credential_type.toLowerCase().includes(searchTerm.toLowerCase());
+      credential.student_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      credential.credential_type?.toLowerCase().includes(searchTerm.toLowerCase());
 
     // Date filter (exact date match)
     let dateMatch = true;
@@ -86,21 +99,22 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
       dateMatch = credentialDate === selectedDate;
     }
 
-    return searchMatch && dateMatch;
+    return statusMatch && searchMatch && dateMatch;
   });
 
   const clearFilters = () => {
     setSearchTerm('');
     setFilterDate('');
+    setShowDeleted(false);
     setCurrentPage(1); // Reset to first page when clearing filters
   };
 
-  const hasActiveFilters = searchTerm !== '' || filterDate !== '';
+  const hasActiveFilters = searchTerm !== '' || filterDate !== '' || showDeleted;
 
   // Reset to page 1 when filters change
   React.useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filterDate]);
+  }, [searchTerm, filterDate, showDeleted]);
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredCredentials.length / itemsPerPage);
@@ -190,6 +204,24 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
             />
           </div>
 
+          {isAdmin && (
+            <div className="filter-group">
+              <label htmlFor="statusFilter">
+                <i className="fas fa-filter"></i>
+                Status
+              </label>
+              <select
+                id="statusFilter"
+                className="form-control"
+                value={showDeleted ? 'deleted' : 'active'}
+                onChange={(e) => setShowDeleted(e.target.value === 'deleted')}
+              >
+                <option value="active">Active Credentials</option>
+                <option value="deleted">Deleted Credentials</option>
+              </select>
+            </div>
+          )}
+
           {hasActiveFilters && (
             <div className="filter-group">
               <label>&nbsp;</label>
@@ -224,6 +256,7 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
               <th>Student Name</th>
               <th>Credential Type</th>
               <th>Date Issued</th>
+              <th>Transaction ID</th>
               <th>Status</th>
               <th>Action</th>
             </tr>
@@ -231,12 +264,28 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
           <tbody>
             {(currentCredentials && currentCredentials.length > 0) ? (
               currentCredentials.map((credential) => (
-                <tr key={credential.id}>
+                <tr key={credential.id} className={credential.status === 'deleted' ? 'deleted-credential-row' : ''}>
                   <td>
                     <strong>{credential.student_name}</strong>
                   </td>
                   <td>{credential.credential_type}</td>
                   <td>{formatDate(credential.date_issued)}</td>
+                  <td>
+                    {credential.transaction_id ? (
+                      <a 
+                        href={`https://amoy.polygonscan.com/tx/${credential.transaction_id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="transaction-link"
+                        title="View transaction on Polygon Amoy Explorer"
+                      >
+                        <i className="fas fa-external-link-alt me-1"></i>
+                        {credential.transaction_id.substring(0, 8)}...{credential.transaction_id.substring(credential.transaction_id.length - 6)}
+                      </a>
+                    ) : (
+                      <span className="text-muted">N/A</span>
+                    )}
+                  </td>
                   <td>
                     <span className={`status-badge status-${credential.status}`}>
                       {credential.status === 'blockchain_verified' ? 'Verified' : 'Deleted'}
@@ -260,22 +309,24 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
                         <i className="fas fa-download me-1"></i>
                         Download
                       </button>
-                      <button
-                        className="btn btn-danger btn-sm"
-                        onClick={() => handleDelete(credential.id, credential.student_name, credential.credential_type)}
-                        title="Delete credential"
-                        disabled={deletingId === credential.id}
-                      >
-                        <i className="fas fa-trash me-1"></i>
-                        {deletingId === credential.id ? 'Deleting...' : 'Delete'}
-                      </button>
+                      {isAdmin && credential.status !== 'deleted' && (
+                        <button
+                          className="btn btn-danger btn-sm"
+                          onClick={() => handleDelete(credential.id, credential.student_name, credential.credential_type)}
+                          title="Delete credential"
+                          disabled={deletingId === credential.id}
+                        >
+                          <i className="fas fa-trash me-1"></i>
+                          {deletingId === credential.id ? 'Deleting...' : 'Delete'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan="5" className="text-center text-muted py-4">
+                <td colSpan="6" className="text-center text-muted py-4">
                   <i className="fas fa-inbox fa-2x mb-3 d-block"></i>
                   No credentials issued yet
                 </td>

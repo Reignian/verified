@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import './StudentManagement.css';
 import AddStudentModal from './AddStudentModal';
+import DeleteConfirmationModal from './DeleteConfirmationModal';
 import { 
   fetchStudents, 
   fetchStudentCredentialsForManagement,
@@ -11,6 +12,7 @@ import {
 import { 
   fetchStudentCredentialCount
 } from '../../services/studentApiService';
+import { logStudentDeleted } from '../../services/activityLogService';
 
 // Pinata gateway URL from environment variable
 const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
@@ -26,6 +28,17 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  
+  // Delete confirmation modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [studentToDelete, setStudentToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteModalSuccess, setDeleteModalSuccess] = useState('');
+  const [deleteModalError, setDeleteModalError] = useState('');
+  
+  // Get user type from localStorage to check if admin or staff
+  const userType = localStorage.getItem('userType');
+  const isAdmin = userType === 'institution';
 
   useEffect(() => {
     loadStudents();
@@ -60,28 +73,60 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
     }
   };
 
-  const handleDeleteStudent = async (student) => {
+  const handleDeleteStudent = (student) => {
     if (student.credential_count > 0) {
-      alert('Cannot delete student with blockchain-verified credentials');
+      setDeleteModalError('Cannot delete student with blockchain-verified credentials');
+      setShowDeleteModal(true);
+      setStudentToDelete(student);
       return;
     }
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${student.first_name} ${student.last_name}?\n\nThis action cannot be undone.`
-    );
+    setStudentToDelete(student);
+    setShowDeleteModal(true);
+  };
 
-    if (!confirmDelete) return;
+  const confirmDeleteStudent = async () => {
+    if (!studentToDelete) return;
+
+    setDeleting(true);
+    setDeleteModalError('');
 
     try {
-      await deleteStudent(student.id);
-      alert('Student deleted successfully');
-      loadStudents(); // Refresh the list
+      await deleteStudent(studentToDelete.id);
+      
+      // Log the activity
+      const userId = localStorage.getItem('userId');
+      const studentFullName = `${studentToDelete.first_name} ${studentToDelete.middle_name ? studentToDelete.middle_name + ' ' : ''}${studentToDelete.last_name}`.trim();
+      await logStudentDeleted(institutionId, userId, studentFullName);
+      
+      // Show success message in modal
+      setDeleteModalSuccess(`${studentFullName} deleted successfully`);
+      
+      // Refresh the list
+      loadStudents();
       if (onStudentListChanged) {
         onStudentListChanged();
       }
+      
+      // Auto-close modal after 2 seconds
+      setTimeout(() => {
+        setShowDeleteModal(false);
+        setStudentToDelete(null);
+        setDeleteModalSuccess('');
+      }, 2000);
     } catch (error) {
       console.error('Error deleting student:', error);
-      alert(error.response?.data?.error || 'Failed to delete student');
+      setDeleteModalError(error.response?.data?.error || 'Failed to delete student');
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleCloseDeleteModal = () => {
+    if (!deleting && !deleteModalSuccess) {
+      setShowDeleteModal(false);
+      setStudentToDelete(null);
+      setDeleteModalError('');
     }
   };
 
@@ -313,7 +358,7 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
                           <i className="fas fa-eye me-1"></i>
                           View Credentials
                         </button>
-                        {student.credential_count === 0 && (
+                        {isAdmin && student.credential_count === 0 && (
                           <button
                             className="btn btn-danger btn-sm"
                             onClick={() => handleDeleteStudent(student)}
@@ -465,6 +510,17 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
         onClose={() => setShowAddStudentModal(false)}
         institutionId={institutionId}
         onStudentAdded={handleStudentAdded}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        show={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        onConfirm={confirmDeleteStudent}
+        studentName={studentToDelete ? `${studentToDelete.first_name} ${studentToDelete.middle_name ? studentToDelete.middle_name + ' ' : ''}${studentToDelete.last_name}` : ''}
+        loading={deleting}
+        success={deleteModalSuccess}
+        error={deleteModalError}
       />
     </div>
   );

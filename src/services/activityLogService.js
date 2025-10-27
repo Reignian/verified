@@ -49,9 +49,8 @@ export const logProfileUpdate = async (institutionId, userId, changes) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'profile_updated',
-    description: `Updated institution profile: ${changes}`,
-    target_type: 'institution',
-    target_id: institutionId
+    action_type: 'update',
+    description: `Updated institution profile: ${changes}`
   });
 };
 
@@ -63,8 +62,8 @@ export const logStaffAdded = async (institutionId, userId, staffName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'staff_added',
-    description: `Added staff member: ${staffName}`,
-    target_type: 'staff'
+    action_type: 'create',
+    description: `Added staff member: ${staffName}`
   });
 };
 
@@ -76,8 +75,8 @@ export const logStaffDeleted = async (institutionId, userId, staffName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'staff_deleted',
-    description: `Deleted staff member: ${staffName}`,
-    target_type: 'staff'
+    action_type: 'delete',
+    description: `Deleted staff member: ${staffName}`
   });
 };
 
@@ -89,8 +88,8 @@ export const logProgramAdded = async (institutionId, userId, programName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'program_added',
-    description: `Added program: ${programName}`,
-    target_type: 'program'
+    action_type: 'create',
+    description: `Added program: ${programName}`
   });
 };
 
@@ -102,8 +101,8 @@ export const logProgramDeleted = async (institutionId, userId, programName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'program_deleted',
-    description: `Deleted program: ${programName}`,
-    target_type: 'program'
+    action_type: 'delete',
+    description: `Deleted program: ${programName}`
   });
 };
 
@@ -115,8 +114,8 @@ export const logCredentialIssued = async (institutionId, userId, credentialType,
     user_id: userId,
     institution_id: institutionId,
     action: 'credential_issued',
-    description: `Issued ${credentialType} credential to ${studentName}`,
-    target_type: 'credential'
+    action_type: 'create',
+    description: `Issued ${credentialType} credential to ${studentName}`
   });
 };
 
@@ -128,8 +127,8 @@ export const logCredentialDeleted = async (institutionId, userId, credentialType
     user_id: userId,
     institution_id: institutionId,
     action: 'credential_deleted',
-    description: `Deleted ${credentialType} credential`,
-    target_type: 'credential'
+    action_type: 'delete',
+    description: `Deleted ${credentialType} credential`
   });
 };
 
@@ -141,8 +140,8 @@ export const logStudentAdded = async (institutionId, userId, studentName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'student_added',
-    description: `Added student: ${studentName}`,
-    target_type: 'student'
+    action_type: 'create',
+    description: `Added student: ${studentName}`
   });
 };
 
@@ -154,8 +153,8 @@ export const logStudentDeleted = async (institutionId, userId, studentName) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'student_deleted',
-    description: `Deleted student: ${studentName}`,
-    target_type: 'student'
+    action_type: 'delete',
+    description: `Deleted student: ${studentName}`
   });
 };
 
@@ -167,8 +166,8 @@ export const logStudentImported = async (institutionId, userId, count) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'student_imported',
-    description: `Imported ${count} student${count > 1 ? 's' : ''}`,
-    target_type: 'student'
+    action_type: 'create',
+    description: `Imported ${count} student${count > 1 ? 's' : ''}`
   });
 };
 
@@ -180,7 +179,7 @@ export const logSettingsViewed = async (institutionId, userId, section) => {
     user_id: userId,
     institution_id: institutionId,
     action: 'settings_viewed',
-    description: `Viewed ${section} settings`,
-    target_type: 'settings'
+    action_type: 'view',
+    description: `Viewed ${section} settings`
   });
 };

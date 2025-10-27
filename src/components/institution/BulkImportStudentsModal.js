@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import './AcademicInstitution.css';
 import { bulkImportStudents, fetchInstitutionPrograms } from '../../services/institutionApiService';
+import { logStudentImported } from '../../services/activityLogService';
 
 function BulkImportStudentsModal({
   show,
@@ -110,6 +111,10 @@ function BulkImportStudentsModal({
         `Import completed! \nSuccessfully imported: ${response.imported_count} students\nFailed: ${response.failed_count} records\nTotal processed: ${response.total_processed} records`
       );
       setImportSuccess(true);
+
+      // Log the activity
+      const userId = localStorage.getItem('userId');
+      await logStudentImported(institutionId, userId, response.imported_count);
 
       // Ask parent to refresh its student list
       if (typeof onImported === 'function') {

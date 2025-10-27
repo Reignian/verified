@@ -549,6 +549,7 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       sender_id: parseInt(sender_id),
       ipfs_cid: pinataResult.ipfsHash,
       blockchain_id: blockchain_id, // This is now the credential ID from smart contract
+      transaction_id: transaction_hash || null, // Store transaction hash
       status: 'blockchain_verified',
       program_id: program_id ? parseInt(program_id) : null
     };
@@ -911,20 +912,18 @@ router.get('/:institutionId/activity-logs', (req, res) => {
 
 // POST /api/institution/activity-logs - Create a new activity log entry
 router.post('/activity-logs', (req, res) => {
-  const { user_id, institution_id, action, description, target_type, target_id } = req.body;
+  const { user_id, institution_id, action, action_type, description } = req.body;
   
-  if (!user_id || !institution_id || !action) {
-    return res.status(400).json({ error: 'User ID, institution ID, and action are required' });
+  if (!user_id || !institution_id || !action || !action_type) {
+    return res.status(400).json({ error: 'User ID, institution ID, action, and action_type are required' });
   }
   
   const logData = {
     user_id,
     institution_id,
     action,
-    description: description || null,
-    target_type: target_type || null,
-    target_id: target_id || null,
-    ip_address: req.ip || req.connection.remoteAddress
+    action_type,
+    description: description || null
   };
   
   academicQueries.createActivityLog(logData, (err, result) => {

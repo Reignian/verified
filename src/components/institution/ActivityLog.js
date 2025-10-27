@@ -245,12 +245,6 @@ function ActivityLog({ institutionId }) {
                       <i className="fas fa-clock"></i>
                       {formatTimestamp(log.created_at)}
                     </span>
-                    {log.ip_address && (
-                      <span className="log-ip">
-                        <i className="fas fa-network-wired"></i>
-                        {log.ip_address}
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>

@@ -191,14 +191,15 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid = 'default_cid', 
     blockchain_id = null,
+    transaction_id = null,
     status = 'pending',
     program_id = null
   } = credentialData;
   
   const query = `
     INSERT INTO credential 
-    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, blockchain_id, status, program_id) 
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    (credential_type_id, custom_type, owner_id, sender_id, ipfs_cid, blockchain_id, transaction_id, status, program_id) 
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `;
   
   connection.query(query, [
@@ -208,6 +209,7 @@ const createCredential = (credentialData, callback) => {
     sender_id, 
     ipfs_cid, 
     blockchain_id,
+    transaction_id,
     status,
     program_id
   ], callback);
@@ -222,7 +224,8 @@ const getIssuedCredentials = (institutionId, callback) => {
       c.ipfs_cid,
       c.status,
       c.created_at as date_issued,
-      c.blockchain_id
+      c.blockchain_id,
+      c.transaction_id
     FROM credential c
     JOIN student s ON c.owner_id = s.id
     LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
@@ -961,15 +964,13 @@ const getActivityLogs = (institutionId, action, callback) => {
       al.id,
       al.user_id,
       al.action,
+      al.action_type,
       al.description,
-      al.target_id,
-      al.target_type,
-      al.ip_address,
       al.created_at,
       a.username,
       a.account_type,
       CASE 
-        WHEN a.account_type = 'institution' THEN a.username
+        WHEN a.account_type = 'institution' THEN i.institution_name
         WHEN a.account_type = 'institution_staff' THEN CONCAT(ist.first_name, ' ', IFNULL(CONCAT(ist.middle_name, ' '), ''), ist.last_name)
         ELSE a.username
       END AS user_display_name,
@@ -980,6 +981,7 @@ const getActivityLogs = (institutionId, action, callback) => {
       END AS user_role
     FROM activity_log al
     JOIN account a ON al.user_id = a.id
+    LEFT JOIN institution i ON a.id = i.id AND a.account_type = 'institution'
     LEFT JOIN institution_staff ist ON al.user_id = ist.id AND a.account_type = 'institution_staff'
     WHERE al.institution_id = ?
   `;
@@ -1000,18 +1002,16 @@ const getActivityLogs = (institutionId, action, callback) => {
 const createActivityLog = (logData, callback) => {
   const query = `
     INSERT INTO activity_log 
-    (user_id, institution_id, action, description, target_type, target_id, ip_address, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
+    (user_id, institution_id, action, action_type, description)
+    VALUES (?, ?, ?, ?, ?)
   `;
   
   const params = [
     logData.user_id,
     logData.institution_id,
     logData.action,
-    logData.description,
-    logData.target_type,
-    logData.target_id,
-    logData.ip_address
+    logData.action_type,
+    logData.description
   ];
   
   connection.query(query, params, callback);
