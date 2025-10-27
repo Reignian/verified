@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 27, 2025 at 06:24 AM
+-- Generation Time: Oct 27, 2025 at 02:19 PM
 -- Server version: 8.0.43
 -- PHP Version: 8.2.12
 
@@ -29,11 +29,11 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `account` (
   `id` int NOT NULL,
-  `account_type` enum('student','institution','admin','institution_staff') COLLATE utf8mb4_general_ci NOT NULL,
-  `username` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `password` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `status` enum('pending','approved','rejected') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'approved',
+  `account_type` enum('student','institution','admin','institution_staff') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `username` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `password` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -49,7 +49,8 @@ INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `s
 (1027, 'student', 'thuifon', '$2b$10$qRv6D/fl/Y/agXDLNm3oDu3L5bG5xZ6Oe8wRIuoghOGbGmgdDtYku', 'thuifon@gmail.com', 'approved', '2025-10-25 18:12:03'),
 (1028, 'institution_staff', 'Staff 1', '$2b$10$ygc87AHlFJdhYXz38xTwve.8gfxDmRL0CatKixU5xrt/frljVMpj6', 'staff1@gmail.com', 'approved', '2025-10-25 18:15:12'),
 (1029, 'student', 'gerby123', '$2b$10$sT519uwNkpoc0D6pI4gMjuvEyH28yR1NZ4tqIIH8BrWUynCY/5oqe', 'imzaylee@gmail.com', 'approved', '2025-10-26 13:05:58'),
-(1030, 'institution_staff', 'jamal', '$2b$10$lwZI11oQ2qFfro7XpFwqTOR3heLpG/eha/b2Qs3t7efXh7RdH6oMe', 'jamal@gmail.com', 'approved', '2025-10-27 03:10:08');
+(1030, 'institution_staff', 'jamal', '$2b$10$lwZI11oQ2qFfro7XpFwqTOR3heLpG/eha/b2Qs3t7efXh7RdH6oMe', 'jamal@gmail.com', 'approved', '2025-10-27 03:10:08'),
+(1038, 'institution_staff', 'teststaff', '$2b$10$gKOOUDthfC253gv6NiZoH.B57.SLk/QUzMy3cJmm4U5OyyoWSPkP.', 'test@gmail.com', 'deleted', '2025-10-27 12:24:09');
 
 -- --------------------------------------------------------
 
@@ -63,7 +64,7 @@ CREATE TABLE `activity_log` (
   `user_id` int NOT NULL,
   `action` varchar(250) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `action_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
-  `description` text COLLATE utf8mb4_general_ci,
+  `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -86,7 +87,14 @@ INSERT INTO `activity_log` (`id`, `institution_id`, `user_id`, `action`, `action
 (32, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-10-27 04:15:12'),
 (33, 1, 1, 'credential_deleted', 'delete', 'Deleted Transcript of Records (TOR) credential', '2025-10-27 04:15:52'),
 (34, 1, 1, 'credential_deleted', 'delete', 'Deleted Transcript of Records (TOR) credential', '2025-10-27 04:18:57'),
-(35, 1, 1030, 'credential_issued', 'create', 'Issued Certificate of Graduation credential to Reign Ian Carreon Magno', '2025-10-27 04:48:51');
+(35, 1, 1030, 'credential_issued', 'create', 'Issued Certificate of Graduation credential to Reign Ian Carreon Magno', '2025-10-27 04:48:51'),
+(36, 1, 1030, 'credential_issued', 'create', 'Issued test credential to Reign Ian Carreon Magno', '2025-10-27 11:53:49'),
+(37, 1, 1, 'program_added', 'create', 'Added program: test program', '2025-10-27 12:12:25'),
+(38, 1, 1, 'program_deleted', 'delete', 'Deleted program: test program', '2025-10-27 12:12:32'),
+(39, 1, 1, 'staff_added', 'create', 'Added staff member: test staff staff staff', '2025-10-27 12:17:34'),
+(40, 1, 1, 'staff_deleted', 'delete', 'Deleted staff member: test staff staff', '2025-10-27 12:17:52'),
+(41, 1, 1, 'staff_added', 'create', 'Added staff member: test staff staff staff', '2025-10-27 12:24:09'),
+(42, 1, 1, 'staff_deleted', 'delete', 'Deleted staff member: test staff staff', '2025-10-27 12:24:20');
 
 -- --------------------------------------------------------
 
@@ -96,18 +104,18 @@ INSERT INTO `activity_log` (`id`, `institution_id`, `user_id`, `action`, `action
 
 CREATE TABLE `contact_messages` (
   `id` int NOT NULL,
-  `name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `email` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `user_type` enum('institution','employer','student','other') COLLATE utf8mb4_general_ci NOT NULL,
-  `message` text COLLATE utf8mb4_general_ci NOT NULL,
-  `status` enum('unread','read','replied') COLLATE utf8mb4_general_ci DEFAULT 'unread',
-  `message_type` enum('contact','signup_request') COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'contact',
+  `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `user_type` enum('institution','employer','student','other') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status` enum('unread','read','replied') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'unread',
+  `message_type` enum('contact','signup_request') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL DEFAULT 'contact',
   `account_id` int DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  `device_fingerprint` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `user_agent` text COLLATE utf8mb4_general_ci
+  `device_fingerprint` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `user_agent` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -128,9 +136,9 @@ INSERT INTO `contact_messages` (`id`, `name`, `email`, `user_type`, `message`, `
 
 CREATE TABLE `contact_submissions` (
   `id` int NOT NULL,
-  `device_fingerprint` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `ip_address` varchar(45) COLLATE utf8mb4_general_ci NOT NULL,
-  `email_hash` varchar(64) COLLATE utf8mb4_general_ci NOT NULL,
+  `device_fingerprint` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `ip_address` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `email_hash` varchar(64) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `submission_count` int DEFAULT '1',
   `last_submission` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -154,14 +162,14 @@ INSERT INTO `contact_submissions` (`id`, `device_fingerprint`, `ip_address`, `em
 CREATE TABLE `credential` (
   `id` int NOT NULL,
   `credential_type_id` int DEFAULT NULL,
-  `custom_type` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `custom_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `owner_id` int NOT NULL,
   `sender_id` int NOT NULL,
   `program_id` int DEFAULT NULL,
-  `ipfs_cid` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `status` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `blockchain_id` varchar(255) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `transaction_id` varchar(70) COLLATE utf8mb4_general_ci NOT NULL,
+  `ipfs_cid` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `blockchain_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `transaction_id` varchar(70) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -172,7 +180,8 @@ CREATE TABLE `credential` (
 
 INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `program_id`, `ipfs_cid`, `status`, `blockchain_id`, `transaction_id`, `created_at`, `updated_at`) VALUES
 (52, 2, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'deleted', '22', '', '2025-10-27 04:15:12', '2025-10-27 04:15:52'),
-(53, 3, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '23', '0xee6eafb9e5934c4850a4df859d6891591ceecc1d0d722f1900ef8781770e1d85', '2025-10-27 04:48:51', '2025-10-27 05:09:57');
+(53, 3, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '23', '0xee6eafb9e5934c4850a4df859d6891591ceecc1d0d722f1900ef8781770e1d85', '2025-10-27 04:48:51', '2025-10-27 05:09:57'),
+(54, NULL, 'test', 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '24', '0x341fb0d50147f098d769eccff42d7d91e683955b323c17df224cd2f4835118d1', '2025-10-27 11:53:49', '2025-10-27 11:53:49');
 
 -- --------------------------------------------------------
 
@@ -183,11 +192,18 @@ INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`,
 CREATE TABLE `credential_access` (
   `id` int NOT NULL,
   `credential_id` int NOT NULL,
-  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `access_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `credential_access`
+--
+
+INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_active`, `created_at`, `is_deleted`) VALUES
+(13, 54, '8HL6AQ', 1, '2025-10-27 11:54:22', 0);
 
 -- --------------------------------------------------------
 
@@ -197,7 +213,7 @@ CREATE TABLE `credential_access` (
 
 CREATE TABLE `credential_types` (
   `id` int NOT NULL,
-  `type_name` varchar(100) COLLATE utf8mb4_general_ci NOT NULL
+  `type_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -218,11 +234,11 @@ INSERT INTO `credential_types` (`id`, `type_name`) VALUES
 CREATE TABLE `credential_validation_logs` (
   `id` int NOT NULL,
   `credential_type_id` int NOT NULL,
-  `uploaded_file_path` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `validation_result` enum('valid','invalid','error') COLLATE utf8mb4_general_ci NOT NULL,
+  `uploaded_file_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `validation_result` enum('valid','invalid','error') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `ai_confidence` decimal(5,2) DEFAULT NULL,
-  `ai_reasoning` text COLLATE utf8mb4_general_ci,
-  `detected_type` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `ai_reasoning` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
+  `detected_type` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `validated_by` int NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -236,12 +252,19 @@ CREATE TABLE `credential_validation_logs` (
 CREATE TABLE `credential_verifications` (
   `id` int NOT NULL,
   `credential_id` int NOT NULL,
-  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `verifier_ip` varchar(45) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `verifier_user_agent` text COLLATE utf8mb4_general_ci,
+  `access_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `verifier_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `verifier_user_agent` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `verification_timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `status` enum('success','failed') COLLATE utf8mb4_general_ci DEFAULT 'success'
+  `status` enum('success','failed') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'success'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `credential_verifications`
+--
+
+INSERT INTO `credential_verifications` (`id`, `credential_id`, `access_code`, `verifier_ip`, `verifier_user_agent`, `verification_timestamp`, `status`) VALUES
+(60, 54, '8HL6AQ', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', '2025-10-27 11:54:30', 'success');
 
 -- --------------------------------------------------------
 
@@ -251,8 +274,8 @@ CREATE TABLE `credential_verifications` (
 
 CREATE TABLE `institution` (
   `id` int NOT NULL,
-  `institution_name` varchar(255) COLLATE utf8mb4_general_ci NOT NULL,
-  `public_address` varchar(100) COLLATE utf8mb4_general_ci DEFAULT NULL
+  `institution_name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `public_address` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
@@ -272,20 +295,17 @@ INSERT INTO `institution` (`id`, `institution_name`, `public_address`) VALUES
 CREATE TABLE `institution_addresses` (
   `id` int NOT NULL,
   `institution_id` int NOT NULL,
-  `public_address` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `address_label` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `is_primary` tinyint(1) DEFAULT '0',
-  `is_active` tinyint(1) DEFAULT '1',
-  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  `public_address` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `institution_addresses`
 --
 
-INSERT INTO `institution_addresses` (`id`, `institution_id`, `public_address`, `address_label`, `is_primary`, `is_active`, `created_at`, `updated_at`) VALUES
-(6, 1, '0xbda9c415c28e06bffe626313c2aa429dce2c6016', NULL, 0, 1, '2025-10-27 03:07:37', '2025-10-27 03:07:37');
+INSERT INTO `institution_addresses` (`id`, `institution_id`, `public_address`, `created_at`) VALUES
+(1, 1, '0xbda9c415c28e06bffe626313c2aa429dce2c6016', '2025-10-27 13:15:08'),
+(2, 1, '0x852a8e5c3d309626810944b1a520dd81b3b5a7fa', '2025-10-27 13:15:56');
 
 -- --------------------------------------------------------
 
@@ -295,9 +315,9 @@ INSERT INTO `institution_addresses` (`id`, `institution_id`, `public_address`, `
 
 CREATE TABLE `institution_staff` (
   `id` int NOT NULL,
-  `first_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `middle_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `last_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `first_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `middle_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `last_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `institution_id` int NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -307,7 +327,8 @@ CREATE TABLE `institution_staff` (
 
 INSERT INTO `institution_staff` (`id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
 (1028, 'test', '', '1', 1),
-(1030, 'Jamal', 'Alumbre', 'Al badi', 1);
+(1030, 'Jamal', 'Alumbre', 'Al badi', 1),
+(1038, 'test staff', 'staff', 'staff', 1);
 
 -- --------------------------------------------------------
 
@@ -329,7 +350,7 @@ CREATE TABLE `linked_accounts` (
 
 CREATE TABLE `multi_access_code` (
   `id` int NOT NULL,
-  `access_code` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `access_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `student_id` int NOT NULL,
   `is_active` tinyint(1) DEFAULT '1',
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -358,8 +379,8 @@ CREATE TABLE `multi_access_code_credentials` (
 CREATE TABLE `program` (
   `id` int NOT NULL,
   `institution_id` int NOT NULL,
-  `program_name` varchar(150) COLLATE utf8mb4_general_ci NOT NULL,
-  `program_code` varchar(25) COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `program_name` varchar(150) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `program_code` varchar(25) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -381,10 +402,10 @@ INSERT INTO `program` (`id`, `institution_id`, `program_name`, `program_code`, `
 CREATE TABLE `student` (
   `id` int NOT NULL,
   `program_id` int DEFAULT NULL,
-  `student_id` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `first_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
-  `middle_name` varchar(50) COLLATE utf8mb4_general_ci DEFAULT NULL,
-  `last_name` varchar(50) COLLATE utf8mb4_general_ci NOT NULL,
+  `student_id` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `first_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `middle_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
+  `last_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
   `institution_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
@@ -405,9 +426,9 @@ INSERT INTO `student` (`id`, `program_id`, `student_id`, `first_name`, `middle_n
 
 CREATE TABLE `system_settings` (
   `id` int NOT NULL,
-  `setting_key` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
-  `setting_value` text COLLATE utf8mb4_general_ci NOT NULL,
-  `setting_description` text COLLATE utf8mb4_general_ci,
+  `setting_key` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `setting_value` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `setting_description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -508,11 +529,7 @@ ALTER TABLE `institution`
 --
 ALTER TABLE `institution_addresses`
   ADD PRIMARY KEY (`id`),
-  ADD UNIQUE KEY `unique_institution_address` (`institution_id`,`public_address`),
-  ADD KEY `idx_institution_id` (`institution_id`),
-  ADD KEY `idx_is_primary` (`is_primary`),
-  ADD KEY `idx_institution_addresses_active` (`institution_id`,`is_active`),
-  ADD KEY `idx_institution_addresses_primary` (`institution_id`,`is_primary`);
+  ADD KEY `idx_institution_id` (`institution_id`);
 
 --
 -- Indexes for table `institution_staff`
@@ -574,13 +591,13 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1037;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1039;
 
 --
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=36;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
@@ -598,13 +615,13 @@ ALTER TABLE `contact_submissions`
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=54;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
 
 --
 -- AUTO_INCREMENT for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
@@ -622,7 +639,7 @@ ALTER TABLE `credential_validation_logs`
 -- AUTO_INCREMENT for table `credential_verifications`
 --
 ALTER TABLE `credential_verifications`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=60;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
 
 --
 -- AUTO_INCREMENT for table `institution`
@@ -634,13 +651,13 @@ ALTER TABLE `institution`
 -- AUTO_INCREMENT for table `institution_addresses`
 --
 ALTER TABLE `institution_addresses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
 
 --
 -- AUTO_INCREMENT for table `institution_staff`
 --
 ALTER TABLE `institution_staff`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1031;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1039;
 
 --
 -- AUTO_INCREMENT for table `multi_access_code`
@@ -658,7 +675,7 @@ ALTER TABLE `multi_access_code_credentials`
 -- AUTO_INCREMENT for table `program`
 --
 ALTER TABLE `program`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `student`
@@ -722,7 +739,7 @@ ALTER TABLE `institution`
 -- Constraints for table `institution_addresses`
 --
 ALTER TABLE `institution_addresses`
-  ADD CONSTRAINT `fk_institution_addresses_institution` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE CASCADE;
+  ADD CONSTRAINT `institution_addresses_ibfk_1` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `institution_staff`
