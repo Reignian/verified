@@ -331,14 +331,16 @@ function AcademicInstitution() {
           >
             Students
           </button>
-          <button
-            className={`tab ${activeSection === 'settings' ? 'active' : ''}`}
-            onClick={() => setActiveSection('settings')}
-            role="tab"
-            aria-selected={activeSection === 'settings'}
-          >
-            Settings
-          </button>
+          {localStorage.getItem('userType') === 'institution' && (
+            <button
+              className={`tab ${activeSection === 'settings' ? 'active' : ''}`}
+              onClick={() => setActiveSection('settings')}
+              role="tab"
+              aria-selected={activeSection === 'settings'}
+            >
+              Settings
+            </button>
+          )}
         </div>
 
         {/* Section Container - content below changes */}

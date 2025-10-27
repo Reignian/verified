@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import InstitutionInformation from './InstitutionInformation';
 import StaffManagement from './StaffManagement';
 import ProgramManagement from './ProgramManagement';
@@ -6,7 +6,24 @@ import ActivityLog from './ActivityLog';
 import './InstitutionSettings.css';
 
 function InstitutionSettings({ institutionId, profile, onProfileUpdate }) {
+  const [isMainAdmin, setIsMainAdmin] = useState(false);
+  
+  useEffect(() => {
+    const userType = localStorage.getItem('userType');
+    setIsMainAdmin(userType === 'institution');
+  }, []);
   const [activeTab, setActiveTab] = useState('information');
+
+  if (!isMainAdmin) {
+    return (
+      <div className="institution-settings-container">
+        <div className="alert alert-warning" role="alert">
+          <i className="fas fa-exclamation-triangle me-2"></i>
+          You do not have permission to access institution settings. Only the main institution administrator can access this section.
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="institution-settings-container">
