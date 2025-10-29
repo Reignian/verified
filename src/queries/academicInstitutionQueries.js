@@ -602,6 +602,147 @@ const getDashboardStats = (institutionId, callback) => {
   connection.query(query, [institutionId, institutionId, institutionId, institutionId, institutionId], callback);
 };
 
+// Get credential type distribution for analytics
+const getCredentialTypeDistribution = (institutionId, startDate, endDate, programId, callback) => {
+  let query = `
+    SELECT 
+      COALESCE(ct.type_name, c.custom_type) as credential_type,
+      COUNT(*) as count
+    FROM credential c
+    JOIN student s ON c.owner_id = s.id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    WHERE s.institution_id = ? AND c.status != 'deleted'
+  `;
+  
+  const params = [institutionId];
+  
+  if (programId && programId !== 'all') {
+    query += ` AND s.program_id = ?`;
+    params.push(programId);
+  }
+  
+  if (startDate) {
+    query += ` AND DATE(c.created_at) >= ?`;
+    params.push(startDate);
+  }
+  
+  if (endDate) {
+    query += ` AND DATE(c.created_at) <= ?`;
+    params.push(endDate);
+  }
+  
+  query += `
+    GROUP BY COALESCE(ct.type_name, c.custom_type)
+    ORDER BY count DESC
+  `;
+  
+  connection.query(query, params, callback);
+};
+
+// Get student count per program for analytics
+const getStudentsByProgram = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      p.id as program_id,
+      COALESCE(p.program_name, 'No Program') as program_name,
+      COALESCE(p.program_code, 'N/A') as program_code,
+      COUNT(s.id) as student_count
+    FROM student s
+    LEFT JOIN program p ON s.program_id = p.id
+    WHERE s.institution_id = ?
+    GROUP BY p.id, p.program_name, p.program_code
+    ORDER BY student_count DESC
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Get recent activity for analytics (today's credential issuance only)
+const getRecentActivity = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      al.action,
+      al.action_type,
+      al.description,
+      al.created_at,
+      CONCAT(COALESCE(s.first_name, is2.first_name, ''), ' ', COALESCE(s.last_name, is2.last_name, '')) as user_name
+    FROM activity_log al
+    LEFT JOIN student s ON al.user_id = s.id
+    LEFT JOIN institution_staff is2 ON al.user_id = is2.id
+    WHERE al.institution_id = ?
+      AND al.action_type = 'create'
+      AND al.action = 'credential_issued'
+      AND DATE(al.created_at) = CURDATE()
+    ORDER BY al.created_at DESC
+    LIMIT 10
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
+// Get daily credential issuance trends with full date range
+const getDailyCredentialTrends = (institutionId, startDate, endDate, programId, callback) => {
+  // Generate date range query that includes all dates even with 0 credentials
+  let programFilter = '';
+  if (programId && programId !== 'all') {
+    programFilter = ` AND s.program_id = ${connection.escape(programId)}`;
+  }
+  
+  let query = `
+    WITH RECURSIVE date_range AS (
+      SELECT 
+        CASE 
+          WHEN ? IS NOT NULL THEN ?
+          ELSE DATE_SUB(CURDATE(), INTERVAL 7 DAY)
+        END as date
+      UNION ALL
+      SELECT DATE_ADD(date, INTERVAL 1 DAY)
+      FROM date_range
+      WHERE date < CASE 
+        WHEN ? IS NOT NULL THEN ?
+        ELSE CURDATE()
+      END
+    )
+    SELECT 
+      dr.date,
+      DATE_FORMAT(dr.date, '%b %d') as date_label,
+      COALESCE(COUNT(c.id), 0) as count
+    FROM date_range dr
+    LEFT JOIN credential c ON DATE(c.created_at) = dr.date 
+      AND c.status != 'deleted'
+      AND c.id IN (
+        SELECT c2.id 
+        FROM credential c2
+        JOIN student s ON c2.owner_id = s.id
+        WHERE s.institution_id = ?${programFilter}
+      )
+    GROUP BY dr.date, DATE_FORMAT(dr.date, '%b %d')
+    ORDER BY dr.date ASC
+  `;
+  
+  const params = [
+    startDate, startDate || null,
+    endDate, endDate || null,
+    institutionId
+  ];
+  
+  connection.query(query, params, callback);
+};
+
+// Get verification statistics
+const getVerificationStats = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      COUNT(*) as total_verifications,
+      COUNT(DISTINCT cv.credential_id) as unique_credentials_verified,
+      COUNT(CASE WHEN DATE(cv.verification_timestamp) >= DATE_SUB(CURDATE(), INTERVAL 7 DAY) THEN 1 END) as verifications_last_week,
+      COUNT(CASE WHEN DATE(cv.verification_timestamp) >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) THEN 1 END) as verifications_last_month
+    FROM credential_verifications cv
+    JOIN credential c ON cv.credential_id = c.id
+    JOIN student s ON c.owner_id = s.id
+    WHERE s.institution_id = ?
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
 // Get institution profile information
 const getInstitutionProfile = (institutionId, callback) => {
   const query = `
@@ -1011,5 +1152,10 @@ module.exports = {
   deleteInstitutionProgram,
   deleteCredential,
   getActivityLogs,
-  createActivityLog
+  createActivityLog,
+  getCredentialTypeDistribution,
+  getStudentsByProgram,
+  getRecentActivity,
+  getDailyCredentialTrends,
+  getVerificationStats
 };

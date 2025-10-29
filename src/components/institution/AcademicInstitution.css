@@ -58,16 +58,18 @@
   color: white;
 }
 
+.dashboard-stats-section .row .col-md-6:nth-child(1) .stat-card .stat-icon,
 .dashboard-stats-section .row .col-md-4:nth-child(1) .stat-card .stat-icon {
-  background: linear-gradient(135deg, #3498db, #2980b9);
+  background: linear-gradient(135deg, #667eea, #764ba2);
 }
 
+.dashboard-stats-section .row .col-md-6:nth-child(2) .stat-card .stat-icon,
 .dashboard-stats-section .row .col-md-4:nth-child(2) .stat-card .stat-icon {
-  background: linear-gradient(135deg, #2ecc71, #27ae60);
+  background: linear-gradient(135deg, #f093fb, #f5576c);
 }
 
 .dashboard-stats-section .row .col-md-4:nth-child(3) .stat-card .stat-icon {
-  background: linear-gradient(135deg, #f39c12, #e67e22);
+  background: linear-gradient(135deg, #4facfe, #00f2fe);
 }
 
 .dashboard-stats-section .stat-content h3 {

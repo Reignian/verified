@@ -647,6 +647,75 @@ router.get('/dashboard-stats/:institutionId', (req, res) => {
   });
 });
 
+// ============ ANALYTICS ENDPOINTS ============
+
+// GET /api/institution/analytics/credential-distribution/:institutionId
+router.get('/analytics/credential-distribution/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  const { startDate, endDate, programId } = req.query;
+  
+  academicQueries.getCredentialTypeDistribution(institutionId, startDate, endDate, programId, (err, results) => {
+    if (err) {
+      console.error('Error fetching credential distribution:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// GET /api/institution/analytics/students-by-program/:institutionId
+router.get('/analytics/students-by-program/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getStudentsByProgram(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching students by program:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// GET /api/institution/analytics/recent-activity/:institutionId
+router.get('/analytics/recent-activity/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getRecentActivity(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching recent activity:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// GET /api/institution/analytics/daily-trends/:institutionId
+router.get('/analytics/daily-trends/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  const { startDate, endDate, programId } = req.query;
+  
+  academicQueries.getDailyCredentialTrends(institutionId, startDate, endDate, programId, (err, results) => {
+    if (err) {
+      console.error('Error fetching daily trends:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results);
+  });
+});
+
+// GET /api/institution/analytics/verification-stats/:institutionId
+router.get('/analytics/verification-stats/:institutionId', (req, res) => {
+  const { institutionId } = req.params;
+  
+  academicQueries.getVerificationStats(institutionId, (err, results) => {
+    if (err) {
+      console.error('Error fetching verification stats:', err);
+      return res.status(500).json({ error: 'Database error' });
+    }
+    res.json(results[0] || {});
+  });
+});
+
 // ============ INSTITUTION PROFILE ============
 
 // GET /api/institution/:institutionId/profile - Get institution profile

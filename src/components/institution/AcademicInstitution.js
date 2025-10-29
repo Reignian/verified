@@ -26,6 +26,7 @@ import InstitutionSettings from './InstitutionSettings';
 import ErrorModal from '../common/ErrorModal';
 import PublicAddressCheck from './PublicAddressCheck';
 import PublicAddressModal from './PublicAddressModal';
+import DashboardAnalytics from './DashboardAnalytics';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -51,7 +52,7 @@ function AcademicInstitution() {
   // Modal now owns its own internal state
 
   // Section navigation (like MyVerifiED): controls which content shows below the stats
-  const [activeSection, setActiveSection] = useState('issued'); // 'issued' | 'students'
+  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard' | 'issued' | 'students'
   // Trigger for refreshing student management data after bulk import
   const [studentsRefreshTick, setStudentsRefreshTick] = useState(0);
 
@@ -346,8 +347,9 @@ function AcademicInstitution() {
         {/* Section Container - content below changes */}
         {activeSection === 'dashboard' && (
           <div className="dashboard-stats-section">
-            <div className="row">
-              <div className="col-md-4">
+            {/* Basic Stats Row */}
+            <div className="row mb-4">
+              <div className="col-md-6">
                 <div className="stat-card">
                   <div className="stat-icon">
                     <i className="fas fa-users"></i>
@@ -358,7 +360,7 @@ function AcademicInstitution() {
                   </div>
                 </div>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-6">
                 <div className="stat-card">
                   <div className="stat-icon">
                     <i className="fas fa-certificate"></i>
@@ -370,6 +372,9 @@ function AcademicInstitution() {
                 </div>
               </div>
             </div>
+            
+            {/* Analytics Section */}
+            <DashboardAnalytics institutionId={institutionId} />
           </div>
         )}
 

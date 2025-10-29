@@ -270,6 +270,73 @@ export const fetchDashboardStats = async (institutionId) => {
   }
 };
 
+// ============ ANALYTICS ============
+
+// Fetch credential type distribution
+export const fetchCredentialTypeDistribution = async (institutionId, startDate = null, endDate = null, programId = null) => {
+  try {
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (programId && programId !== 'all') params.programId = programId;
+    
+    const response = await axios.get(`${API_URL}/institution/analytics/credential-distribution/${institutionId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching credential distribution:', error);
+    throw error;
+  }
+};
+
+// Fetch students by program
+export const fetchStudentsByProgram = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/analytics/students-by-program/${institutionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching students by program:', error);
+    throw error;
+  }
+};
+
+// Fetch recent activity
+export const fetchRecentActivity = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/analytics/recent-activity/${institutionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching recent activity:', error);
+    throw error;
+  }
+};
+
+// Fetch daily credential trends
+export const fetchDailyCredentialTrends = async (institutionId, startDate = null, endDate = null, programId = null) => {
+  try {
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+    if (programId && programId !== 'all') params.programId = programId;
+    
+    const response = await axios.get(`${API_URL}/institution/analytics/daily-trends/${institutionId}`, { params });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching daily trends:', error);
+    throw error;
+  }
+};
+
+// Fetch verification statistics
+export const fetchVerificationStats = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/analytics/verification-stats/${institutionId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching verification stats:', error);
+    throw error;
+  }
+};
+
 // ============ INSTITUTION PROFILE ============
 
 // Get institution profile information
