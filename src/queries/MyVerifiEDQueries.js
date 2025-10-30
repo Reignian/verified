@@ -158,32 +158,44 @@ const generateMultiAccessCode = (studentId, credentialIds, accessCode, callback)
     return callback(new Error('At least 2 credentials are required for multi-access code'));
   }
 
-  connection.beginTransaction((txErr) => {
-    if (txErr) return callback(txErr);
+  // Get a connection from the pool
+  connection.getConnection((connErr, conn) => {
+    if (connErr) return callback(connErr);
 
-    const rollback = (err) => connection.rollback(() => callback(err));
+    const rollback = (err) => conn.rollback(() => {
+      conn.release();
+      callback(err);
+    });
 
-    // 1. Insert new multi-access code (keep existing ones active, just like single access codes)
-    const insertCodeQuery = 'INSERT INTO multi_access_code (access_code, student_id, is_active) VALUES (?, ?, 1)';
-    connection.query(insertCodeQuery, [accessCode, studentId], (insertErr, insertResult) => {
-      if (insertErr) return rollback(insertErr);
+    conn.beginTransaction((txErr) => {
+      if (txErr) {
+        conn.release();
+        return callback(txErr);
+      }
 
-      const multiAccessCodeId = insertResult.insertId;
+      // 1. Insert new multi-access code (keep existing ones active, just like single access codes)
+      const insertCodeQuery = 'INSERT INTO multi_access_code (access_code, student_id, is_active) VALUES (?, ?, 1)';
+      conn.query(insertCodeQuery, [accessCode, studentId], (insertErr, insertResult) => {
+        if (insertErr) return rollback(insertErr);
 
-      // 2. Insert credential mappings
-      const credentialMappings = credentialIds.map(credId => [multiAccessCodeId, credId]);
-      const insertMappingsQuery = 'INSERT INTO multi_access_code_credentials (multi_access_code_id, credential_id) VALUES ?';
-      
-      connection.query(insertMappingsQuery, [credentialMappings], (mappingErr) => {
-        if (mappingErr) return rollback(mappingErr);
+        const multiAccessCodeId = insertResult.insertId;
 
-        connection.commit((commitErr) => {
-          if (commitErr) return rollback(commitErr);
-          callback(null, { 
-            success: true, 
-            access_code: accessCode, 
-            multi_access_code_id: multiAccessCodeId,
-            credential_count: credentialIds.length 
+        // 2. Insert credential mappings
+        const credentialMappings = credentialIds.map(credId => [multiAccessCodeId, credId]);
+        const insertMappingsQuery = 'INSERT INTO multi_access_code_credentials (multi_access_code_id, credential_id) VALUES ?';
+        
+        conn.query(insertMappingsQuery, [credentialMappings], (mappingErr) => {
+          if (mappingErr) return rollback(mappingErr);
+
+          conn.commit((commitErr) => {
+            if (commitErr) return rollback(commitErr);
+            conn.release();
+            callback(null, { 
+              success: true, 
+              access_code: accessCode, 
+              multi_access_code_id: multiAccessCodeId,
+              credential_count: credentialIds.length 
+            });
           });
         });
       });
@@ -302,10 +314,20 @@ const unlinkAccount = (currentAccountId, targetAccountId, callback) => {
 // 3) If none exist, create next group_id as MAX(group_id)+1
 // 4) Ensure each student_id appears once (delete existing rows for the two accounts), then insert both with the selected group_id
 const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStudentNumber, callback) => {
-  const rollback = (err) => connection.rollback(() => callback(err));
+  // Get a connection from the pool
+  connection.getConnection((connErr, conn) => {
+    if (connErr) return callback(connErr);
 
-  connection.beginTransaction((txErr) => {
-    if (txErr) return callback(txErr);
+    const rollback = (err) => conn.rollback(() => {
+      conn.release();
+      callback(err);
+    });
+
+    conn.beginTransaction((txErr) => {
+      if (txErr) {
+        conn.release();
+        return callback(txErr);
+      }
 
     // First find the target account without password check
     const findTargetSql = `
@@ -316,7 +338,7 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
       LIMIT 1
     `;
 
-    connection.query(findTargetSql, [targetEmail, targetStudentNumber], (findErr, rows) => {
+    conn.query(findTargetSql, [targetEmail, targetStudentNumber], (findErr, rows) => {
       if (findErr) return rollback(findErr);
       if (!rows || rows.length === 0) return rollback(new Error('Target account not found or credentials invalid.'));
 
@@ -331,7 +353,7 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
         if (!isMatch) return rollback(new Error('Target account not found or credentials invalid.'));
 
       const groupLookupSql = 'SELECT student_id, group_id FROM linked_accounts WHERE student_id IN (?, ?)';
-      connection.query(groupLookupSql, [currentAccountId, targetAccountId], (grpErr, grpRows) => {
+      conn.query(groupLookupSql, [currentAccountId, targetAccountId], (grpErr, grpRows) => {
         if (grpErr) return rollback(grpErr);
 
         let currentGroup = null;
@@ -343,15 +365,16 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
 
         const proceedWithGroup = (groupId) => {
           const deleteSql = 'DELETE FROM linked_accounts WHERE student_id IN (?, ?)';
-          connection.query(deleteSql, [currentAccountId, targetAccountId], (delErr) => {
+          conn.query(deleteSql, [currentAccountId, targetAccountId], (delErr) => {
             if (delErr) return rollback(delErr);
 
             const insertSql = 'INSERT INTO linked_accounts (group_id, student_id) VALUES (?, ?), (?, ?)';
-            connection.query(insertSql, [groupId, currentAccountId, groupId, targetAccountId], (insErr) => {
+            conn.query(insertSql, [groupId, currentAccountId, groupId, targetAccountId], (insErr) => {
               if (insErr) return rollback(insErr);
 
-              connection.commit((commitErr) => {
+              conn.commit((commitErr) => {
                 if (commitErr) return rollback(commitErr);
+                conn.release();
                 callback(null, { linked: true, group_id: groupId, target_account_id: targetAccountId });
               });
             });
@@ -361,7 +384,7 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
         if (currentGroup && targetGroup && currentGroup !== targetGroup) {
           // Merge target group into current group
           const mergeSql = 'UPDATE linked_accounts SET group_id = ? WHERE group_id = ?';
-          connection.query(mergeSql, [currentGroup, targetGroup], (mergeErr) => {
+          conn.query(mergeSql, [currentGroup, targetGroup], (mergeErr) => {
             if (mergeErr) return rollback(mergeErr);
             proceedWithGroup(currentGroup);
           });
@@ -369,7 +392,7 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
           proceedWithGroup(currentGroup || targetGroup);
         } else {
           const nextSql = 'SELECT COALESCE(MAX(group_id), 0) + 1 AS next_group_id FROM linked_accounts';
-          connection.query(nextSql, [], (nextErr, nextRows) => {
+          conn.query(nextSql, [], (nextErr, nextRows) => {
             if (nextErr) return rollback(nextErr);
             const nextGroupId = (nextRows && nextRows[0] && nextRows[0].next_group_id) ? nextRows[0].next_group_id : 1;
             proceedWithGroup(nextGroupId);
@@ -378,7 +401,8 @@ const linkAccounts = (currentAccountId, targetEmail, targetPassword, targetStude
       });
       }); // end of bcrypt.compare callback
     });
-  });
+  }); // end of beginTransaction
+  }); // end of getConnection
 };
 
 // Change password for a student account
