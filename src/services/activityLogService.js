@@ -1,8 +1,7 @@
 import axios from 'axios';
 
-// Fix the API_URL to avoid duplicate /api segments
 const API_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://verified-production.up.railway.app'  // Remove /api since it's added in the route
+  ? 'https://verified-production.up.railway.app/api'
   : 'http://localhost:3001/api';
 
 /**
@@ -13,11 +12,9 @@ const API_URL = process.env.NODE_ENV === 'production'
  */
 export const fetchActivityLogs = async (institutionId, filter = 'all') => {
   try {
-    // Add /api only for production URL
-    const apiPrefix = process.env.NODE_ENV === 'production' ? '/api' : '';
     const url = filter === 'all'
-      ? `${API_URL}${apiPrefix}/institution/${institutionId}/activity-logs`
-      : `${API_URL}${apiPrefix}/institution/${institutionId}/activity-logs?action=${filter}`;
+      ? `${API_URL}/institution/${institutionId}/activity-logs`
+      : `${API_URL}/institution/${institutionId}/activity-logs?action=${filter}`;
     
     const response = await axios.get(url);
     return response.data;
@@ -34,9 +31,8 @@ export const fetchActivityLogs = async (institutionId, filter = 'all') => {
  */
 export const logActivity = async (logData) => {
   try {
-    const apiPrefix = process.env.NODE_ENV === 'production' ? '/api' : '';
     const response = await axios.post(
-      `${API_URL}${apiPrefix}/institution/activity-logs`,
+      `${API_URL}/institution/activity-logs`,
       logData
     );
     return response.data;
