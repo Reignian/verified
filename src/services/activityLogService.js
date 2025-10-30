@@ -1,6 +1,8 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NODE_ENV === 'production' 
+  ? 'https://verified-production.up.railway.app/api'
+  : 'http://localhost:3001/api';
 
 /**
  * Fetch activity logs for an institution
@@ -11,8 +13,8 @@ const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
 export const fetchActivityLogs = async (institutionId, filter = 'all') => {
   try {
     const url = filter === 'all'
-      ? `${API_BASE_URL}/api/institution/${institutionId}/activity-logs`
-      : `${API_BASE_URL}/api/institution/${institutionId}/activity-logs?action=${filter}`;
+      ? `${API_URL}/institution/${institutionId}/activity-logs`
+      : `${API_URL}/institution/${institutionId}/activity-logs?action=${filter}`;
     
     const response = await axios.get(url);
     return response.data;
@@ -30,7 +32,7 @@ export const fetchActivityLogs = async (institutionId, filter = 'all') => {
 export const logActivity = async (logData) => {
   try {
     const response = await axios.post(
-      `${API_BASE_URL}/api/institution/activity-logs`,
+      `${API_URL}/institution/activity-logs`,
       logData
     );
     return response.data;
