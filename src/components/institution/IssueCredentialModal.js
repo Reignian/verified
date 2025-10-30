@@ -184,7 +184,7 @@ function IssueCredentialModal({
     setShowLoaderModal(true);
     setLoaderStatus('loading');
     setUploading(true);
-    setUploadMessage('Preparing transaction...');
+    setUploadMessage('Switching to Polygon Mainnet...');
     setUploadProgress(0);
 
     try {
@@ -194,6 +194,46 @@ function IssueCredentialModal({
       if (!selectedStudent) {
         throw new Error('Selected student not found.');
       }
+
+      // Ensure user is on Polygon Mainnet before proceeding
+      if (window.ethereum) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_switchEthereumChain',
+            params: [{ chainId: '0x89' }], // Polygon Mainnet chain ID (137 in hex)
+          });
+        } catch (switchError) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            try {
+              await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                  chainId: '0x89',
+                  chainName: 'Polygon Mainnet',
+                  nativeCurrency: {
+                    name: 'POL',
+                    symbol: 'POL',
+                    decimals: 18
+                  },
+                  rpcUrls: ['https://polygon-rpc.com'],
+                  blockExplorerUrls: ['https://polygonscan.com/']
+                }]
+              });
+            } catch (addError) {
+              throw new Error('Please add Polygon Mainnet to MetaMask');
+            }
+          } else if (switchError.code === 4001) {
+            // User rejected the network switch
+            throw new Error('Please switch to Polygon Mainnet to continue');
+          } else {
+            throw switchError;
+          }
+        }
+      }
+
+      // Update message after successful network switch
+      setUploadMessage('Preparing transaction...');
 
       // Prepare file hash (no progress bar yet - user hasn't confirmed)
       const fileBuffer = await formData.credentialFile.arrayBuffer();

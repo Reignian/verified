@@ -273,11 +273,11 @@ function IssuedCredentialsTable({ credentials, onView, onDelete, onIssueCredenti
                   <td>
                     {credential.transaction_id ? (
                       <a 
-                        href={`https://amoy.polygonscan.com/tx/${credential.transaction_id}`}
+                        href={`https://polygonscan.com/tx/${credential.transaction_id}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="transaction-link"
-                        title="View transaction on Polygon Amoy Explorer"
+                        title="View transaction on Polygon Mainnet Explorer"
                       >
                         <i className="fas fa-external-link-alt me-1"></i>
                         {credential.transaction_id.substring(0, 8)}...{credential.transaction_id.substring(credential.transaction_id.length - 6)}

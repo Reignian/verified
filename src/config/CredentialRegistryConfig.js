@@ -1,7 +1,7 @@
 // CredentialRegistryConfig.js
-// Polygon Amoy network configuration for your CredentialRegistry smart contract
+// Polygon Mainnet network configuration for your CredentialRegistry smart contract
 
-export const CONTRACT_ADDRESS = "0xdb33974fcf60a843cf1dc3003811bb72158974c4";
+export const CONTRACT_ADDRESS = "0xbdd6d750f644915280ef779fe7be6bc570c90fd1";
 
 export const CONTRACT_ABI = [
   {
@@ -69,13 +69,13 @@ export const CONTRACT_ABI = [
 ];
 
 export const NETWORK = {
-  chainId: "0x13882", // Polygon Amoy chain ID (hex for 80002)
-  chainName: "Polygon Amoy Testnet",
+  chainId: "0x89", // Polygon Mainnet chain ID (hex for 137)
+  chainName: "Polygon Mainnet",
   nativeCurrency: {
-    name: "MATIC",
-    symbol: "MATIC",
+    name: "POL",
+    symbol: "POL",
     decimals: 18
   },
-  rpcUrls: ["https://polygon-amoy.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-"],
-  blockExplorerUrls: ["https://amoy.polygonscan.com/"]
+  rpcUrls: ["https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-"],
+  blockExplorerUrls: ["https://polygonscan.com/"]
 };
