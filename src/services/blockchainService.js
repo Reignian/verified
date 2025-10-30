@@ -31,12 +31,12 @@ class BlockchainService {
       this.contractAddress = addressData.address;
       this.contractABI = abiData.abi;
 
-      // Create provider: prefer MetaMask, fallback to Polygon Amoy or local JSON-RPC
+      // Create provider: prefer MetaMask, fallback to Polygon Mainnet or local JSON-RPC
       if (typeof window !== 'undefined' && window.ethereum) {
         this.provider = new ethers.BrowserProvider(window.ethereum);
       } else {
-        // Fallback to Polygon Amoy testnet for read-only operations
-        this.provider = new ethers.JsonRpcProvider('https://polygon-amoy.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-');
+        // Fallback to Polygon Mainnet for read-only operations
+        this.provider = new ethers.JsonRpcProvider('https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-');
       }
 
 

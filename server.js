@@ -67,9 +67,9 @@ async function initBlockchain() {
     blockchainProvider = new ethers.JsonRpcProvider(rpcUrl);
     await blockchainProvider.getNetwork();
     
-    // For Polygon Amoy, use the contract address from environment
-    if (networkId === '80002') {
-      // Polygon Amoy - use deployed contract address
+    // For Polygon Mainnet or Amoy, use the contract address from environment
+    if (networkId === '137' || networkId === '80002') {
+      // Polygon Mainnet (137) or Amoy (80002) - use deployed contract address
       contractAddress = process.env.CONTRACT_ADDRESS;
       contractData = loadContractData();
       
@@ -77,7 +77,7 @@ async function initBlockchain() {
         // For server-side operations, we'll use read-only provider
         // Transactions will be handled by frontend MetaMask
         contract = new ethers.Contract(contractAddress, contractData.abi, blockchainProvider);
-        console.log('Blockchain connected to Polygon Amoy');
+        console.log(`Blockchain connected to Polygon ${networkId === '137' ? 'Mainnet' : 'Amoy'}`);
         console.log('Contract address:', contractAddress);
       }
     } else {
