@@ -1048,26 +1048,18 @@ router.delete('/credential/:credentialId', (req, res) => {
 // ============ ACTIVITY LOG ============
 
 // GET /api/institution/:institutionId/activity-logs - Get activity logs for an institution
-router.get('/:institutionId/activity-logs', async (req, res) => {
-  try {
-    const { institutionId } = req.params;
-    const { action } = req.query;
+router.get('/:institutionId/activity-logs', (req, res) => {
+  const { institutionId } = req.params;
+  const { action } = req.query;
+  
+  academicQueries.getActivityLogs(institutionId, action, (err, results) => {
+    if (err) {
+      console.error('Error fetching activity logs:', err);
+      return res.status(500).json({ error: 'Database error', details: err.message });
+    }
     
-    // Add your database query here to fetch activity logs
-    const query = action === 'all' 
-      ? 'SELECT * FROM activity_logs WHERE institution_id = ?'
-      : 'SELECT * FROM activity_logs WHERE institution_id = ? AND action = ?';
-    
-    const params = action === 'all' ? [institutionId] : [institutionId, action];
-    
-    // Execute query and return results
-    const [logs] = await pool.execute(query, params);
-    
-    res.json(logs);
-  } catch (error) {
-    console.error('Error fetching activity logs:', error);
-    res.status(500).json({ error: 'Failed to fetch activity logs' });
-  }
+    res.json(results);
+  });
 });
 
 // POST /api/institution/activity-logs - Create a new activity log entry
