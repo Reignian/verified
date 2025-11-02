@@ -95,7 +95,44 @@ const getMultiCredentialData = (accessCode, callback) => {
 };
 
 
+/**
+ * Get credential by ID for file comparison
+ * @param {number} credentialId - The credential ID
+ * @param {function} callback - Callback function
+ */
+const getCredentialById = (credentialId, callback) => {
+  const query = `
+    SELECT 
+      c.id,
+      c.ipfs_cid,
+      c.blockchain_id,
+      c.status,
+      c.created_at AS date_issued,
+      COALESCE(ct.type_name, c.custom_type) AS credential_type,
+      CONCAT(s.first_name, ' ', s.last_name) AS recipient_name,
+      s.student_id,
+      inst.institution_name AS issuer_name,
+      inst.public_address AS issuer_public_address,
+      ca.access_code
+    FROM credential c
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    JOIN student s ON c.owner_id = s.id
+    JOIN institution inst ON c.sender_id = inst.id
+    LEFT JOIN credential_access ca ON ca.credential_id = c.id AND ca.is_active = 1
+    WHERE c.id = ?
+      AND c.status IN ('blockchain_verified', 'uploaded')
+      AND c.status != 'deleted'
+    LIMIT 1
+  `;
+
+  connection.query(query, [credentialId], (err, results) => {
+    if (err) return callback(err);
+    callback(null, results[0] || null);
+  });
+};
+
 module.exports = {
   getCredentialData,
-  getMultiCredentialData
+  getMultiCredentialData,
+  getCredentialById
 };

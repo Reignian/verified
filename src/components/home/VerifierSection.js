@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './VerifierSection.css';
-import { verifyCredential } from '../../services/publicApiService';
+import { verifyCredential, compareCredentialFile } from '../../services/publicApiService';
 import blockchainService from '../../services/blockchainService';
 import { ethers } from 'ethers';
 
@@ -17,6 +17,14 @@ function VerifierSection() {
   const [isLoading, setIsLoading] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  
+  // File comparison states
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isComparing, setIsComparing] = useState(false);
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+  const [comparisonResult, setComparisonResult] = useState(null);
+  const [comparisonError, setComparisonError] = useState('');
+  
   // All on-chain integrity checks will be computed and logged to console only.
 
   // Function to download file from IPFS
@@ -86,6 +94,75 @@ function VerifierSection() {
   const closeErrorModal = () => {
     setShowErrorModal(false);
     setErrorMessage('');
+  };
+
+  const handleFileSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        showError('Please upload an image or PDF file (JPEG, PNG, GIF, BMP, TIFF, or PDF)');
+        return;
+      }
+      
+      // Validate file size (30MB max)
+      if (file.size > 30 * 1024 * 1024) {
+        showError('File size must be less than 30MB');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setComparisonError('');
+    }
+  };
+
+  const handleCompareFiles = async () => {
+    if (!selectedFile) {
+      setComparisonError('Please select a file to compare');
+      return;
+    }
+    
+    const credId = credentialData?.id;
+    if (!credId) {
+      setComparisonError('No verified credential found');
+      return;
+    }
+    
+    setIsComparing(true);
+    setComparisonError('');
+    
+    try {
+      const result = await compareCredentialFile(credId, selectedFile);
+      
+      if (result.success) {
+        setComparisonResult(result);
+        setShowComparisonModal(true);
+      } else {
+        setComparisonError(result.message || result.error || 'Comparison failed');
+      }
+    } catch (error) {
+      console.error('Comparison error:', error);
+      setComparisonError(
+        error.response?.data?.message || 
+        error.response?.data?.error || 
+        'Failed to compare files. Please try again.'
+      );
+    } finally {
+      setIsComparing(false);
+    }
+  };
+
+  const closeComparisonModal = () => {
+    setShowComparisonModal(false);
+    setComparisonResult(null);
+  };
+
+  const resetComparison = () => {
+    setSelectedFile(null);
+    setComparisonResult(null);
+    setComparisonError('');
+    setShowComparisonModal(false);
   };
 
   const runOnChainIntegrityChecks = async (credential) => {
@@ -385,6 +462,71 @@ function VerifierSection() {
                         </div>
                       )}
                     </div>
+                    
+                    {/* File Comparison Section */}
+                    <div className="file-comparison-section mt-4 pt-4 border-top">
+                      <h5 className="mb-3">
+                        <i className="fas fa-file-alt me-2"></i>
+                        Compare with Another File
+                      </h5>
+                      <p className="text-muted small mb-3">
+                        Upload an image or PDF of the credential you have to compare it with the verified file.
+                      </p>
+                      
+                      <div className="file-upload-area mb-3">
+                        <input
+                          type="file"
+                          id="fileUpload"
+                          className="d-none"
+                          accept="image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/tiff,application/pdf"
+                          onChange={handleFileSelect}
+                        />
+                        <label htmlFor="fileUpload" className="file-upload-label">
+                          <i className="fas fa-cloud-upload-alt me-2"></i>
+                          {selectedFile ? selectedFile.name : 'Choose image or PDF file'}
+                        </label>
+                      </div>
+                      
+                      {selectedFile && (
+                        <div className="selected-file-info mb-3">
+                          <i className={`fas ${selectedFile.type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'} text-primary me-2`}></i>
+                          <span className="text-muted small">
+                            {selectedFile.name} ({(selectedFile.size / 1024 / 1024).toFixed(2)} MB)
+                          </span>
+                          <button 
+                            className="btn btn-sm btn-link text-danger ms-2 p-0"
+                            onClick={resetComparison}
+                          >
+                            <i className="fas fa-times"></i>
+                          </button>
+                        </div>
+                      )}
+                      
+                      {comparisonError && (
+                        <div className="alert alert-danger py-2 small mb-3">
+                          <i className="fas fa-exclamation-triangle me-2"></i>
+                          {comparisonError}
+                        </div>
+                      )}
+                      
+                      <button
+                        className="btn btn-primary w-100"
+                        onClick={handleCompareFiles}
+                        disabled={!selectedFile || isComparing}
+                      >
+                        {isComparing ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2"></span>
+                            Comparing... (This may take 30-60 seconds)
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-exchange-alt me-2"></i>
+                            Compare Files
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </div>
                 )}
 
@@ -508,6 +650,404 @@ function VerifierSection() {
                 onClick={closeErrorModal}
               >
                 OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Comparison Result Modal */}
+      {showComparisonModal && comparisonResult && (
+        <div className="verifier-modal-overlay" onClick={closeComparisonModal}>
+          <div className="comparison-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="verifier-modal-header">
+              <h5 className="verifier-modal-title">
+                <i className="fas fa-file-contract me-2"></i>
+                File Comparison Results
+              </h5>
+              <button 
+                type="button" 
+                className="verifier-btn-close" 
+                onClick={closeComparisonModal}
+                aria-label="Close"
+              >
+                <i className="fas fa-times"></i>
+              </button>
+            </div>
+            
+            <div className="verifier-modal-body">
+              {/* Type Mismatch Error */}
+              {!comparisonResult.success && comparisonResult.error === 'Credential type mismatch' && (
+                <div className="alert alert-danger">
+                  <h6 className="alert-heading">
+                    <i className="fas fa-exclamation-circle me-2"></i>
+                    Credential Type Mismatch
+                  </h6>
+                  <p className="mb-2">{comparisonResult.message}</p>
+                  <hr />
+                  <div className="d-flex justify-content-between small">
+                    <div>
+                      <strong>Verified File:</strong> {comparisonResult.verifiedType}
+                    </div>
+                    <div>
+                      <strong>Uploaded File:</strong> {comparisonResult.uploadedType}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Successful Comparison */}
+              {comparisonResult.success && (
+                <>
+                  {/* Overall Status Alert */}
+                  <div className={`alert ${
+                    comparisonResult.overallStatus === 'identical' || comparisonResult.overallStatus === 'authentic' ? 'alert-success' : 
+                    comparisonResult.overallStatus === 'suspicious' ? 'alert-warning' : 
+                    'alert-danger'
+                  } text-center mb-4`}>
+                    <i className={`fas ${
+                      comparisonResult.overallStatus === 'identical' ? 'fa-check-double' :
+                      comparisonResult.overallStatus === 'authentic' ? 'fa-check-circle' : 
+                      comparisonResult.overallStatus === 'suspicious' ? 'fa-exclamation-triangle' : 
+                      'fa-times-circle'
+                    } me-2 fs-4`}></i>
+                    <h5 className="mb-2">{comparisonResult.statusMessage}</h5>
+                    <small>AI Confidence: {comparisonResult.matchConfidence}</small>
+                  </div>
+
+                  {/* Credential Types */}
+                  <div className="comparison-types mb-4">
+                    <div className="row">
+                      <div className="col-6">
+                        <div className="type-card verified-type">
+                          <small className="text-muted d-block">Verified File</small>
+                          <strong>{comparisonResult.verifiedType}</strong>
+                        </div>
+                      </div>
+                      <div className="col-6">
+                        <div className="type-card uploaded-type">
+                          <small className="text-muted d-block">Uploaded File</small>
+                          <strong>{comparisonResult.uploadedType}</strong>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* AI Analysis Summary */}
+                  {comparisonResult.aiAnalysis && comparisonResult.keyFindings && (
+                    <div className="ai-analysis-section mb-4">
+                      <h6 className="mb-3">
+                        <i className="fas fa-robot me-2 text-primary"></i>
+                        AI Visual Analysis
+                      </h6>
+                      <div className="row g-3">
+                        <div className="col-md-6">
+                          <div className="analysis-card">
+                            <div className="analysis-icon">
+                              {comparisonResult.keyFindings.exactSameDocument ? 
+                                <i className="fas fa-equals text-success"></i> : 
+                                <i className="fas fa-not-equal text-warning"></i>
+                              }
+                            </div>
+                            <div className="analysis-content">
+                              <div className="analysis-label">Document Match</div>
+                              <div className="analysis-value">
+                                {comparisonResult.keyFindings.exactSameDocument ? 'Identical' : 'Different'}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        {comparisonResult.keyFindings.authenticityScore !== null && (
+                          <div className="col-md-6">
+                            <div className="analysis-card">
+                              <div className="analysis-icon">
+                                <i className="fas fa-shield-alt text-primary"></i>
+                              </div>
+                              <div className="analysis-content">
+                                <div className="analysis-label">Authenticity Score</div>
+                                <div className="analysis-value">{comparisonResult.keyFindings.authenticityScore}%</div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {comparisonResult.keyFindings.sealMatch !== null && (
+                          <div className="col-md-6">
+                            <div className="analysis-card">
+                              <div className="analysis-icon">
+                                {comparisonResult.keyFindings.sealMatch ? 
+                                  <i className="fas fa-stamp text-success"></i> : 
+                                  <i className="fas fa-stamp text-danger"></i>
+                                }
+                              </div>
+                              <div className="analysis-content">
+                                <div className="analysis-label">Official Seal</div>
+                                <div className="analysis-value">
+                                  {comparisonResult.keyFindings.sealMatch ? 'Match ✓' : 'Mismatch ✗'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {comparisonResult.keyFindings.signatureMatch !== null && (
+                          <div className="col-md-6">
+                            <div className="analysis-card">
+                              <div className="analysis-icon">
+                                {comparisonResult.keyFindings.signatureMatch ? 
+                                  <i className="fas fa-signature text-success"></i> : 
+                                  <i className="fas fa-signature text-danger"></i>
+                                }
+                              </div>
+                              <div className="analysis-content">
+                                <div className="analysis-label">Signature</div>
+                                <div className="analysis-value">
+                                  {comparisonResult.keyFindings.signatureMatch ? 'Match ✓' : 'Mismatch ✗'}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Tampering Detection */}
+                      {comparisonResult.keyFindings.tamperingDetected && (
+                        <div className="alert alert-danger mt-3">
+                          <h6 className="alert-heading">
+                            <i className="fas fa-exclamation-triangle me-2"></i>
+                            Tampering Detected
+                          </h6>
+                          <p className="mb-0">
+                            <strong>Severity:</strong> {comparisonResult.keyFindings.tamperingSeverity}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  
+                  {/* OCR-Only Mode Notice */}
+                  {!comparisonResult.aiAnalysis && comparisonResult.matchConfidence && comparisonResult.matchConfidence.includes('OCR-only') && (
+                    <div className="alert alert-info mb-4">
+                      <i className="fas fa-info-circle me-2"></i>
+                      <strong>Note:</strong> AI visual analysis unavailable. Results based on OCR text comparison only.
+                    </div>
+                  )}
+
+                  {/* Text Similarity Score */}
+                  {comparisonResult.ocrComparison && (
+                    <div className="similarity-score-container mb-4">
+                      <h6 className="mb-3">
+                        <i className="fas fa-file-alt me-2"></i>
+                        OCR Text Comparison
+                      </h6>
+                      <div className="text-center mb-3">
+                        <h2 className={`similarity-percentage ${
+                          comparisonResult.ocrComparison.similarity >= 80 ? 'text-success' : 
+                          comparisonResult.ocrComparison.similarity >= 60 ? 'text-warning' : 
+                          'text-danger'
+                        }`}>
+                          {comparisonResult.ocrComparison.similarity}%
+                        </h2>
+                        <p className="text-muted mb-0">Text Similarity</p>
+                      </div>
+                      
+                      <div className="progress" style={{ height: '25px' }}>
+                        <div 
+                          className={`progress-bar ${
+                            comparisonResult.ocrComparison.similarity >= 80 ? 'bg-success' : 
+                            comparisonResult.ocrComparison.similarity >= 60 ? 'bg-warning' : 
+                            'bg-danger'
+                          }`}
+                          role="progressbar" 
+                          style={{ width: `${comparisonResult.ocrComparison.similarity}%` }}
+                        >
+                          {comparisonResult.ocrComparison.similarity >= 10 && `${comparisonResult.ocrComparison.similarity}%`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Comparison Statistics */}
+                  {comparisonResult.ocrComparison && (
+                    <div className="comparison-stats mb-4">
+                      <h6 className="mb-3">Text Comparison Statistics</h6>
+                      <div className="row g-3">
+                        <div className="col-6">
+                          <div className="stat-card">
+                            <div className="stat-value">{comparisonResult.ocrComparison.commonWords}</div>
+                            <div className="stat-label">Common Words</div>
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <div className="stat-card">
+                            <div className="stat-value">{comparisonResult.ocrComparison.differences.modifiedPercentage}%</div>
+                            <div className="stat-label">Differences</div>
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <div className="stat-card">
+                            <div className="stat-value text-danger">{comparisonResult.ocrComparison.differences.removedWords}</div>
+                            <div className="stat-label">Removed Words</div>
+                          </div>
+                        </div>
+                        <div className="col-6">
+                          <div className="stat-card">
+                            <div className="stat-value text-success">{comparisonResult.ocrComparison.differences.addedWords}</div>
+                            <div className="stat-label">Added Words</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Visual Differences from AI */}
+                  {comparisonResult.aiAnalysis?.visualComparison?.visualDifferences && (
+                    <div className="visual-differences mb-4">
+                      <h6 className="mb-3">
+                        <i className="fas fa-eye me-2"></i>
+                        AI-Detected Visual Differences
+                      </h6>
+                      
+                      {comparisonResult.aiAnalysis.visualComparison.visualDifferences.textChanges?.length > 0 && (
+                        <div className="alert alert-info">
+                          <strong>Text Changes:</strong>
+                          <ul className="mb-0 mt-2">
+                            {comparisonResult.aiAnalysis.visualComparison.visualDifferences.textChanges.map((change, idx) => (
+                              <li key={idx}>{change}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      )}
+                      
+                      {comparisonResult.aiAnalysis.visualComparison.visualDifferences.sealDifferences && 
+                       comparisonResult.aiAnalysis.visualComparison.visualDifferences.sealDifferences !== 'none' && (
+                        <div className="alert alert-warning">
+                          <strong>
+                            <i className="fas fa-stamp me-2"></i>
+                            Seal Differences:
+                          </strong> {comparisonResult.aiAnalysis.visualComparison.visualDifferences.sealDifferences}
+                        </div>
+                      )}
+                      
+                      {comparisonResult.aiAnalysis.visualComparison.visualDifferences.signatureDifferences && 
+                       comparisonResult.aiAnalysis.visualComparison.visualDifferences.signatureDifferences !== 'none' && (
+                        <div className="alert alert-warning">
+                          <strong>
+                            <i className="fas fa-signature me-2"></i>
+                            Signature Differences:
+                          </strong> {comparisonResult.aiAnalysis.visualComparison.visualDifferences.signatureDifferences}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Text Differences */}
+                  {comparisonResult.ocrComparison?.hasSignificantDifferences && (
+                    <div className="text-differences mb-4">
+                      <h6 className="mb-3">
+                        <i className="fas fa-list-ul me-2"></i>
+                        OCR Text Differences
+                      </h6>
+                      
+                      {comparisonResult.ocrComparison.uniqueToVerified?.length > 0 && (
+                        <div className="difference-section mb-3">
+                          <div className="difference-header bg-danger text-white">
+                            <i className="fas fa-minus-circle me-2"></i>
+                            Only in Verified File ({comparisonResult.ocrComparison.uniqueToVerified.length} words)
+                          </div>
+                          <div className="difference-content">
+                            {comparisonResult.ocrComparison.uniqueToVerified.slice(0, 30).map((word, idx) => (
+                              <span key={idx} className="badge bg-danger-subtle text-danger me-1 mb-1">
+                                {word}
+                              </span>
+                            ))}
+                            {comparisonResult.ocrComparison.uniqueToVerified.length > 30 && (
+                              <span className="text-muted small">
+                                ... and {comparisonResult.ocrComparison.uniqueToVerified.length - 30} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                      
+                      {comparisonResult.ocrComparison.uniqueToUploaded?.length > 0 && (
+                        <div className="difference-section">
+                          <div className="difference-header bg-success text-white">
+                            <i className="fas fa-plus-circle me-2"></i>
+                            Only in Uploaded File ({comparisonResult.ocrComparison.uniqueToUploaded.length} words)
+                          </div>
+                          <div className="difference-content">
+                            {comparisonResult.ocrComparison.uniqueToUploaded.slice(0, 30).map((word, idx) => (
+                              <span key={idx} className="badge bg-success-subtle text-success me-1 mb-1">
+                                {word}
+                              </span>
+                            ))}
+                            {comparisonResult.ocrComparison.uniqueToUploaded.length > 30 && (
+                              <span className="text-muted small">
+                                ... and {comparisonResult.ocrComparison.uniqueToUploaded.length - 30} more
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Extracted Text Preview */}
+                  <div className="text-preview-section">
+                    <h6 className="mb-3">
+                      <i className="fas fa-file-alt me-2"></i>
+                      Extracted Text Preview
+                    </h6>
+                    <div className="accordion" id="textPreviewAccordion">
+                      <div className="accordion-item">
+                        <h2 className="accordion-header">
+                          <button 
+                            className="accordion-button collapsed" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#verifiedText"
+                          >
+                            <i className="fas fa-shield-alt me-2 text-primary"></i>
+                            Verified File Text (OCR)
+                          </button>
+                        </h2>
+                        <div id="verifiedText" className="accordion-collapse collapse" data-bs-parent="#textPreviewAccordion">
+                          <div className="accordion-body">
+                            <pre className="text-preview">{comparisonResult.verifiedText}</pre>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="accordion-item">
+                        <h2 className="accordion-header">
+                          <button 
+                            className="accordion-button collapsed" 
+                            type="button" 
+                            data-bs-toggle="collapse" 
+                            data-bs-target="#uploadedText"
+                          >
+                            <i className="fas fa-file-upload me-2 text-secondary"></i>
+                            Uploaded File Text (OCR)
+                          </button>
+                        </h2>
+                        <div id="uploadedText" className="accordion-collapse collapse" data-bs-parent="#textPreviewAccordion">
+                          <div className="accordion-body">
+                            <pre className="text-preview">{comparisonResult.uploadedText}</pre>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            <div className="verifier-modal-footer">
+              <button 
+                type="button" 
+                className="btn btn-secondary" 
+                onClick={closeComparisonModal}
+              >
+                Close
               </button>
             </div>
           </div>

@@ -30,3 +30,24 @@ export const verifyCredential = async (accessCode) => {
     throw error;
   }
 };
+
+// Compare credential file with uploaded file
+export const compareCredentialFile = async (credentialId, file) => {
+  try {
+    const formData = new FormData();
+    formData.append('credentialId', credentialId);
+    formData.append('file', file);
+    
+    const response = await axios.post(`${API_URL}/public/compare-credential`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 120000 // 2 minute timeout for OCR processing
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error comparing credential file:', error);
+    throw error;
+  }
+};
