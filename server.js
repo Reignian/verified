@@ -20,7 +20,7 @@ const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001;
 
 // CORS Configuration - Allow Netlify frontend and local development
 const allowedOrigins = [
-  'https://verifi-ed.netlify.app',
+  'https://bc-verified.netlify.app',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
