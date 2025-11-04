@@ -39,14 +39,16 @@
     "xlsx": "^0.18.5"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
+    "start": "node server.js",
+    "start:frontend": "react-scripts start",
+    "build": "echo 'Backend only - no build needed'",
     "database": "node database.js",
-    "dev": "concurrently \"npm run server\" \"npm start\"",
+    "dev": "concurrently \"npm run server\" \"npm run start:frontend\"",
     "server": "nodemon server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build",
+    "predeploy": "npm run build:frontend",
+    "build:frontend": "react-scripts build",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {

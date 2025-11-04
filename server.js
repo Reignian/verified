@@ -98,6 +98,23 @@ async function initBlockchain() {
 
 initBlockchain();
 
+// Root endpoint - API status
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    message: 'VerifiED Backend API',
+    version: '1.0.0',
+    endpoints: {
+      public: '/api/public',
+      student: '/api/student',
+      institution: '/api/institution',
+      auth: '/api/auth',
+      admin: '/api/admin',
+      test: '/api/test'
+    }
+  });
+});
+
 // Mount route modules (organized by page/dashboard)
 app.use('/api/public', publicRoutes);           // HomePage - Contact & Verification
 app.use('/api/student', studentRoutes);         // Student Dashboard (MyVerifiED)
