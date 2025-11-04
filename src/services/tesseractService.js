@@ -1,5 +1,6 @@
 // fileName: tesseractService.js
 // OCR-based file comparison service using Tesseract.js with Gemini AI integration
+// Updated: Removed pdf-poppler dependency, using pure JavaScript PDF processing with pdfjs-dist
 
 const Tesseract = require('tesseract.js');
 const axios = require('axios');
@@ -7,8 +8,16 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
-const poppler = require('pdf-poppler');
+
+// Import canvas polyfill BEFORE pdfjs-dist to ensure Path2D support
+require('canvas-5-polyfill');
+
+const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
+const { createCanvas } = require('canvas');
 const geminiService = require('./geminiService');
+
+// Configure PDF.js to work in Node.js environment
+pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.js');
 
 /**
  * Normalize credential type names to handle variations
@@ -153,8 +162,67 @@ const CREDENTIAL_TYPE_KEYWORDS = {
 };
 
 /**
+ * Convert PDF page to image using PDF.js (pure JavaScript solution)
+ * @param {string} pdfPath - Path to PDF file
+ * @param {number} pageNumber - Page number to convert (default: 1)
+ * @param {number} scale - Scale factor for rendering (default: 2.0 for better quality)
+ * @returns {Promise<string>} - Path to the generated PNG image
+ */
+async function convertPdfPageToImage(pdfPath, pageNumber = 1, scale = 2.0) {
+  try {
+    console.log(`Converting PDF page ${pageNumber} to image with scale ${scale}...`);
+    
+    // Read PDF file
+    const pdfBuffer = await fs.readFile(pdfPath);
+    
+    // Load PDF document
+    const loadingTask = pdfjsLib.getDocument({
+      data: new Uint8Array(pdfBuffer),
+      verbosity: 0 // Suppress PDF.js warnings
+    });
+    const pdfDocument = await loadingTask.promise;
+    
+    // Get the specified page
+    const page = await pdfDocument.getPage(pageNumber);
+    
+    // Get viewport with scale
+    const viewport = page.getViewport({ scale });
+    
+    // Create canvas
+    const canvas = createCanvas(viewport.width, viewport.height);
+    const context = canvas.getContext('2d');
+    
+    // Set white background for better OCR
+    context.fillStyle = 'white';
+    context.fillRect(0, 0, viewport.width, viewport.height);
+    
+    // Render PDF page to canvas
+    const renderContext = {
+      canvasContext: context,
+      viewport: viewport
+    };
+    
+    await page.render(renderContext).promise;
+    
+    // Save canvas as PNG
+    const tempDir = path.dirname(pdfPath);
+    const outputPath = path.join(tempDir, `temp_pdf_${Date.now()}_page${pageNumber}.png`);
+    
+    const buffer = canvas.toBuffer('image/png');
+    await fs.writeFile(outputPath, buffer);
+    
+    console.log(`PDF page converted successfully to: ${outputPath}`);
+    return outputPath;
+    
+  } catch (error) {
+    console.error('PDF to image conversion error:', error);
+    throw new Error('Failed to convert PDF page to image: ' + error.message);
+  }
+}
+
+/**
  * Extract text from an image or PDF using Tesseract OCR
- * PDFs are converted to images first for better OCR accuracy
+ * PDFs are converted to images first using PDF.js (pure JavaScript)
  * @param {string} filePath - Path to the image or PDF file
  * @returns {Promise<string>} - Extracted text
  */
@@ -170,7 +238,7 @@ async function extractTextFromImage(filePath) {
     
     // Handle PDF files - convert to image first, then OCR
     if (isPDF) {
-      console.log('PDF detected. Converting to image for OCR:', filePath);
+      console.log('PDF detected. Processing with PDF.js:', filePath);
       
       try {
         // Try pdf-parse first (for text-based PDFs)
@@ -181,33 +249,15 @@ async function extractTextFromImage(filePath) {
           return pdfData.text;
         }
         
-        console.log('PDF appears to be image-based or has minimal text. Converting to image...');
+        console.log('PDF appears to be image-based or has minimal text. Converting to image with PDF.js...');
       } catch (parseError) {
-        console.log('PDF text extraction failed. Converting to image...');
+        console.log('PDF text extraction failed. Converting to image with PDF.js...');
       }
       
-      // Convert PDF to image using pdf-poppler (first page)
+      // Convert PDF to image using PDF.js (pure JavaScript - first page)
       try {
-        const tempDir = path.dirname(filePath);
-        const outputPrefix = `temp_pdf_${Date.now()}`;
-        
-        // Convert PDF to PNG
-        const options = {
-          format: 'png',
-          out_dir: tempDir,
-          out_prefix: outputPrefix,
-          page: 1 // Only first page
-        };
-        
-        await poppler.convert(filePath, options);
-        
-        // Find the generated image
-        tempImagePath = path.join(tempDir, `${outputPrefix}-1.png`);
-        
-        // Check if file exists
-        if (!fsSync.existsSync(tempImagePath)) {
-          throw new Error('PDF conversion did not create image file');
-        }
+        console.log('Converting PDF to image using PDF.js...');
+        tempImagePath = await convertPdfPageToImage(filePath, 1, 2.0);
         
         console.log('PDF converted to image. Running OCR...');
         
@@ -227,6 +277,7 @@ async function extractTextFromImage(filePath) {
         // Cleanup temp image
         try {
           await fs.unlink(tempImagePath);
+          console.log('Temporary image cleaned up');
         } catch (cleanupErr) {
           console.warn('Failed to cleanup temp image:', cleanupErr);
         }
@@ -246,6 +297,7 @@ async function extractTextFromImage(filePath) {
           }
         }
         
+        // Return empty text if conversion fails
         console.log('PDF conversion failed. Returning empty text.');
         return '';
       }
@@ -602,11 +654,6 @@ async function compareCredentialFiles(verifiedFilePath, uploadedFilePath, dbCred
     console.log('Uploaded credential type (raw):', uploadedTypeRaw);
     console.log('Uploaded credential type (normalized):', uploadedType);
     
-    // Type mismatch validation removed - allow comparison of any credential types
-    // Users may want to compare different types (e.g., Certificate of Graduation with Bachelor Degree)
-    console.log('Type check: Verified =', verifiedType, '/ Uploaded =', uploadedType);
-    console.log('Proceeding with comparison regardless of type difference...');
-    
     // If one or both types couldn't be identified, proceed with warning
     const typeWarning = !verifiedType || !uploadedType 
       ? 'Warning: Could not confidently identify credential type from one or both files. Comparison will proceed but results may be less accurate.'
@@ -886,5 +933,7 @@ module.exports = {
   compareTexts,
   compareCredentialFiles,
   processComparisonWithIPFS,
-  processAIEnhancedComparison
+  processAIEnhancedComparison,
+  convertPdfPageToImage,
+  normalizeCredentialType
 };
