@@ -249,7 +249,15 @@ YOUR TASK: Visually compare these two credential documents and detect any signs 
    - Logo: Does the institution logo match exactly?
    - Security features: Watermarks, holograms, serial numbers
 
-5. FINAL ASSESSMENT:
+5. SPECIFIC TAMPERING DETAILS (CRITICAL):
+   For EACH tampering indicator found, provide:
+   - WHAT was tampered: Exact field/element name (e.g., "Student Name", "GPA", "Grade in Math 101", "Official Seal", "Signature")
+   - ORIGINAL VALUE: What appears in Document 1 (verified)
+   - TAMPERED VALUE: What appears in Document 2 (uploaded)
+   - LOCATION: Where on the document (e.g., "top center", "bottom right", "grade table row 3", "header section")
+   - DESCRIPTION: How it was tampered (e.g., "digitally edited", "different font", "color mismatch", "blurred area")
+
+6. FINAL ASSESSMENT:
    - If documents are IDENTICAL → "Authentic"
    - If minor differences that could be legitimate → "Suspicious" 
    - If clear signs of tampering/forgery → "Fraudulent"
@@ -281,6 +289,16 @@ Respond in JSON format:
     "signs": ["list of tampering signs"],
     "severity": "None/Minor/Moderate/Severe"
   },
+  "specificTampering": [
+    {
+      "field": "exact field name",
+      "originalValue": "value in verified document",
+      "tamperedValue": "value in uploaded document",
+      "location": "position on document",
+      "tamperingMethod": "how it was altered",
+      "severity": "Minor/Moderate/Severe"
+    }
+  ],
   "recommendation": "Authentic/Suspicious/Fraudulent",
   "detailedAnalysis": "comprehensive explanation of findings"
 }`;

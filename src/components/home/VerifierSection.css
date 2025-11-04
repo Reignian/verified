@@ -987,3 +987,156 @@
     font-size: 0.85rem;
   }
 }
+
+/* Specific Tampering Details Section */
+.tampering-details-section {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  border: 2px solid #dc3545;
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.1);
+}
+
+.tampering-details-section h6 {
+  color: #dc3545;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.tampering-items {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.tampering-item {
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 0;
+  border-left: 4px solid;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tampering-item.alert-danger {
+  background-color: #fff5f5;
+  border-left-color: #dc3545;
+}
+
+.tampering-item.alert-warning {
+  background-color: #fffbf0;
+  border-left-color: #ffc107;
+}
+
+.tampering-item.alert-info {
+  background-color: #f0f8ff;
+  border-left-color: #0dcaf0;
+}
+
+.tampering-field {
+  display: flex;
+  align-items: center;
+  font-size: 1.05rem;
+  color: #333;
+}
+
+.tampering-field i {
+  color: #dc3545;
+}
+
+.tampering-comparison {
+  margin-top: 12px;
+}
+
+.tampering-value {
+  background: white;
+  padding: 10px;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.tampering-value.verified-value {
+  border-left: 3px solid #28a745;
+}
+
+.tampering-value.tampered-value {
+  border-left: 3px solid #dc3545;
+}
+
+.tampering-value code {
+  display: block;
+  padding: 5px;
+  background: transparent;
+  font-size: 0.95rem;
+  word-break: break-word;
+  white-space: pre-wrap;
+}
+
+.tampering-value code.text-success {
+  color: #28a745 !important;
+  font-weight: 600;
+}
+
+.tampering-value code.text-danger {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
+.tampering-metadata {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid #e9ecef;
+  color: #666;
+}
+
+.tampering-metadata i {
+  opacity: 0.7;
+}
+
+/* Responsive for Tampering Details */
+@media (max-width: 768px) {
+  .tampering-details-section {
+    padding: 15px;
+  }
+  
+  .tampering-item {
+    padding: 12px;
+  }
+  
+  .tampering-field {
+    font-size: 0.95rem;
+  }
+  
+  .tampering-value code {
+    font-size: 0.85rem;
+  }
+  
+  .tampering-metadata {
+    font-size: 0.85rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .tampering-details-section {
+    padding: 12px;
+  }
+  
+  .tampering-item {
+    padding: 10px;
+  }
+  
+  .tampering-field {
+    font-size: 0.9rem;
+  }
+  
+  .tampering-comparison .row {
+    gap: 10px;
+  }
+  
+  .tampering-value {
+    padding: 8px;
+  }
+  
+  .tampering-value code {
+    font-size: 0.8rem;
+  }
+}

@@ -943,6 +943,9 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
         signatureMatch: visualComparison.comparison.authenticityMarkers.signatureMatch
       },
       
+      // Specific Tampering Details (field-by-field)
+      specificTampering: visualComparison.comparison.specificTampering || [],
+      
       timestamp: new Date().toISOString()
     };
     

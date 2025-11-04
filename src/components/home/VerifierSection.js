@@ -536,9 +536,12 @@ function VerifierSection() {
                         <i className="fas fa-file-alt me-2"></i>
                         Compare with Another File
                       </h5>
-                      <p className="text-muted small mb-3">
-                        Upload an image or PDF of the credential you have to compare it with the verified file.
-                      </p>
+                      <div className="alert alert-info d-flex align-items-start mb-3" style={{ backgroundColor: '#e7f3ff', border: '1px solid #b3d9ff' }}>
+                        <i className="fas fa-lightbulb me-2 mt-1" style={{ color: '#0066cc', fontSize: '1.1rem' }}></i>
+                        <div>
+                          <strong style={{ color: '#0066cc' }}>Tip:</strong> Upload a <strong>clear, high-quality photo or PDF</strong> for best results. Better image quality helps our AI detect tampering more accurately.
+                        </div>
+                      </div>
                       
                       <div className="file-upload-area mb-3">
                         <input
@@ -946,6 +949,75 @@ function VerifierSection() {
                           <p className="mb-0">
                             <strong>Severity:</strong> {comparisonResult.keyFindings.tamperingSeverity}
                           </p>
+                        </div>
+                      )}
+                      
+                      {/* Specific Tampering Details */}
+                      {comparisonResult.specificTampering && comparisonResult.specificTampering.length > 0 && (
+                        <div className="tampering-details-section mt-3">
+                          <h6 className="mb-3">
+                            <i className="fas fa-search-location me-2 text-danger"></i>
+                            Specific Tampering Detected ({comparisonResult.specificTampering.length} {comparisonResult.specificTampering.length === 1 ? 'field' : 'fields'})
+                          </h6>
+                          <div className="tampering-items">
+                            {comparisonResult.specificTampering.map((item, idx) => (
+                              <div key={idx} className={`tampering-item alert ${
+                                item.severity === 'Severe' ? 'alert-danger' :
+                                item.severity === 'Moderate' ? 'alert-warning' :
+                                'alert-info'
+                              }`}>
+                                <div className="d-flex justify-content-between align-items-start mb-2">
+                                  <div className="tampering-field">
+                                    <i className="fas fa-exclamation-circle me-2"></i>
+                                    <strong>{item.field}</strong>
+                                  </div>
+                                  <span className={`badge ${
+                                    item.severity === 'Severe' ? 'bg-danger' :
+                                    item.severity === 'Moderate' ? 'bg-warning' :
+                                    'bg-info'
+                                  }`}>
+                                    {item.severity}
+                                  </span>
+                                </div>
+                                
+                                <div className="tampering-comparison mb-2">
+                                  <div className="row g-2">
+                                    <div className="col-md-6">
+                                      <div className="tampering-value verified-value">
+                                        <small className="text-muted d-block">
+                                          <i className="fas fa-shield-alt me-1"></i>
+                                          Original (Verified):
+                                        </small>
+                                        <code className="text-success">{item.originalValue || 'N/A'}</code>
+                                      </div>
+                                    </div>
+                                    <div className="col-md-6">
+                                      <div className="tampering-value tampered-value">
+                                        <small className="text-muted d-block">
+                                          <i className="fas fa-file-upload me-1"></i>
+                                          Tampered (Uploaded):
+                                        </small>
+                                        <code className="text-danger">{item.tamperedValue || 'N/A'}</code>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                <div className="tampering-metadata">
+                                  <div className="row g-2 small">
+                                    <div className="col-md-6">
+                                      <i className="fas fa-map-marker-alt me-1 text-primary"></i>
+                                      <strong>Location:</strong> {item.location}
+                                    </div>
+                                    <div className="col-md-6">
+                                      <i className="fas fa-tools me-1 text-warning"></i>
+                                      <strong>Method:</strong> {item.tamperingMethod}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                     </div>
