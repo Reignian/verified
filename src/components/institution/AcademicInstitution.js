@@ -13,7 +13,8 @@ import {
   fetchDashboardStats,
   fetchInstitutionProfile,
   updateInstitutionProfile,
-  deleteCredential
+  deleteCredential,
+  fetchMaticPrice
 } from '../../services/institutionApiService';
 import { logCredentialDeleted } from '../../services/activityLogService';
 import 'bootstrap/dist/css/bootstrap.min.css';
@@ -40,6 +41,8 @@ function AcademicInstitution() {
   const [issuedCredentials, setIssuedCredentials] = useState([]);
   const [credentialStats, setCredentialStats] = useState({ total_credentials: 0, new_credentials_week: 0 });
   const [dashboardStats, setDashboardStats] = useState({ total_students: 0, total_credentials: 0, daily_verifications: 0 });
+  const [maticPrice, setMaticPrice] = useState({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+  const [maticPriceLoading, setMaticPriceLoading] = useState(true);
   const [institutionProfile, setInstitutionProfile] = useState({ institution_name: '', username: '', email: '' });
   const [showModal, setShowModal] = useState(false);
   const [showErrorPopup, setShowErrorPopup] = useState(false);
@@ -155,6 +158,12 @@ function AcademicInstitution() {
 
     getAccount();
     loadData();
+    loadMaticPrice();
+
+    // Auto-refresh MATIC price every 5min
+    const priceInterval = setInterval(() => {
+      loadMaticPrice();
+    }, 300000); // 5min
 
     // Cleanup event listeners on component unmount
     return () => {
@@ -162,6 +171,7 @@ function AcademicInstitution() {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
         window.ethereum.removeListener('chainChanged', handleChainChanged);
       }
+      clearInterval(priceInterval); // Clear price refresh interval
     };
   }, []);
 
@@ -207,6 +217,29 @@ function AcademicInstitution() {
   const handleViewCredential = (ipfsCid) => {
     const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${ipfsCid}`;
     window.open(ipfsUrl, '_blank');
+  };
+
+  // Fetch MATIC price via backend API
+  const loadMaticPrice = async () => {
+    try {
+      setMaticPriceLoading(true);
+      const data = await fetchMaticPrice();
+      if (data.success && data.priceUSD && data.pricePHP) {
+        setMaticPrice({
+          priceUSD: data.priceUSD,
+          pricePHP: data.pricePHP,
+          change24h: data.change24h,
+          changeValue24h: data.changeValue24h
+        });
+      } else {
+        setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+      }
+    } catch (error) {
+      console.error('Failed to fetch MATIC price:', error);
+      setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+    } finally {
+      setMaticPriceLoading(false);
+    }
   };
 
   const handleDeleteCredential = async (credentialId) => {
@@ -349,7 +382,7 @@ function AcademicInstitution() {
           <div className="dashboard-stats-section">
             {/* Basic Stats Row */}
             <div className="row mb-4">
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <div className="stat-card">
                   <div className="stat-icon">
                     <i className="fas fa-users"></i>
@@ -360,7 +393,7 @@ function AcademicInstitution() {
                   </div>
                 </div>
               </div>
-              <div className="col-md-6">
+              <div className="col-md-4">
                 <div className="stat-card">
                   <div className="stat-icon">
                     <i className="fas fa-certificate"></i>
@@ -368,6 +401,42 @@ function AcademicInstitution() {
                   <div className="stat-content">
                     <h3>{dashboardStats.total_credentials}</h3>
                     <p>Issued Credentials</p>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="stat-card">
+                  <div className="stat-icon">
+                    <i className="fab fa-ethereum"></i>
+                  </div>
+                  <div className="stat-content">
+                    {maticPriceLoading ? (
+                      <>
+                        <h3><span style={{ fontSize: '20px', color: '#7f8c8d' }}>Loading...</span></h3>
+                        <p>POL (Polygon)</p>
+                      </>
+                    ) : maticPrice.priceUSD ? (
+                      <>
+                        <h3 style={{ marginBottom: '2px' }}>${maticPrice.priceUSD.toFixed(4)}</h3>
+                        <p style={{ fontSize: '13px', color: '#95a5a6', margin: '0 0 5px 0' }}>
+                          ₱{maticPrice.pricePHP.toFixed(2)} PHP
+                        </p>
+                        <p style={{ 
+                          fontSize: '12px', 
+                          margin: 0,
+                          color: maticPrice.change24h >= 0 ? '#27ae60' : '#e74c3c',
+                          fontWeight: '600'
+                        }}>
+                          <i className={`fas fa-arrow-${maticPrice.change24h >= 0 ? 'up' : 'down'}`}></i>
+                          {' '}{Math.abs(maticPrice.change24h).toFixed(2)}% (24h)
+                        </p>
+                      </>
+                    ) : (
+                      <>
+                        <h3><span style={{ fontSize: '20px', color: '#e74c3c' }}>N/A</span></h3>
+                        <p>POL (Polygon)</p>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

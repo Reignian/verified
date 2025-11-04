@@ -7,6 +7,7 @@ const multer = require('multer');
 const crypto = require('crypto');
 const path = require('path');
 const fs = require('fs');
+const axios = require('axios');
 const academicQueries = require('../queries/academicInstitutionQueries');
 const myVerifiEDQueries = require('../queries/MyVerifiEDQueries');
 const pinataService = require('../services/pinataService');
@@ -1264,6 +1265,44 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
     res.status(500).json({ 
       success: false, 
       error: 'Failed to analyze credential: ' + error.message 
+    });
+  }
+});
+
+// GET /api/institution/matic-price - Fetch current MATIC price with 24h change and PHP conversion
+router.get('/matic-price', async (req, res) => {
+  try {
+    // Fetch current price in USD and PHP
+    const priceResponse = await axios.get('https://min-api.cryptocompare.com/data/price?fsym=MATIC&tsyms=USD,PHP', {
+      timeout: 5000
+    });
+    
+    // Fetch 24h price change data
+    const changeResponse = await axios.get('https://min-api.cryptocompare.com/data/pricemultifull?fsyms=MATIC&tsyms=USD', {
+      timeout: 5000
+    });
+    
+    if (priceResponse.data && priceResponse.data.USD && priceResponse.data.PHP) {
+      const changeData = changeResponse.data?.RAW?.MATIC?.USD || {};
+      
+      res.json({ 
+        success: true, 
+        priceUSD: priceResponse.data.USD,
+        pricePHP: priceResponse.data.PHP,
+        change24h: changeData.CHANGEPCT24HOUR || 0,
+        changeValue24h: changeData.CHANGE24HOUR || 0
+      });
+    } else {
+      res.status(404).json({ 
+        success: false, 
+        error: 'Price data not available' 
+      });
+    }
+  } catch (error) {
+    console.error('Failed to fetch MATIC price:', error.message);
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch MATIC price' 
     });
   }
 });

@@ -476,3 +476,16 @@ export const analyzeCredentialFile = async (file) => {
     throw error;
   }
 };
+
+// Fetch current MATIC price from CoinGecko via backend proxy
+export const fetchMaticPrice = async () => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/matic-price`, {
+      timeout: 5000
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching MATIC price:', error);
+    throw error;
+  }
+};
