@@ -41,14 +41,13 @@
   "scripts": {
     "start": "node server.js",
     "start:frontend": "react-scripts start",
-    "build": "echo 'Backend only - no build needed'",
+    "build": "react-scripts build",
     "database": "node database.js",
     "dev": "concurrently \"npm run server\" \"npm run start:frontend\"",
     "server": "nodemon server.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "predeploy": "npm run build:frontend",
-    "build:frontend": "react-scripts build",
+    "predeploy": "npm run build",
     "deploy": "gh-pages -d build"
   },
   "eslintConfig": {
