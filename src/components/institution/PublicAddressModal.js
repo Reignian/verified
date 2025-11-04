@@ -100,8 +100,8 @@ function PublicAddressModal({ show, onClose, institutionId, currentAddress, onAd
   if (!show) return null;
 
   return (
-    <div className="modal-overlay" onClick={handleClose}>
-      <div className="modal-content public-address-modal" onClick={(e) => e.stopPropagation()}>
+    <div className="modal-overlay">
+      <div className="modal-content public-address-modal">
         <div className="modal-header">
           <h3>
             <i className="fas fa-wallet me-2"></i>

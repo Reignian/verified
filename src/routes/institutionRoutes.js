@@ -13,8 +13,41 @@ const pinataService = require('../services/pinataService');
 const XLSX = require('xlsx');
 const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
+const tesseractService = require('../services/tesseractService');
+const geminiService = require('../services/geminiService');
 
 const upload = multer({ storage: multer.memoryStorage() });
+
+// Configure multer for temporary file storage (for OCR analysis)
+const tempStorage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    const tempDir = path.join(__dirname, '../../uploads/temp');
+    if (!fs.existsSync(tempDir)) {
+      fs.mkdirSync(tempDir, { recursive: true });
+    }
+    cb(null, tempDir);
+  },
+  filename: function (req, file, cb) {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, 'credential-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const uploadTemp = multer({ 
+  storage: tempStorage,
+  limits: { fileSize: 30 * 1024 * 1024 }, // 30MB limit
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|bmp|tiff|pdf/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    
+    if (mimetype && extname) {
+      return cb(null, true);
+    } else {
+      cb(new Error('Only image files and PDFs are allowed'));
+    }
+  }
+});
 
 // Helper function to load contract data
 function loadContractData() {
@@ -1130,6 +1163,109 @@ router.get('/contract-info', (req, res) => {
     abiLength: contractData?.abi?.length || 0,
     polygonAmoyExplorer: contractAddress ? `https://amoy.polygonscan.com/address/${contractAddress}` : null
   });
+});
+
+// POST /api/institution/analyze-credential - Analyze credential file with OCR + AI
+router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (req, res) => {
+  const uploadedFilePath = req.file ? req.file.path : null;
+  
+  try {
+    if (!req.file) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'No file uploaded' 
+      });
+    }
+    
+    console.log('📄 Analyzing credential file:', req.file.originalname);
+    console.log('File path:', uploadedFilePath);
+    console.log('File size:', req.file.size, 'bytes');
+    
+    // Step 1: Extract text with OCR (Tesseract)
+    console.log('🔍 Step 1: Extracting text with OCR...');
+    const extractedText = await tesseractService.extractTextFromImage(uploadedFilePath);
+    console.log('✅ OCR completed. Text length:', extractedText.length);
+    
+    // Step 2: Identify credential type from OCR text
+    console.log('🔍 Step 2: Identifying credential type from OCR...');
+    const ocrCredentialType = tesseractService.identifyCredentialType(extractedText);
+    console.log('OCR identified type:', ocrCredentialType);
+    
+    // Step 3: Use Gemini AI for intelligent extraction
+    console.log('🤖 Step 3: Analyzing with Gemini AI...');
+    const aiResult = await geminiService.extractCredentialInfo(uploadedFilePath);
+    
+    let result;
+    
+    if (aiResult.success) {
+      console.log('✅ AI analysis successful');
+      result = {
+        success: true,
+        data: {
+          documentType: aiResult.data.documentType,
+          recipientName: aiResult.data.recipientName,
+          program: aiResult.data.program,
+          institutionName: aiResult.data.institutionName,
+          issueDate: aiResult.data.issueDate,
+          studentId: aiResult.data.studentId,
+          confidence: aiResult.data.confidence,
+          notes: aiResult.data.notes,
+          extractedText: extractedText.substring(0, 500), // First 500 chars for reference
+          ocrCredentialType: ocrCredentialType
+        },
+        mode: 'ai'
+      };
+    } else {
+      // Fallback to OCR-only mode
+      console.log('⚠️  AI analysis failed, using OCR-only mode');
+      console.log('AI Error:', aiResult.error);
+      
+      result = {
+        success: true,
+        data: {
+          documentType: ocrCredentialType,
+          recipientName: null,
+          program: null,
+          institutionName: null,
+          issueDate: null,
+          studentId: null,
+          confidence: 'Low',
+          notes: 'AI analysis unavailable. Only credential type detected via OCR.',
+          extractedText: extractedText.substring(0, 500),
+          ocrCredentialType: ocrCredentialType
+        },
+        mode: 'ocr-only',
+        aiError: aiResult.error,
+        quotaExhausted: aiResult.quotaExhausted
+      };
+    }
+    
+    // Cleanup temporary file
+    if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+      fs.unlinkSync(uploadedFilePath);
+      console.log('🗑️  Temporary file cleaned up');
+    }
+    
+    console.log('✅ Analysis complete');
+    res.json(result);
+    
+  } catch (error) {
+    console.error('❌ Credential analysis error:', error);
+    
+    // Cleanup temporary file on error
+    if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
+      try {
+        fs.unlinkSync(uploadedFilePath);
+      } catch (cleanupErr) {
+        console.error('Failed to cleanup temp file:', cleanupErr);
+      }
+    }
+    
+    res.status(500).json({ 
+      success: false, 
+      error: 'Failed to analyze credential: ' + error.message 
+    });
+  }
 });
 
 module.exports = router;

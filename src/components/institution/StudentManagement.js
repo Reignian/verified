@@ -431,8 +431,8 @@ const StudentManagement = ({ institutionId, onBack, showBackButton = false, onOp
 
       {/* Student Credentials Modal */}
       {showCredentialsModal && selectedStudent && (
-        <div className="modal-overlay" onClick={() => setShowCredentialsModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-overlay">
+          <div className="modal-content">
             <div className="modal-header">
               <h3 className="modal-title">
                 <i className="fas fa-certificate me-2"></i>

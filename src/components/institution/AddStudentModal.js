@@ -158,8 +158,8 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   if (!show) return null;
 
   return (
-    <div className="add-student-modal-overlay" onClick={handleClose}>
-      <div className="add-student-modal-content" onClick={(e) => e.stopPropagation()}>
+    <div className="add-student-modal-overlay">
+      <div className="add-student-modal-content">
         <div className="add-student-modal-header">
           <h2>
             <i className="fas fa-user-plus"></i>

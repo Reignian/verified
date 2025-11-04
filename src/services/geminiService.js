@@ -470,8 +470,101 @@ Respond in JSON format:
   }
 }
 
+/**
+ * Extract credential information for pre-filling form fields
+ * @param {string} filePath - Path to credential image or PDF
+ * @returns {Promise<Object>} - Extracted credential information
+ */
+async function extractCredentialInfo(filePath) {
+  try {
+    console.log('🔍 Extracting credential information with Gemini AI:', filePath);
+    
+    const model = getModel();
+    const imagePart = await fileToGenerativePart(filePath);
+    
+    const prompt = `You are an expert at extracting information from educational credentials. Analyze this document and extract key information.
+
+IMPORTANT - Document Type Categories (in priority order):
+- "Transcript" or "Transcript of Records": Grade sheets, academic records, lists of courses and grades
+- "Certificate of Graduation": Documents titled "Certificate of Graduation" or "Graduation Certificate"
+- "Bachelor Degree": Formal degree certificates that confer Bachelor's degree
+- "Master Degree": Formal degree certificates that confer Master's degree
+- "PhD Degree": Formal degree certificates that confer Doctoral degree
+- "Diploma": Professional diplomas, vocational certificates
+- "Certificate": Achievement certificates, participation certificates
+- "Achievement Award": Awards, honors, recognitions
+- "Letter of Recommendation": Reference letters
+
+Extract the following information:
+1. Document Type: Identify the credential type from the list above
+2. Student/Recipient Name: Full name of the person receiving the credential
+3. Program/Course: The academic program, degree program, or course name (e.g., "Bachelor of Science in Computer Science", "Master of Business Administration", "Certificate in Web Development")
+4. Institution Name: Name of the issuing institution
+5. Issue Date: Date when the credential was issued
+6. Student ID: Student identification number (if visible)
+
+Respond in JSON format:
+{
+  "documentType": "exact type from list above or null",
+  "recipientName": "full name or null",
+  "program": "program/course name or null",
+  "institutionName": "institution name or null",
+  "issueDate": "date or null",
+  "studentId": "student ID or null",
+  "confidence": "High/Medium/Low",
+  "notes": "any additional observations"
+}`;
+
+    console.log('📤 Sending extraction request to Gemini API...');
+    const result = await model.generateContent([prompt, imagePart]);
+    console.log('📥 Received response from Gemini API');
+    const response = await result.response;
+    const text = response.text();
+    
+    // Extract JSON from response (might have markdown code blocks)
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const extractedInfo = JSON.parse(jsonMatch[0]);
+      console.log('✅ Credential information extracted:', extractedInfo);
+      return {
+        success: true,
+        data: extractedInfo
+      };
+    }
+    
+    throw new Error('Failed to parse Gemini response');
+    
+  } catch (error) {
+    console.error('❌ Gemini extraction error:', error);
+    
+    // Check if it's a quota/rate limit error
+    let userMessage = error.message;
+    let quotaExhausted = false;
+    
+    if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'Gemini AI free tier quota exhausted. Please try again later or fill the form manually.';
+      quotaExhausted = true;
+      console.log('⚠️  Gemini API quota exhausted');
+    } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
+      userMessage = 'Gemini API key is invalid or expired.';
+      console.log('⚠️  Invalid Gemini API key');
+    } else if (error.message.includes('500') || error.message.includes('503')) {
+      userMessage = 'Gemini API is temporarily unavailable.';
+      console.log('⚠️  Gemini API service unavailable');
+    }
+    
+    return {
+      success: false,
+      error: userMessage,
+      quotaExhausted: quotaExhausted,
+      data: null
+    };
+  }
+}
+
 module.exports = {
   analyzeCredentialType,
   compareCredentialImages,
-  detectAuthenticityMarkers
+  detectAuthenticityMarkers,
+  extractCredentialInfo
 };

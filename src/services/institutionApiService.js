@@ -457,3 +457,22 @@ export const deleteCredential = async (credentialId) => {
     throw error;
   }
 };
+
+// Analyze credential file with OCR + AI to extract information
+export const analyzeCredentialFile = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('credentialFile', file);
+
+    const response = await axios.post(`${API_URL}/institution/analyze-credential`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      timeout: 120000 // 2 minutes timeout for OCR + AI processing
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error analyzing credential file:', error);
+    throw error;
+  }
+};
