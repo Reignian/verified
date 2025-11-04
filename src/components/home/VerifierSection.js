@@ -25,6 +25,14 @@ function VerifierSection() {
   const [comparisonResult, setComparisonResult] = useState(null);
   const [comparisonError, setComparisonError] = useState('');
   
+  // Progress tracking states
+  const [comparisonProgress, setComparisonProgress] = useState({
+    stage: '',
+    percentage: 0,
+    message: '',
+    timeRemaining: ''
+  });
+  
   // All on-chain integrity checks will be computed and logged to console only.
 
   // Function to download file from IPFS
@@ -132,12 +140,63 @@ function VerifierSection() {
     setIsComparing(true);
     setComparisonError('');
     
+    // Simulate progress tracking
+    const isPDF = selectedFile.type === 'application/pdf';
+    const stages = [
+      { stage: 'upload', message: 'Uploading file...', duration: 2000, percentage: 10 },
+      { stage: 'download', message: 'Downloading verified credential...', duration: 3000, percentage: 20 },
+    ];
+    
+    if (isPDF) {
+      stages.push({ stage: 'pdf', message: 'Converting PDF to image...', duration: 8000, percentage: 35 });
+    }
+    
+    stages.push(
+      { stage: 'ocr1', message: 'Extracting text from verified file...', duration: 15000, percentage: isPDF ? 55 : 50 },
+      { stage: 'ocr2', message: 'Extracting text from uploaded file...', duration: 15000, percentage: isPDF ? 75 : 70 },
+      { stage: 'ai', message: 'Running AI analysis...', duration: 10000, percentage: isPDF ? 90 : 85 },
+      { stage: 'compare', message: 'Comparing results...', duration: 3000, percentage: 95 }
+    );
+    
+    let currentStageIndex = 0;
+    
+    const updateProgress = () => {
+      if (currentStageIndex < stages.length) {
+        const stage = stages[currentStageIndex];
+        const timeRemaining = Math.ceil(
+          stages.slice(currentStageIndex).reduce((sum, s) => sum + s.duration, 0) / 1000
+        );
+        
+        setComparisonProgress({
+          stage: stage.stage,
+          percentage: stage.percentage,
+          message: stage.message,
+          timeRemaining: `~${timeRemaining}s remaining`
+        });
+        
+        currentStageIndex++;
+        if (currentStageIndex < stages.length) {
+          setTimeout(updateProgress, stages[currentStageIndex - 1].duration);
+        }
+      }
+    };
+    
+    updateProgress();
+    
     try {
       const result = await compareCredentialFile(credId, selectedFile);
       
       if (result.success) {
-        setComparisonResult(result);
-        setShowComparisonModal(true);
+        setComparisonProgress({
+          stage: 'complete',
+          percentage: 100,
+          message: 'Comparison complete!',
+          timeRemaining: ''
+        });
+        setTimeout(() => {
+          setComparisonResult(result);
+          setShowComparisonModal(true);
+        }, 500);
       } else {
         setComparisonError(result.message || result.error || 'Comparison failed');
       }
@@ -149,7 +208,10 @@ function VerifierSection() {
         'Failed to compare files. Please try again.'
       );
     } finally {
-      setIsComparing(false);
+      setTimeout(() => {
+        setIsComparing(false);
+        setComparisonProgress({ stage: '', percentage: 0, message: '', timeRemaining: '' });
+      }, 500);
     }
   };
 
@@ -399,7 +461,12 @@ function VerifierSection() {
                     onClick={handleVerify}
                     disabled={isLoading}
                   >
-                    {isLoading ? 'Verifying...' : 'Verify'}
+                    {isLoading ? (
+                      <>
+                        <span className="spinner-border spinner-border-sm me-1" style={{ width: '14px', height: '14px' }}></span>
+                        Verifying
+                      </>
+                    ) : 'Verify'}
                   </button>
                 </div>
                 
@@ -496,6 +563,8 @@ function VerifierSection() {
                           <button 
                             className="btn btn-sm btn-link text-danger ms-2 p-0"
                             onClick={resetComparison}
+                            disabled={isComparing}
+                            title={isComparing ? 'Cannot remove file during comparison' : 'Remove file'}
                           >
                             <i className="fas fa-times"></i>
                           </button>
@@ -517,7 +586,7 @@ function VerifierSection() {
                         {isComparing ? (
                           <>
                             <span className="spinner-border spinner-border-sm me-2"></span>
-                            Comparing... (This may take 30-60 seconds)
+                            Processing...
                           </>
                         ) : (
                           <>
@@ -526,6 +595,34 @@ function VerifierSection() {
                           </>
                         )}
                       </button>
+                      
+                      {/* Progress Indicator */}
+                      {isComparing && comparisonProgress.percentage > 0 && (
+                        <div className="comparison-progress-container mt-3">
+                          <div className="progress-header mb-2">
+                            <span className="progress-message">
+                              <i className="fas fa-cog fa-spin me-2"></i>
+                              {comparisonProgress.message}
+                            </span>
+                            <span className="progress-time text-muted small">
+                              {comparisonProgress.timeRemaining}
+                            </span>
+                          </div>
+                          <div className="progress" style={{ height: '8px' }}>
+                            <div 
+                              className="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                              role="progressbar" 
+                              style={{ width: `${comparisonProgress.percentage}%` }}
+                              aria-valuenow={comparisonProgress.percentage}
+                              aria-valuemin="0"
+                              aria-valuemax="100"
+                            ></div>
+                          </div>
+                          <div className="text-center mt-1">
+                            <small className="text-muted">{comparisonProgress.percentage}% complete</small>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -656,6 +753,21 @@ function VerifierSection() {
         </div>
       )}
 
+      {/* Verification Loading Overlay */}
+      {isLoading && (
+        <div className="verification-loading-overlay">
+          <div className="verification-loading-content">
+            <div className="verification-spinner">
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+              <div className="spinner-ring"></div>
+            </div>
+            <h4 className="verification-loading-text">Verifying...</h4>
+            <p className="verification-loading-subtext">Checking blockchain integrity</p>
+          </div>
+        </div>
+      )}
+
       {/* Comparison Result Modal */}
       {showComparisonModal && comparisonResult && (
         <div className="verifier-modal-overlay" onClick={closeComparisonModal}>
@@ -676,6 +788,22 @@ function VerifierSection() {
             </div>
             
             <div className="verifier-modal-body">
+              {/* Quota Warning */}
+              {comparisonResult.quotaWarning && (
+                <div className="alert alert-warning mb-3">
+                  <h6 className="alert-heading">
+                    <i className="fas fa-info-circle me-2"></i>
+                    Gemini AI Quota Notice
+                  </h6>
+                  <p className="mb-0">{comparisonResult.quotaWarning}</p>
+                  <hr className="my-2" />
+                  <small className="text-muted">
+                    <i className="fas fa-clock me-1"></i>
+                    Free tier quota resets daily. Visit <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a> to check your usage.
+                  </small>
+                </div>
+              )}
+              
               {/* Type Mismatch Error */}
               {!comparisonResult.success && comparisonResult.error === 'Credential type mismatch' && (
                 <div className="alert alert-danger">

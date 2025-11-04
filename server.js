@@ -13,6 +13,7 @@ const studentRoutes = require('./src/routes/studentRoutes');
 const institutionRoutes = require('./src/routes/institutionRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const adminRoutes = require('./src/routes/adminRoutes');
+const testRoutes = require('./src/routes/testRoutes');
 
 const app = express();
 const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001;
@@ -103,6 +104,7 @@ app.use('/api/student', studentRoutes);         // Student Dashboard (MyVerifiED
 app.use('/api/institution', institutionRoutes); // Institution Dashboard
 app.use('/api/auth', authRoutes);               // Login (shared)
 app.use('/api/admin', adminRoutes);             // Admin Dashboard
+app.use('/api/test', testRoutes);               // Test endpoints (Gemini API, etc.)
 
 // Deprecated endpoints (for backward compatibility warnings)
 app.get('/api/students', (req, res) => {

@@ -13,24 +13,24 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
  * @returns {Object} - Generative model instance
  */
 function getModel() {
-  // Use gemini-pro-vision for image analysis
-  // This is the stable vision model available for most API keys
+  // Use gemini-2.0-flash for image analysis (newest model, supports multimodal)
+  // This model is available in v1beta API and works with free tier
   try {
-    return genAI.getGenerativeModel({ 
-      model: 'gemini-pro-vision',
-      generationConfig: {
-        maxOutputTokens: 2048,
-        temperature: 0.4,
-      }
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.0-flash'
     });
+    console.log('✅ Gemini model initialized: gemini-2.0-flash');
+    return model;
   } catch (error) {
-    console.error('Failed to initialize Gemini model:', error);
+    console.error('❌ Failed to initialize Gemini model:', error);
+    console.error('Error details:', error.message);
     throw new Error('Gemini AI initialization failed. Please check your API key.');
   }
 }
 
 /**
  * Convert image or PDF file to base64 for Gemini API
+ * Detects mime type from file content (magic bytes) if no extension
  * @param {string} filePath - Path to image or PDF file
  * @returns {Promise<Object>} - File data object for Gemini
  */
@@ -38,7 +38,7 @@ async function fileToGenerativePart(filePath) {
   const data = await fs.readFile(filePath);
   const base64Data = data.toString('base64');
   
-  // Determine mime type from file extension
+  // Try to determine mime type from file extension first
   const ext = path.extname(filePath).toLowerCase();
   const mimeTypes = {
     '.jpg': 'image/jpeg',
@@ -50,10 +50,38 @@ async function fileToGenerativePart(filePath) {
     '.pdf': 'application/pdf'
   };
   
+  let mimeType = mimeTypes[ext];
+  
+  // If no extension, detect from file content (magic bytes)
+  if (!mimeType) {
+    const header = data.slice(0, 4).toString('hex');
+    console.log('File header (magic bytes):', header);
+    
+    if (header.startsWith('25504446')) { // %PDF
+      mimeType = 'application/pdf';
+      console.log('✅ Detected as PDF from file content');
+    } else if (header.startsWith('ffd8ff')) { // JPEG
+      mimeType = 'image/jpeg';
+      console.log('✅ Detected as JPEG from file content');
+    } else if (header.startsWith('89504e47')) { // PNG
+      mimeType = 'image/png';
+      console.log('✅ Detected as PNG from file content');
+    } else if (header.startsWith('47494638')) { // GIF
+      mimeType = 'image/gif';
+      console.log('✅ Detected as GIF from file content');
+    } else {
+      // Default to PDF (most common for credentials)
+      mimeType = 'application/pdf';
+      console.log('⚠️  Unknown file type, defaulting to PDF');
+    }
+  }
+  
+  console.log('Using mime type:', mimeType);
+  
   return {
     inlineData: {
       data: base64Data,
-      mimeType: mimeTypes[ext] || 'image/jpeg'
+      mimeType: mimeType
     }
   };
 }
@@ -65,7 +93,9 @@ async function fileToGenerativePart(filePath) {
  */
 async function analyzeCredentialType(filePath) {
   try {
-    console.log('Analyzing credential type with Gemini AI:', filePath);
+    console.log('🔍 Analyzing credential type with Gemini AI:', filePath);
+    console.log('API Key present:', !!process.env.GEMINI_API_KEY);
+    console.log('API Key length:', process.env.GEMINI_API_KEY?.length);
     
     const model = getModel();
     const imagePart = await fileToGenerativePart(filePath);
@@ -116,9 +146,12 @@ Analyze carefully and respond in JSON format:
   "notes": "key visual features that helped identify the type"
 }`;
 
+    console.log('📤 Sending request to Gemini API...');
     const result = await model.generateContent([prompt, imagePart]);
+    console.log('📥 Received response from Gemini API');
     const response = await result.response;
     const text = response.text();
+    console.log('Response text length:', text.length);
     
     // Extract JSON from response (might have markdown code blocks)
     const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -134,7 +167,13 @@ Analyze carefully and respond in JSON format:
     throw new Error('Failed to parse Gemini response');
     
   } catch (error) {
-    console.error('Gemini analysis error:', error);
+    console.error('❌ Gemini analysis error:', error);
+    console.error('Error name:', error.name);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
+    if (error.response) {
+      console.error('API Response:', error.response);
+    }
     return {
       success: false,
       error: error.message,
@@ -151,62 +190,69 @@ Analyze carefully and respond in JSON format:
  */
 async function compareCredentialImages(verifiedFilePath, uploadedFilePath) {
   try {
-    console.log('Comparing credentials with Gemini AI...');
+    console.log('🔍 Comparing credentials with Gemini AI...');
+    console.log('Verified file:', verifiedFilePath);
+    console.log('Uploaded file:', uploadedFilePath);
     
     const model = getModel();
     const verifiedImage = await fileToGenerativePart(verifiedFilePath);
     const uploadedImage = await fileToGenerativePart(uploadedFilePath);
     
-    const prompt = `You are an expert at comparing educational credentials. Compare these two documents visually.
+    const prompt = `You are an expert fraud detection AI specializing in educational credential verification. 
 
-CRITICAL: Determine document type by VISUAL ANALYSIS, not just text labels:
-- Transcripts: Have tables/lists of courses, grades, multiple semesters, GPA calculations
-- Degrees: Single certificate page, decorative borders, "conferred" or "granted", formal design
-- Certificates: Simpler design, "certify that", completion statements
+YOUR TASK: Visually compare these two credential documents and detect any signs of tampering, fraud, or forgery.
 
-Image 1: VERIFIED/OFFICIAL credential (source of truth)
-Image 2: USER-SUBMITTED credential (to be validated)
+📄 DOCUMENT 1: VERIFIED/OFFICIAL credential from the institution's system (SOURCE OF TRUTH)
+📄 DOCUMENT 2: USER-SUBMITTED credential (NEEDS VALIDATION)
 
-ANALYZE CAREFULLY:
+🔍 ANALYSIS INSTRUCTIONS:
 
-1. DOCUMENT TYPE IDENTIFICATION (Visual Analysis):
-   - What type is Image 1? Look at layout, structure, content format
-   - What type is Image 2? Look at layout, structure, content format
-   - Are they the SAME type of document? (Same purpose and structure)
+1. CREDENTIAL TYPE IDENTIFICATION:
+   - Describe what type of credential Document 1 is (Transcript, Degree, Certificate, etc.)
+   - Describe what type of credential Document 2 is
+   - Are they the SAME type? (Both transcripts, both degrees, etc.)
+   - Look at visual structure: grade tables = transcript, formal certificate = degree
+
+2. VISUAL COMPARISON - Check if they are the EXACT SAME document:
+   - Same recipient/student name?
+   - Same institution name?
+   - Same dates/academic period?
+   - Same grades/content (if transcript)?
+   - Same degree program (if degree)?
+   - Identical layout and formatting?
+
+3. FRAUD DETECTION - Look for signs of tampering in Document 2:
+   ⚠️ TEXT MANIPULATION:
+   - Changed names, grades, dates, or other text
+   - Inconsistent fonts or font sizes
+   - Text overlay or digital editing
+   - Blurred or pixelated text areas
    
-   IMPORTANT: If both look like the same type visually (e.g., both have grade tables = both transcripts, 
-   or both are formal certificates = both degrees), mark as SAME TYPE even if OCR might misread labels.
+   ⚠️ VISUAL FORGERY:
+   - Modified or fake official seals
+   - Forged or altered signatures
+   - Added or removed stamps
+   - Changed or fake logos
+   - Inconsistent image quality in different areas
+   
+   ⚠️ DIGITAL TAMPERING:
+   - Photo editing artifacts
+   - Clone stamp tool marks
+   - Misaligned elements
+   - Color inconsistencies
+   - Resolution differences in parts of the document
 
-2. EXACT DOCUMENT MATCH:
-   - Same person/recipient?
-   - Same institution?
-   - Same date/period?
-   - Same content?
+4. AUTHENTICITY MARKERS COMPARISON:
+   - Official seal: Does Document 2's seal match Document 1's exactly?
+   - Signature: Does Document 2's signature match Document 1's exactly?
+   - Stamps: Do stamps match exactly?
+   - Logo: Does the institution logo match exactly?
+   - Security features: Watermarks, holograms, serial numbers
 
-3. VISUAL DIFFERENCES:
-   - Text content changes
-   - Seal/stamp differences
-   - Signature differences
-   - Logo differences
-   - Layout/format changes
-   - Color/quality differences
-
-4. AUTHENTICITY MARKERS:
-   - Compare seals (identical?)
-   - Compare signatures (identical?)
-   - Compare stamps (identical?)
-   - Compare logos (identical?)
-
-5. TAMPERING INDICATORS:
-   - Photo editing/manipulation
-   - Text overlay
-   - Digital alterations
-   - Font inconsistencies
-
-6. RECOMMENDATION:
-   - Authentic (exact match)
-   - Suspicious (differences need review)
-   - Fraudulent (clear tampering)
+5. FINAL ASSESSMENT:
+   - If documents are IDENTICAL → "Authentic"
+   - If minor differences that could be legitimate → "Suspicious" 
+   - If clear signs of tampering/forgery → "Fraudulent"
 
 Respond in JSON format:
 {
@@ -240,9 +286,9 @@ Respond in JSON format:
 }`;
 
     const result = await model.generateContent([
-      prompt, 
-      { inlineData: verifiedImage.inlineData },
-      { inlineData: uploadedImage.inlineData }
+      prompt,
+      verifiedImage,
+      uploadedImage
     ]);
     
     const response = await result.response;
@@ -262,10 +308,29 @@ Respond in JSON format:
     throw new Error('Failed to parse Gemini comparison response');
     
   } catch (error) {
-    console.error('Gemini comparison error:', error);
+    console.error('❌ Gemini comparison error:', error);
+    console.error('Error details:', error.message);
+    
+    // Check if it's a quota/rate limit error
+    let userMessage = error.message;
+    let quotaExhausted = false;
+    
+    if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'Gemini AI free tier quota exhausted. Comparison will continue using OCR-only mode.';
+      quotaExhausted = true;
+      console.log('⚠️  Gemini API quota exhausted - falling back to OCR-only');
+    } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
+      userMessage = 'Gemini API key is invalid or expired.';
+      console.log('⚠️  Invalid Gemini API key');
+    } else if (error.message.includes('500') || error.message.includes('503')) {
+      userMessage = 'Gemini API is temporarily unavailable. Using OCR-only mode.';
+      console.log('⚠️  Gemini API service unavailable');
+    }
+    
     return {
       success: false,
-      error: error.message,
+      error: userMessage,
+      quotaExhausted: quotaExhausted,
       comparison: null
     };
   }
@@ -361,9 +426,27 @@ Respond in JSON format:
     
   } catch (error) {
     console.error('Gemini markers detection error:', error);
+    
+    // Check if it's a quota/rate limit error
+    let userMessage = error.message;
+    let quotaExhausted = false;
+    
+    if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
+      userMessage = 'Gemini AI free tier quota exhausted. Markers detection will continue using OCR-only mode.';
+      quotaExhausted = true;
+      console.log('⚠️  Gemini API quota exhausted - falling back to OCR-only');
+    } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
+      userMessage = 'Gemini API key is invalid or expired.';
+      console.log('⚠️  Invalid Gemini API key');
+    } else if (error.message.includes('500') || error.message.includes('503')) {
+      userMessage = 'Gemini API is temporarily unavailable. Using OCR-only mode.';
+      console.log('⚠️  Gemini API service unavailable');
+    }
+    
     return {
       success: false,
-      error: error.message,
+      error: userMessage,
+      quotaExhausted: quotaExhausted,
       markers: null
     };
   }

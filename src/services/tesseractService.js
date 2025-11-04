@@ -9,8 +9,8 @@ const fsSync = require('fs');
 const path = require('path');
 const pdfParse = require('pdf-parse');
 
-// Import canvas polyfill BEFORE pdfjs-dist to ensure Path2D support
-require('canvas-5-polyfill');
+// Import Path2D polyfill for PDF.js in Node.js environment
+require('path2d-polyfill');
 
 const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 const { createCanvas } = require('canvas');
@@ -760,84 +760,117 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
  * @param {string} dbCredentialType - Credential type from database (optional)
  * @returns {Promise<Object>} - Comprehensive comparison result
  */
-async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, dbCredentialType = null) {
+async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, dbCredentialType = null, progressCallback = null) {
+  console.log('\n\n🔥 === AI-Enhanced Credential Comparison Started ===');
+  console.log('📋 Parameters:', { ipfsCid, uploadedFilePath, tempDir, dbCredentialType });
+  
+  // Helper to send progress updates
+  const updateProgress = (message, percent) => {
+    console.log(`[${percent}%] ${message}`);
+    if (progressCallback) progressCallback(message, percent);
+  };
+  
   let verifiedFilePath = null;
   
   try {
-    console.log('=== Starting AI-Enhanced Comparison ===');
-    
     // Step 1: Download verified file from IPFS
-    console.log('Step 1: Downloading verified file from IPFS...');
+    updateProgress('📥 Downloading verified credential from IPFS...', 10);
     verifiedFilePath = await downloadFromIPFS(ipfsCid, tempDir);
+    updateProgress('✅ Verified credential downloaded', 20);
     
-    // Step 2: AI Visual Analysis of both files
-    console.log('Step 2: Performing AI visual analysis...');
+    // Step 2: AI Visual Analysis (Gemini supports PDFs directly!)
+    updateProgress('🤖 Starting AI visual analysis with Gemini 2.0...', 25);
     
-    // Analyze verified file
+    // Analyze verified credential type
+    updateProgress('  → AI analyzing verified credential type...', 30);
     const verifiedAnalysis = await geminiService.analyzeCredentialType(verifiedFilePath);
+    updateProgress('  ✅ Verified credential analyzed', 40);
     
-    // Analyze uploaded file
+    // Analyze uploaded credential type
+    updateProgress('  → AI analyzing uploaded credential type...', 45);
     const uploadedAnalysis = await geminiService.analyzeCredentialType(uploadedFilePath);
+    updateProgress('  ✅ Uploaded credential analyzed', 55);
     
-    // Compare both files visually
+    // Compare both credentials visually
+    updateProgress('  → AI comparing credentials visually...', 60);
     const visualComparison = await geminiService.compareCredentialImages(
       verifiedFilePath,
       uploadedFilePath
     );
+    updateProgress('  ✅ Visual comparison completed', 70);
     
-    // Detect authenticity markers in both files
+    // Detect authenticity markers
+    updateProgress('  → AI detecting authenticity markers...', 75);
     const verifiedMarkers = await geminiService.detectAuthenticityMarkers(verifiedFilePath);
     const uploadedMarkers = await geminiService.detectAuthenticityMarkers(uploadedFilePath);
+    updateProgress('  ✅ Authenticity markers detected', 80);
     
-    // Step 3: Check if AI analysis was successful
-    if (!verifiedAnalysis.success || !uploadedAnalysis.success) {
-      console.log('AI analysis failed, falling back to OCR-only comparison');
-      // Fallback to original OCR comparison with database credential type
-      return await compareCredentialFiles(verifiedFilePath, uploadedFilePath, dbCredentialType);
+    
+    // Check if AI analysis was successful
+    if (!verifiedAnalysis.success || !uploadedAnalysis.success || !visualComparison.success) {
+      // Check if quota was exhausted
+      const quotaExhausted = verifiedAnalysis.quotaExhausted || uploadedAnalysis.quotaExhausted || visualComparison.quotaExhausted;
+      
+      if (quotaExhausted) {
+        updateProgress('⚠️  Gemini AI quota exhausted - using OCR-only mode...', 85);
+        console.log('   ⚠️  NOTICE: Gemini AI free tier quota has been exhausted.');
+        console.log('   ℹ️  The comparison will continue using OCR-only mode.');
+        console.log('   ℹ️  Free tier resets daily. Check: https://aistudio.google.com/');
+      } else {
+        updateProgress('⚠️  AI analysis failed, falling back to OCR-only...', 85);
+        if (!verifiedAnalysis.success) {
+          console.log('   ❌ Verified analysis error:', verifiedAnalysis.error);
+        }
+        if (!uploadedAnalysis.success) {
+          console.log('   ❌ Uploaded analysis error:', uploadedAnalysis.error);
+        }
+        if (!visualComparison.success) {
+          console.log('   ❌ Visual comparison error:', visualComparison.error);
+        }
+      }
+      
+      // Fallback to OCR-only comparison
+      const ocrResult = await compareCredentialFiles(verifiedFilePath, uploadedFilePath, dbCredentialType);
+      
+      // Add quota warning to result if applicable
+      if (quotaExhausted) {
+        ocrResult.quotaWarning = 'Gemini AI free tier quota exhausted. Comparison completed using OCR-only mode. AI features will be available after quota resets (usually daily).';
+      }
+      
+      return ocrResult;
     }
     
-    // Step 4: Check credential type matching using AI visual comparison
-    // AI's visual comparison is more reliable than text-based type detection
+    updateProgress('✅ AI visual analysis completed successfully!', 82);
+    
+    
+    // Extract credential types from AI analysis
     const verifiedTypeRaw = dbCredentialType || verifiedAnalysis.analysis.documentType;
     const uploadedTypeRaw = uploadedAnalysis.analysis.documentType;
-    
-    // Normalize types to handle variations (e.g., "Transcript of Records (TOR)" = "Transcript")
     const verifiedType = normalizeCredentialType(verifiedTypeRaw);
     const uploadedType = normalizeCredentialType(uploadedTypeRaw);
     
-    console.log('=== CREDENTIAL TYPE DETECTION ===');
-    console.log('Verified type (raw):', verifiedTypeRaw);
-    console.log('Verified type (normalized):', verifiedType);
-    console.log('Uploaded type (raw):', uploadedTypeRaw);
-    console.log('Uploaded type (normalized):', uploadedType);
-    console.log('AI says same credential type?:', visualComparison.comparison?.sameCredentialType);
-    console.log('AI confidence:', verifiedAnalysis.analysis.confidence, '/', uploadedAnalysis.analysis.confidence);
+    console.log('📋 Credential Types:');
+    console.log('   Verified:', verifiedType, '(confidence:', verifiedAnalysis.analysis.confidence + ')');
+    console.log('   Uploaded:', uploadedType, '(confidence:', uploadedAnalysis.analysis.confidence + ')');
+    console.log('   AI Match:', visualComparison.comparison?.sameCredentialType ? '✅ Same type' : '⚠️  Different types');
     
-    // Type mismatch validation removed - allow comparison of any credential types
-    // Users may want to compare different types (e.g., Certificate of Graduation with Bachelor Degree)
-    const normalizedTypesMatch = verifiedType === uploadedType;
-    
-    console.log('Normalized types match?:', normalizedTypesMatch);
-    console.log('Type check: Verified =', verifiedType, '/ Uploaded =', uploadedType);
-    console.log('AI says same type?:', visualComparison.comparison?.sameCredentialType);
-    console.log('✅ Proceeding with comparison regardless of type difference...');
-    
-    // Step 5: Check if AI detects they are exact same documents
-    console.log('Step 3: Checking if documents are identical...');
     const exactMatch = visualComparison.comparison.exactSameDocument;
     const matchConfidence = visualComparison.comparison.matchConfidence;
     
-    // Step 6: Proceed with OCR extraction for detailed text comparison
-    console.log('Step 4: Extracting text with OCR from both files...');
+    // Step 3: OCR Text Extraction
+    updateProgress('📝 Extracting text with OCR (Tesseract.js)...', 85);
     const verifiedText = await extractTextFromImage(verifiedFilePath);
+    updateProgress('  → Verified credential text extracted', 90);
     const uploadedText = await extractTextFromImage(uploadedFilePath);
+    updateProgress('  → Uploaded credential text extracted', 93);
     
-    // Step 7: Compare OCR text
-    console.log('Step 5: Comparing OCR text...');
+    // Step 4: Text Comparison
+    updateProgress('🔍 Comparing text content...', 95);
     const textComparison = compareTexts(verifiedText, uploadedText);
+    updateProgress('✅ Text comparison completed', 97);
     
-    // Step 8: Combine AI visual analysis with OCR text comparison
-    console.log('Step 6: Combining AI and OCR results...');
+    // Combine AI visual analysis with OCR text comparison
+    updateProgress('📊 Generating comprehensive report...', 98);
     
     // Determine overall match status
     let overallStatus = 'authentic';
@@ -858,7 +891,7 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       statusMessage = 'Documents are identical - perfect match';
     }
     
-    // Cleanup
+    // Cleanup temporary files
     if (verifiedFilePath) {
       try {
         await fs.unlink(verifiedFilePath);
@@ -867,7 +900,10 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       }
     }
     
-    // Step 9: Return comprehensive result
+    updateProgress('✅ Comparison complete!', 100);
+    console.log('\n✅ === AI-Enhanced Comparison Complete ===\n');
+    
+    // Return comprehensive result
     return {
       success: true,
       verifiedType,
@@ -911,7 +947,8 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     };
     
   } catch (error) {
-    console.error('AI-Enhanced comparison error:', error);
+    console.error('❌ AI-Enhanced comparison error:', error);
+    console.error('Error stack:', error.stack);
     
     // Cleanup on error
     if (verifiedFilePath) {
