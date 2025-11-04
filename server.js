@@ -128,18 +128,18 @@ app.get('/api/credential-stats', (req, res) => {
   });
 });
 
-// Serve React build (same-origin deployment) only in production when build output exists
-const clientBuildPath = path.join(__dirname, 'build');
-const clientIndexPath = path.join(clientBuildPath, 'index.html');
-if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
-  app.use(express.static(clientBuildPath));
-  // SPA Fallback: send index.html for all non-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(clientIndexPath);
-  });
-}
+// // Serve React build (same-origin deployment) only in production when build output exists
+// const clientBuildPath = path.join(__dirname, 'build');
+// const clientIndexPath = path.join(clientBuildPath, 'index.html');
+// if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
+//   app.use(express.static(clientBuildPath));
+//   // SPA Fallback: send index.html for all non-API routes
+//   app.get('*', (req, res) => {
+//     res.sendFile(clientIndexPath);
+//   });
+// }
 
-// Start the server
+ // Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
