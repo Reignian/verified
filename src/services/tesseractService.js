@@ -873,19 +873,23 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     updateProgress('Generating comprehensive report...', 98);
     
     // Determine overall match status
+    // PRACTICAL approach for real-world use (photos of physical credentials)
     let overallStatus = 'authentic';
     let statusMessage = 'Files appear to be authentic and match';
     
-    if (visualComparison.comparison.recommendation === 'Fraudulent' ||
-        visualComparison.comparison.tamperingIndicators.severity === 'Severe') {
+    // Only flag as fraudulent if SEVERE tampering detected
+    // Don't rely solely on AI recommendation which can be overly strict
+    if (visualComparison.comparison.tamperingIndicators.severity === 'Severe') {
       overallStatus = 'fraudulent';
-      statusMessage = 'ALERT: Strong indicators of tampering or fraud detected';
-    } else if (visualComparison.comparison.recommendation === 'Suspicious' ||
-               textComparison.similarity < 80 ||
-               !visualComparison.comparison.authenticityMarkers.sealMatch ||
-               !visualComparison.comparison.authenticityMarkers.signatureMatch) {
+      statusMessage = 'ALERT: Severe tampering detected - critical fields modified';
+    } else if (textComparison.similarity < 60) {
+      // Very low text similarity = likely different documents
+      overallStatus = 'fraudulent';
+      statusMessage = 'ALERT: Content does not match - different documents';
+    } else if (textComparison.similarity < 75 ||
+               visualComparison.comparison.tamperingIndicators.severity === 'Moderate') {
       overallStatus = 'suspicious';
-      statusMessage = 'Warning: Differences detected that require review';
+      statusMessage = 'Warning: Some differences detected - manual review recommended';
     } else if (exactMatch && textComparison.similarity >= 95) {
       overallStatus = 'identical';
       statusMessage = 'Documents are identical - perfect match';

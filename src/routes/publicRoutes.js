@@ -420,19 +420,41 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
     if (finalMatchingCredentials.length === 0 && matchingCredentials.partialMatches && matchingCredentials.partialMatches.length > 0) {
       console.log('No exact matches, but found', matchingCredentials.partialMatches.length, 'partial matches. Proceeding to visual comparison...');
       
-      // Fetch full credential data for partial matches
-      const partialMatchIds = matchingCredentials.partialMatches.map(m => m.id);
-      
-      // Get full credential details for partial matches using proper query function
-      const partialCredentials = await new Promise((resolve, reject) => {
-        verificationQueries.getCredentialsByIds(partialMatchIds, (err, results) => {
-          if (err) reject(err);
-          else resolve(results || []);
+      // Filter partial matches by credential type if we have one from AI extraction
+      let filteredPartialMatches = matchingCredentials.partialMatches;
+      if (searchParams.credentialType) {
+        const extractedType = searchParams.credentialType.toLowerCase();
+        filteredPartialMatches = matchingCredentials.partialMatches.filter(match => {
+          const dbType = (match.credential_type || '').toLowerCase();
+          // Check if types are similar (diploma, transcript, certificate, etc.)
+          return dbType.includes(extractedType) || extractedType.includes(dbType) ||
+                 (extractedType.includes('diploma') && dbType.includes('diploma')) ||
+                 (extractedType.includes('transcript') && dbType.includes('transcript')) ||
+                 (extractedType.includes('certificate') && dbType.includes('certificate'));
         });
-      });
+        
+        if (filteredPartialMatches.length < matchingCredentials.partialMatches.length) {
+          console.log(`Filtered to ${filteredPartialMatches.length} matches with matching credential type (${searchParams.credentialType})`);
+        }
+      }
       
-      finalMatchingCredentials = partialCredentials;
-      console.log('Using', finalMatchingCredentials.length, 'partial matches for visual comparison');
+      // Fetch full credential data for filtered partial matches
+      const partialMatchIds = filteredPartialMatches.map(m => m.id);
+      
+      if (partialMatchIds.length === 0) {
+        console.log('No partial matches with matching credential type');
+      } else {
+        // Get full credential details for partial matches using proper query function
+        const partialCredentials = await new Promise((resolve, reject) => {
+          verificationQueries.getCredentialsByIds(partialMatchIds, (err, results) => {
+            if (err) reject(err);
+            else resolve(results || []);
+          });
+        });
+        
+        finalMatchingCredentials = partialCredentials;
+        console.log('Using', finalMatchingCredentials.length, 'partial matches for visual comparison');
+      }
     }
     
     if (finalMatchingCredentials.length === 0) {
@@ -585,12 +607,38 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
           // processAIEnhancedComparison returns data in keyFindings
           const keyFindings = comparisonResult.keyFindings;
           
-          // Check if files are identical or highly similar
-          const isIdentical = keyFindings.exactSameDocument === true;
-          const isHighlySimilar = comparisonResult.matchConfidence === 'High' && 
-                                 comparisonResult.overallStatus === 'Authentic';
+          // PRACTICAL MATCHING for real-world use cases (photos of physical credentials)
+          // Focus on CONTENT, not visual perfection
           
-          if (isIdentical || isHighlySimilar) {
+          const isIdentical = keyFindings.exactSameDocument === true;
+          const textSimilarity = comparisonResult.ocrComparison?.similarity || 0;
+          const credentialTypeMatches = keyFindings.credentialTypeMatch;
+          const tamperingSeverity = keyFindings.tamperingSeverity || 'None';
+          const overallStatus = comparisonResult.overallStatus;
+          
+          // Content-based matching criteria (suitable for photos vs digital copies)
+          // PRIORITY: Content similarity over type matching (AI can misidentify types)
+          // Accept: authentic, suspicious, and even minor/moderate tampering
+          // Reject: only severe tampering or very low similarity
+          const contentMatches = (
+            // Text similarity >= 60% (allows for OCR errors in photos, poor lighting, etc.)
+            textSimilarity >= 60 &&
+            // Only reject if SEVERE tampering (Minor/Moderate is acceptable for photos)
+            tamperingSeverity !== 'Severe' &&
+            // Only reject if clearly fraudulent (not just suspicious)
+            overallStatus !== 'fraudulent'
+            // NOTE: Credential type matching is NOT required - AI can misidentify types
+            // Content similarity is what matters most
+          );
+          
+          console.log(`Credential ${credential.id} matching analysis:`);
+          console.log(`  - Text similarity: ${textSimilarity}%`);
+          console.log(`  - Type match: ${credentialTypeMatches}`);
+          console.log(`  - Tampering severity: ${keyFindings.tamperingSeverity}`);
+          console.log(`  - Overall status: ${comparisonResult.overallStatus}`);
+          console.log(`  - Content matches: ${contentMatches}`);
+          
+          if (isIdentical || contentMatches) {
             console.log(`Match confirmed! Credential ${credential.id} is authentic`);
             console.log(`Credential blockchain_id from DB:`, credential.blockchain_id);
             

@@ -43,6 +43,7 @@ function VerifierSection() {
   const [uploadedCredentialFile, setUploadedCredentialFile] = useState(null);
   const [isVerifyingByFile, setIsVerifyingByFile] = useState(false);
   const [fileVerificationProgress, setFileVerificationProgress] = useState('');
+  const [abortController, setAbortController] = useState(null); // For canceling verification
   
   // Handler to switch verification mode and clear results
   const handleVerificationModeChange = (mode) => {
@@ -535,6 +536,16 @@ function VerifierSection() {
     }
   };
 
+  const handleCancelVerification = () => {
+    if (abortController) {
+      abortController.abort();
+      setAbortController(null);
+    }
+    setIsVerifyingByFile(false);
+    setFileVerificationProgress('');
+    showError('Verification cancelled by user');
+  };
+
   const handleVerifyByFile = async () => {
     if (!uploadedCredentialFile) {
       showError('Please select a credential file to verify');
@@ -543,6 +554,10 @@ function VerifierSection() {
     
     setIsVerifyingByFile(true);
     setShowVerificationResult(false);
+    
+    // Create AbortController for cancellation
+    const controller = new AbortController();
+    setAbortController(controller);
     
     let progressTimer; // Declare outside try block so it's accessible in catch/finally
     
@@ -597,8 +612,8 @@ function VerifierSection() {
       updateProgress(); // Initial update
       progressTimer = setInterval(updateProgress, 3000); // Update every 3 seconds
       
-      // Call the API to verify by file
-      const response = await verifyCredentialByFile(uploadedCredentialFile);
+      // Call the API to verify by file with abort signal
+      const response = await verifyCredentialByFile(uploadedCredentialFile, controller.signal);
       
       clearInterval(progressTimer);
       
@@ -724,16 +739,16 @@ function VerifierSection() {
         showError(response.message || 'No matching credentials found for the uploaded file.');
       }
     } catch (error) {
-      console.error('File verification error:', error);
+      clearInterval(progressTimer);
       
-      // Stop the progress timer immediately
-      if (progressTimer) {
-        clearInterval(progressTimer);
+      // Check if it was cancelled
+      if (error.name === 'AbortError' || error.message === 'canceled') {
+        console.log('Verification cancelled by user');
+        // Error already shown by handleCancelVerification
+        return;
       }
       
-      // Clear progress and show error
-      setFileVerificationProgress('');
-      setIsVerifyingByFile(false);
+      console.error('File verification error:', error);
       
       // Check if we have detailed mismatch information
       const responseData = error.response?.data;
@@ -755,12 +770,10 @@ function VerifierSection() {
         showError(errorMsg);
       }
     } finally {
-      // Ensure everything is cleaned up
-      if (progressTimer) {
-        clearInterval(progressTimer);
-      }
+      clearInterval(progressTimer);
       setIsVerifyingByFile(false);
       setFileVerificationProgress('');
+      setAbortController(null);
     }
   };
 
@@ -891,23 +904,34 @@ function VerifierSection() {
                         )}
                       </div>
                     )}
-                    <button
-                      className="btn btn-primary-custom w-100"
-                      onClick={handleVerifyByFile}
-                      disabled={!uploadedCredentialFile || isVerifyingByFile}
-                    >
-                      {isVerifyingByFile ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-2"></span>
-                          Verifying File...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-shield-alt me-2"></i>
-                          Verify Credential
-                        </>
+                    <div className="d-flex gap-2">
+                      <button
+                        className={`btn btn-primary-custom ${isVerifyingByFile ? 'flex-grow-1' : 'w-100'}`}
+                        onClick={handleVerifyByFile}
+                        disabled={!uploadedCredentialFile || isVerifyingByFile}
+                      >
+                        {isVerifyingByFile ? (
+                          <>
+                            <span className="spinner-border spinner-border-sm me-2"></span>
+                            Verifying File...
+                          </>
+                        ) : (
+                          <>
+                            <i className="fas fa-shield-alt me-2"></i>
+                            Verify Credential
+                          </>
+                        )}
+                      </button>
+                      {isVerifyingByFile && (
+                        <button
+                          className="btn btn-danger"
+                          onClick={handleCancelVerification}
+                          title="Cancel verification"
+                        >
+                          <i className="fas fa-times"></i> Cancel
+                        </button>
                       )}
-                    </button>
+                    </div>
                   </div>
                 )}
                 
