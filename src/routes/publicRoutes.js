@@ -404,15 +404,38 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
     };
     
     const matchingCredentials = await new Promise((resolve, reject) => {
-      verificationQueries.searchCredentialsByAI(searchParams, (err, results) => {
+      verificationQueries.searchCredentialsByAI(searchParams, (err, results, partialMatches) => {
         if (err) reject(err);
-        else resolve(results);
+        else resolve({ results, partialMatches });
       });
     });
     
-    console.log('Found', matchingCredentials.length, 'potential matches');
+    console.log('Found', matchingCredentials.results?.length || 0, 'potential matches');
     
-    if (matchingCredentials.length === 0) {
+    // Use the results from the promise
+    let finalMatchingCredentials = matchingCredentials.results || [];
+    
+    // If no exact matches but we have partial matches, use them for visual comparison
+    // The visual AI comparison will be the ultimate judge
+    if (finalMatchingCredentials.length === 0 && matchingCredentials.partialMatches && matchingCredentials.partialMatches.length > 0) {
+      console.log('No exact matches, but found', matchingCredentials.partialMatches.length, 'partial matches. Proceeding to visual comparison...');
+      
+      // Fetch full credential data for partial matches
+      const partialMatchIds = matchingCredentials.partialMatches.map(m => m.id);
+      
+      // Get full credential details for partial matches using proper query function
+      const partialCredentials = await new Promise((resolve, reject) => {
+        verificationQueries.getCredentialsByIds(partialMatchIds, (err, results) => {
+          if (err) reject(err);
+          else resolve(results || []);
+        });
+      });
+      
+      finalMatchingCredentials = partialCredentials;
+      console.log('Using', finalMatchingCredentials.length, 'partial matches for visual comparison');
+    }
+    
+    if (finalMatchingCredentials.length === 0) {
       // Cleanup uploaded file
       if (uploadedFilePath) {
         try {
@@ -422,6 +445,108 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
         }
       }
       
+      // Check if we have partial matches to provide detailed error
+      const partialMatches = matchingCredentials.partialMatches || [];
+      
+      if (partialMatches.length > 0 && aiExtraction.success) {
+        // Compare extracted data with partial matches to find mismatches
+        const mismatchDetails = [];
+        const bestMatch = partialMatches[0]; // Use the first partial match
+        
+        // Helper function to normalize and compare strings
+        const normalizeString = (str) => (str || '').toLowerCase().trim();
+        const stringsMatch = (str1, str2) => {
+          const norm1 = normalizeString(str1);
+          const norm2 = normalizeString(str2);
+          return norm1.includes(norm2) || norm2.includes(norm1);
+        };
+        
+        // Helper function to parse name components
+        const parseNameComponents = (fullName) => {
+          if (!fullName) return null;
+          const name = fullName.trim();
+          
+          // Check if name contains comma (format: "Last, First Middle")
+          if (name.includes(',')) {
+            const parts = name.split(',').map(p => p.trim());
+            const lastName = parts[0];
+            const firstMiddle = parts[1] || '';
+            const firstMiddleParts = firstMiddle.split(/\s+/).filter(p => p.length > 0);
+            
+            return {
+              lastName: lastName.toLowerCase(),
+              firstName: (firstMiddleParts[0] || '').toLowerCase(),
+              middleName: (firstMiddleParts.slice(1).join(' ') || '').toLowerCase()
+            };
+          } else {
+            // Format: "First Middle Last" or "First Last"
+            const parts = name.split(/\s+/).filter(p => p.length > 0);
+            
+            if (parts.length >= 3) {
+              return {
+                firstName: parts[0].toLowerCase(),
+                middleName: parts.slice(1, -1).join(' ').toLowerCase(),
+                lastName: parts[parts.length - 1].toLowerCase()
+              };
+            } else if (parts.length === 2) {
+              return {
+                firstName: parts[0].toLowerCase(),
+                middleName: '',
+                lastName: parts[1].toLowerCase()
+              };
+            }
+          }
+          return null;
+        };
+        
+        // Check name field with smart parsing
+        // Since the partial match was found using the same progressive search logic,
+        // if we have a partial match, the name components matched successfully
+        // We should NOT flag it as a mismatch just because the format is different
+        // The fact that it was found means the name matched!
+        
+        // Skip name checking - if partial match was found, name matched via progressive search
+        // (The partial match query uses OR conditions on name fields, so it already validated the name)
+        
+        if (searchParams.studentId && searchParams.studentId !== null) {
+          // Normalize student IDs by removing special characters for comparison
+          // This allows '202201084' to match '2022-01084'
+          const normalizedExtracted = searchParams.studentId.replace(/[-\s]/g, '');
+          const normalizedDB = (bestMatch.student_id || '').replace(/[-\s]/g, '');
+          
+          if (normalizedExtracted !== normalizedDB) {
+            mismatchDetails.push('Student ID');
+          }
+        }
+        
+        if (searchParams.institutionName && searchParams.institutionName !== null && 
+            !stringsMatch(searchParams.institutionName, bestMatch.issuer_name)) {
+          mismatchDetails.push('Institution Name');
+        }
+        
+        if (searchParams.credentialType && searchParams.credentialType !== null && 
+            !stringsMatch(searchParams.credentialType, bestMatch.credential_type)) {
+          mismatchDetails.push('Credential Type');
+        }
+        
+        if (searchParams.program && searchParams.program !== null && 
+            !stringsMatch(searchParams.program, bestMatch.program_name)) {
+          mismatchDetails.push('Program');
+        }
+        
+        // If we have 1-3 mismatches, show detailed error
+        if (mismatchDetails.length > 0 && mismatchDetails.length <= 3) {
+          return res.status(404).json({
+            success: false,
+            error: 'No matching credentials found',
+            message: 'Found a similar credential, but some fields do not match:',
+            mismatchDetails: mismatchDetails,
+            hasPartialMatch: true
+          });
+        }
+      }
+      
+      // Generic error if no partial matches or too many mismatches
       return res.status(404).json({
         success: false,
         error: 'No matching credentials found',
@@ -440,9 +565,9 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
     const tempDir = path.join(__dirname, '../../uploads/temp/');
     const verifiedMatches = [];
     
-    for (let i = 0; i < matchingCredentials.length; i++) {
-      const credential = matchingCredentials[i];
-      console.log(`Comparing with credential ${i + 1}/${matchingCredentials.length} (ID: ${credential.id})...`);
+    for (let i = 0; i < finalMatchingCredentials.length; i++) {
+      const credential = finalMatchingCredentials[i];
+      console.log(`Comparing with credential ${i + 1}/${finalMatchingCredentials.length} (ID: ${credential.id})...`);
       
       let verifiedFilePath = null;
       
@@ -486,6 +611,10 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
               },
               comparisonResult: comparisonResult // Full detailed comparison result
             });
+            
+            // Stop comparing - we found a match!
+            console.log('Match found! Skipping remaining comparisons...');
+            break;
           } else {
             console.log(`Credential ${credential.id} does not match - ${comparisonResult.overallStatus}`);
           }
@@ -533,7 +662,7 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
         success: false,
         error: 'No verified matches found',
         message: 'Found potential credentials in database, but none matched the uploaded file visually. The uploaded file may be tampered with or does not exist in our system.',
-        potentialMatches: matchingCredentials.length,
+        potentialMatches: finalMatchingCredentials.length,
         stage: 'visual_comparison_failed'
       });
     }

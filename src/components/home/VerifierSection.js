@@ -44,6 +44,25 @@ function VerifierSection() {
   const [isVerifyingByFile, setIsVerifyingByFile] = useState(false);
   const [fileVerificationProgress, setFileVerificationProgress] = useState('');
   
+  // Handler to switch verification mode and clear results
+  const handleVerificationModeChange = (mode) => {
+    setVerificationMode(mode);
+    // Clear all verification results and states
+    setShowVerificationResult(false);
+    setCredentialData(null);
+    setCredentialsData(null);
+    setVerificationType(null);
+    setVerificationInput('');
+    setUploadedCredentialFile(null);
+    setFileVerificationProgress('');
+    setSelectedFile(null);
+    setComparisonResult(null);
+    setComparisonError('');
+    setMultiSelectedFiles({});
+    setMultiComparingStates({});
+    setMultiComparisonErrors({});
+  };
+  
   // All on-chain integrity checks will be computed and logged to console only.
 
   // Function to download file from IPFS
@@ -716,12 +735,25 @@ function VerifierSection() {
       setFileVerificationProgress('');
       setIsVerifyingByFile(false);
       
-      // Show error message
-      const errorMsg = error.response?.data?.message || 
-                      error.response?.data?.error || 
-                      error.message || 
-                      'Failed to verify credential by file. Please try again.';
-      showError(errorMsg);
+      // Check if we have detailed mismatch information
+      const responseData = error.response?.data;
+      
+      if (responseData?.hasPartialMatch && responseData?.mismatchDetails) {
+        // Build simple error message with field names only
+        const mismatchList = responseData.mismatchDetails
+          .map(field => `• ${field}`)
+          .join('\n');
+        
+        const detailedErrorMsg = `${responseData.message}\n\n${mismatchList}\n\nPlease verify the credential information is correct.`;
+        showError(detailedErrorMsg);
+      } else {
+        // Show generic error message
+        const errorMsg = responseData?.message || 
+                        responseData?.error || 
+                        error.message || 
+                        'Failed to verify credential by file. Please try again.';
+        showError(errorMsg);
+      }
     } finally {
       // Ensure everything is cleaned up
       if (progressTimer) {
@@ -759,7 +791,7 @@ function VerifierSection() {
                     <button
                       type="button"
                       className={`btn ${verificationMode === 'access_code' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => setVerificationMode('access_code')}
+                      onClick={() => handleVerificationModeChange('access_code')}
                     >
                       <i className="fas fa-key me-2"></i>
                       Access Code
@@ -767,7 +799,7 @@ function VerifierSection() {
                     <button
                       type="button"
                       className={`btn ${verificationMode === 'file_upload' ? 'btn-primary' : 'btn-outline-secondary'}`}
-                      onClick={() => setVerificationMode('file_upload')}
+                      onClick={() => handleVerificationModeChange('file_upload')}
                     >
                       <i className="fas fa-file-upload me-2"></i>
                       Upload File
@@ -1235,7 +1267,7 @@ function VerifierSection() {
               </button>
             </div>
             <div className="verifier-modal-body">
-              <p className="mb-0">{errorMessage}</p>
+              <p className="mb-0" style={{ whiteSpace: 'pre-line' }}>{errorMessage}</p>
             </div>
             <div className="verifier-modal-footer">
               <button 
