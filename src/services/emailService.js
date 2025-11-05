@@ -11,7 +11,7 @@ const generateApprovalEmailUrl = async (recipientEmail, institutionName, usernam
     const systemName = await SystemSettingsService.getSetting('system_name') || 'VerifiED';
     const signature = await SystemSettingsService.getSetting('reply_signature') || 'Best regards,\nThe VerifiED Team';
     
-    const subject = `🎉 Your ${systemName} Institution Account Has Been Approved!`;
+    const subject = `Your ${systemName} Institution Account Has Been Approved!`;
     const body = `Dear ${institutionName},
 
 Great news! Your institution account has been approved by our administrator.

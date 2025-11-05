@@ -205,7 +205,7 @@ function BulkImportStudentsModal({
                 <i className="fas fa-check-circle fa-2x mb-3 text-success"></i>
                 <h5 className="mb-3">Import Successful!</h5>
                 <pre style={{ textAlign: 'left', whiteSpace: 'pre-wrap', fontSize: '0.9rem' }}>
-                  {bulkImportMessage?.replace('✅ Import completed! ', '')}
+                  {bulkImportMessage?.replace('Import completed! ', '')}
                 </pre>
               </div>
               {modalError && (

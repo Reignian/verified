@@ -761,8 +761,8 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
  * @returns {Promise<Object>} - Comprehensive comparison result
  */
 async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, dbCredentialType = null, progressCallback = null) {
-  console.log('\n\n🔥 === AI-Enhanced Credential Comparison Started ===');
-  console.log('📋 Parameters:', { ipfsCid, uploadedFilePath, tempDir, dbCredentialType });
+  console.log('\n\n=== AI-Enhanced Credential Comparison Started ===');
+  console.log('Parameters:', { ipfsCid, uploadedFilePath, tempDir, dbCredentialType });
   
   // Helper to send progress updates
   const updateProgress = (message, percent) => {
@@ -774,36 +774,36 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
   
   try {
     // Step 1: Download verified file from IPFS
-    updateProgress('📥 Downloading verified credential from IPFS...', 10);
+    updateProgress('Downloading verified credential from IPFS...', 10);
     verifiedFilePath = await downloadFromIPFS(ipfsCid, tempDir);
-    updateProgress('✅ Verified credential downloaded', 20);
+    updateProgress('Verified credential downloaded', 20);
     
     // Step 2: AI Visual Analysis (Gemini supports PDFs directly!)
-    updateProgress('🤖 Starting AI visual analysis with Gemini 2.0...', 25);
+    updateProgress('Starting AI visual analysis with Gemini 2.0...', 25);
     
     // Analyze verified credential type
-    updateProgress('  → AI analyzing verified credential type...', 30);
+    updateProgress('  AI analyzing verified credential type...', 30);
     const verifiedAnalysis = await geminiService.analyzeCredentialType(verifiedFilePath);
-    updateProgress('  ✅ Verified credential analyzed', 40);
+    updateProgress('  Verified credential analyzed', 40);
     
     // Analyze uploaded credential type
-    updateProgress('  → AI analyzing uploaded credential type...', 45);
+    updateProgress('  AI analyzing uploaded credential type...', 45);
     const uploadedAnalysis = await geminiService.analyzeCredentialType(uploadedFilePath);
-    updateProgress('  ✅ Uploaded credential analyzed', 55);
+    updateProgress('  Uploaded credential analyzed', 55);
     
     // Compare both credentials visually
-    updateProgress('  → AI comparing credentials visually...', 60);
+    updateProgress('  AI comparing credentials visually...', 60);
     const visualComparison = await geminiService.compareCredentialImages(
       verifiedFilePath,
       uploadedFilePath
     );
-    updateProgress('  ✅ Visual comparison completed', 70);
+    updateProgress('  Visual comparison completed', 70);
     
     // Detect authenticity markers
-    updateProgress('  → AI detecting authenticity markers...', 75);
+    updateProgress('  AI detecting authenticity markers...', 75);
     const verifiedMarkers = await geminiService.detectAuthenticityMarkers(verifiedFilePath);
     const uploadedMarkers = await geminiService.detectAuthenticityMarkers(uploadedFilePath);
-    updateProgress('  ✅ Authenticity markers detected', 80);
+    updateProgress('  Authenticity markers detected', 80);
     
     
     // Check if AI analysis was successful
@@ -812,20 +812,20 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       const quotaExhausted = verifiedAnalysis.quotaExhausted || uploadedAnalysis.quotaExhausted || visualComparison.quotaExhausted;
       
       if (quotaExhausted) {
-        updateProgress('⚠️  Gemini AI quota exhausted - using OCR-only mode...', 85);
-        console.log('   ⚠️  NOTICE: Gemini AI free tier quota has been exhausted.');
-        console.log('   ℹ️  The comparison will continue using OCR-only mode.');
-        console.log('   ℹ️  Free tier resets daily. Check: https://aistudio.google.com/');
+        updateProgress('Gemini AI quota exhausted - using OCR-only mode...', 85);
+        console.log('   NOTICE: Gemini AI free tier quota has been exhausted.');
+        console.log('   The comparison will continue using OCR-only mode.');
+        console.log('   Free tier resets daily. Check: https://aistudio.google.com/');
       } else {
-        updateProgress('⚠️  AI analysis failed, falling back to OCR-only...', 85);
+        updateProgress('AI analysis failed, falling back to OCR-only...', 85);
         if (!verifiedAnalysis.success) {
-          console.log('   ❌ Verified analysis error:', verifiedAnalysis.error);
+          console.log('   Verified analysis error:', verifiedAnalysis.error);
         }
         if (!uploadedAnalysis.success) {
-          console.log('   ❌ Uploaded analysis error:', uploadedAnalysis.error);
+          console.log('   Uploaded analysis error:', uploadedAnalysis.error);
         }
         if (!visualComparison.success) {
-          console.log('   ❌ Visual comparison error:', visualComparison.error);
+          console.log('   Visual comparison error:', visualComparison.error);
         }
       }
       
@@ -840,7 +840,7 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       return ocrResult;
     }
     
-    updateProgress('✅ AI visual analysis completed successfully!', 82);
+    updateProgress('AI visual analysis completed successfully!', 82);
     
     
     // Extract credential types from AI analysis
@@ -849,28 +849,28 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     const verifiedType = normalizeCredentialType(verifiedTypeRaw);
     const uploadedType = normalizeCredentialType(uploadedTypeRaw);
     
-    console.log('📋 Credential Types:');
+    console.log('Credential Types:');
     console.log('   Verified:', verifiedType, '(confidence:', verifiedAnalysis.analysis.confidence + ')');
     console.log('   Uploaded:', uploadedType, '(confidence:', uploadedAnalysis.analysis.confidence + ')');
-    console.log('   AI Match:', visualComparison.comparison?.sameCredentialType ? '✅ Same type' : '⚠️  Different types');
+    console.log('   AI Match:', visualComparison.comparison?.sameCredentialType ? 'Same type' : 'Different types');
     
     const exactMatch = visualComparison.comparison.exactSameDocument;
     const matchConfidence = visualComparison.comparison.matchConfidence;
     
     // Step 3: OCR Text Extraction
-    updateProgress('📝 Extracting text with OCR (Tesseract.js)...', 85);
+    updateProgress('Extracting text with OCR (Tesseract.js)...', 85);
     const verifiedText = await extractTextFromImage(verifiedFilePath);
-    updateProgress('  → Verified credential text extracted', 90);
+    updateProgress('  Verified credential text extracted', 90);
     const uploadedText = await extractTextFromImage(uploadedFilePath);
-    updateProgress('  → Uploaded credential text extracted', 93);
+    updateProgress('  Uploaded credential text extracted', 93);
     
     // Step 4: Text Comparison
-    updateProgress('🔍 Comparing text content...', 95);
+    updateProgress('Comparing text content...', 95);
     const textComparison = compareTexts(verifiedText, uploadedText);
-    updateProgress('✅ Text comparison completed', 97);
+    updateProgress('Text comparison completed', 97);
     
     // Combine AI visual analysis with OCR text comparison
-    updateProgress('📊 Generating comprehensive report...', 98);
+    updateProgress('Generating comprehensive report...', 98);
     
     // Determine overall match status
     let overallStatus = 'authentic';
@@ -900,8 +900,8 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       }
     }
     
-    updateProgress('✅ Comparison complete!', 100);
-    console.log('\n✅ === AI-Enhanced Comparison Complete ===\n');
+    updateProgress('Comparison complete!', 100);
+    console.log('\n=== AI-Enhanced Comparison Complete ===\n');
     
     // Return comprehensive result
     return {
@@ -950,7 +950,7 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     };
     
   } catch (error) {
-    console.error('❌ AI-Enhanced comparison error:', error);
+    console.error('AI-Enhanced comparison error:', error);
     console.error('Error stack:', error.stack);
     
     // Cleanup on error

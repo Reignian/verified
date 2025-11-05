@@ -371,7 +371,7 @@ function SignUp() {
               <div className="signup-note-box">
                 <i className="fas fa-clock"></i>
                 <div>
-                  <strong>After Submission:</strong> Admin reviews your request (24-48 hrs) → Email notification → Login & add MetaMask address
+                  <strong>After Submission:</strong> Admin reviews your request (24-48 hrs) - Email notification - Login & add MetaMask address
                 </div>
               </div>
 
@@ -488,7 +488,7 @@ function SignUp() {
                     <p><strong>Write it down on paper</strong> in the exact order shown</p>
                     <p>Store it in a safe place (fireproof safe, safety deposit box)</p>
                     <div className="signup-warning-box">
-                      <strong>⚠️ Security Warnings:</strong>
+                      <strong>Security Warnings:</strong>
                       <ul>
                         <li>NEVER share your recovery phrase with anyone</li>
                         <li>NEVER type it into any website or app</li>

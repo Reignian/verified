@@ -11,7 +11,7 @@ async function listModels() {
     // Try to list models
     const models = await genAI.listModels();
     
-    console.log('✅ Available Models:\n');
+    console.log('Available Models:\n');
     
     for (const model of models) {
       console.log(`Model: ${model.name}`);
@@ -24,7 +24,7 @@ async function listModels() {
     }
     
   } catch (error) {
-    console.error('❌ Error listing models:', error.message);
+    console.error('Error listing models:', error.message);
     console.error('\nThis might mean:');
     console.error('1. Your API key is invalid');
     console.error('2. The API endpoint has changed');

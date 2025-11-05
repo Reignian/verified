@@ -19,10 +19,10 @@ function getModel() {
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.0-flash'
     });
-    console.log('✅ Gemini model initialized: gemini-2.0-flash');
+    console.log('Gemini model initialized: gemini-2.0-flash');
     return model;
   } catch (error) {
-    console.error('❌ Failed to initialize Gemini model:', error);
+    console.error('Failed to initialize Gemini model:', error);
     console.error('Error details:', error.message);
     throw new Error('Gemini AI initialization failed. Please check your API key.');
   }
@@ -59,20 +59,20 @@ async function fileToGenerativePart(filePath) {
     
     if (header.startsWith('25504446')) { // %PDF
       mimeType = 'application/pdf';
-      console.log('✅ Detected as PDF from file content');
+      console.log('Detected as PDF from file content');
     } else if (header.startsWith('ffd8ff')) { // JPEG
       mimeType = 'image/jpeg';
-      console.log('✅ Detected as JPEG from file content');
+      console.log('Detected as JPEG from file content');
     } else if (header.startsWith('89504e47')) { // PNG
       mimeType = 'image/png';
-      console.log('✅ Detected as PNG from file content');
+      console.log('Detected as PNG from file content');
     } else if (header.startsWith('47494638')) { // GIF
       mimeType = 'image/gif';
-      console.log('✅ Detected as GIF from file content');
+      console.log('Detected as GIF from file content');
     } else {
       // Default to PDF (most common for credentials)
       mimeType = 'application/pdf';
-      console.log('⚠️  Unknown file type, defaulting to PDF');
+      console.log('Unknown file type, defaulting to PDF');
     }
   }
   
@@ -93,7 +93,7 @@ async function fileToGenerativePart(filePath) {
  */
 async function analyzeCredentialType(filePath) {
   try {
-    console.log('🔍 Analyzing credential type with Gemini AI:', filePath);
+    console.log('Analyzing credential type with Gemini AI:', filePath);
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
     console.log('API Key length:', process.env.GEMINI_API_KEY?.length);
     
@@ -146,9 +146,9 @@ Analyze carefully and respond in JSON format:
   "notes": "key visual features that helped identify the type"
 }`;
 
-    console.log('📤 Sending request to Gemini API...');
+    console.log('Sending request to Gemini API...');
     const result = await model.generateContent([prompt, imagePart]);
-    console.log('📥 Received response from Gemini API');
+    console.log('Received response from Gemini API');
     const response = await result.response;
     const text = response.text();
     console.log('Response text length:', text.length);
@@ -167,7 +167,7 @@ Analyze carefully and respond in JSON format:
     throw new Error('Failed to parse Gemini response');
     
   } catch (error) {
-    console.error('❌ Gemini analysis error:', error);
+    console.error('Gemini analysis error:', error);
     console.error('Error name:', error.name);
     console.error('Error message:', error.message);
     console.error('Error stack:', error.stack);
@@ -190,7 +190,7 @@ Analyze carefully and respond in JSON format:
  */
 async function compareCredentialImages(verifiedFilePath, uploadedFilePath) {
   try {
-    console.log('🔍 Comparing credentials with Gemini AI...');
+    console.log('Comparing credentials with Gemini AI...');
     console.log('Verified file:', verifiedFilePath);
     console.log('Uploaded file:', uploadedFilePath);
     
@@ -202,10 +202,10 @@ async function compareCredentialImages(verifiedFilePath, uploadedFilePath) {
 
 YOUR TASK: Visually compare these two credential documents and detect any signs of tampering, fraud, or forgery.
 
-📄 DOCUMENT 1: VERIFIED/OFFICIAL credential from the institution's system (SOURCE OF TRUTH)
-📄 DOCUMENT 2: USER-SUBMITTED credential (NEEDS VALIDATION)
+DOCUMENT 1: VERIFIED/OFFICIAL credential from the institution's system (SOURCE OF TRUTH)
+DOCUMENT 2: USER-SUBMITTED credential (NEEDS VALIDATION)
 
-🔍 ANALYSIS INSTRUCTIONS:
+ANALYSIS INSTRUCTIONS:
 
 1. CREDENTIAL TYPE IDENTIFICATION:
    - Describe what type of credential Document 1 is (Transcript, Degree, Certificate, etc.)
@@ -222,20 +222,20 @@ YOUR TASK: Visually compare these two credential documents and detect any signs 
    - Identical layout and formatting?
 
 3. FRAUD DETECTION - Look for signs of tampering in Document 2:
-   ⚠️ TEXT MANIPULATION:
+   TEXT MANIPULATION:
    - Changed names, grades, dates, or other text
    - Inconsistent fonts or font sizes
    - Text overlay or digital editing
    - Blurred or pixelated text areas
    
-   ⚠️ VISUAL FORGERY:
+   VISUAL FORGERY:
    - Modified or fake official seals
    - Forged or altered signatures
    - Added or removed stamps
    - Changed or fake logos
    - Inconsistent image quality in different areas
    
-   ⚠️ DIGITAL TAMPERING:
+   DIGITAL TAMPERING:
    - Photo editing artifacts
    - Clone stamp tool marks
    - Misaligned elements
@@ -258,9 +258,9 @@ YOUR TASK: Visually compare these two credential documents and detect any signs 
    - DESCRIPTION: How it was tampered (e.g., "digitally edited", "different font", "color mismatch", "blurred area")
 
 6. FINAL ASSESSMENT:
-   - If documents are IDENTICAL → "Authentic"
-   - If minor differences that could be legitimate → "Suspicious" 
-   - If clear signs of tampering/forgery → "Fraudulent"
+   - If documents are IDENTICAL: "Authentic"
+   - If minor differences that could be legitimate: "Suspicious" 
+   - If clear signs of tampering/forgery: "Fraudulent"
 
 Respond in JSON format:
 {
@@ -326,7 +326,7 @@ Respond in JSON format:
     throw new Error('Failed to parse Gemini comparison response');
     
   } catch (error) {
-    console.error('❌ Gemini comparison error:', error);
+    console.error('Gemini comparison error:', error);
     console.error('Error details:', error.message);
     
     // Check if it's a quota/rate limit error
@@ -336,13 +336,13 @@ Respond in JSON format:
     if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
       userMessage = 'Gemini AI free tier quota exhausted. Comparison will continue using OCR-only mode.';
       quotaExhausted = true;
-      console.log('⚠️  Gemini API quota exhausted - falling back to OCR-only');
+      console.log('Gemini API quota exhausted - falling back to OCR-only');
     } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
       userMessage = 'Gemini API key is invalid or expired.';
-      console.log('⚠️  Invalid Gemini API key');
+      console.log('Invalid Gemini API key');
     } else if (error.message.includes('500') || error.message.includes('503')) {
       userMessage = 'Gemini API is temporarily unavailable. Using OCR-only mode.';
-      console.log('⚠️  Gemini API service unavailable');
+      console.log('Gemini API service unavailable');
     }
     
     return {
@@ -452,13 +452,13 @@ Respond in JSON format:
     if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
       userMessage = 'Gemini AI free tier quota exhausted. Markers detection will continue using OCR-only mode.';
       quotaExhausted = true;
-      console.log('⚠️  Gemini API quota exhausted - falling back to OCR-only');
+      console.log('Gemini API quota exhausted - falling back to OCR-only');
     } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
       userMessage = 'Gemini API key is invalid or expired.';
-      console.log('⚠️  Invalid Gemini API key');
+      console.log('Invalid Gemini API key');
     } else if (error.message.includes('500') || error.message.includes('503')) {
       userMessage = 'Gemini API is temporarily unavailable. Using OCR-only mode.';
-      console.log('⚠️  Gemini API service unavailable');
+      console.log('Gemini API service unavailable');
     }
     
     return {
@@ -477,7 +477,7 @@ Respond in JSON format:
  */
 async function extractCredentialInfo(filePath) {
   try {
-    console.log('🔍 Extracting credential information with Gemini AI:', filePath);
+    console.log('Extracting credential information with Gemini AI:', filePath);
     
     const model = getModel();
     const imagePart = await fileToGenerativePart(filePath);
@@ -515,9 +515,9 @@ Respond in JSON format:
   "notes": "any additional observations"
 }`;
 
-    console.log('📤 Sending extraction request to Gemini API...');
+    console.log('Sending extraction request to Gemini API...');
     const result = await model.generateContent([prompt, imagePart]);
-    console.log('📥 Received response from Gemini API');
+    console.log('Received response from Gemini API');
     const response = await result.response;
     const text = response.text();
     
@@ -525,7 +525,7 @@ Respond in JSON format:
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const extractedInfo = JSON.parse(jsonMatch[0]);
-      console.log('✅ Credential information extracted:', extractedInfo);
+      console.log('Credential information extracted:', extractedInfo);
       return {
         success: true,
         data: extractedInfo
@@ -535,7 +535,7 @@ Respond in JSON format:
     throw new Error('Failed to parse Gemini response');
     
   } catch (error) {
-    console.error('❌ Gemini extraction error:', error);
+    console.error('Gemini extraction error:', error);
     
     // Check if it's a quota/rate limit error
     let userMessage = error.message;
@@ -544,13 +544,13 @@ Respond in JSON format:
     if (error.message.includes('429') || error.message.includes('quota') || error.message.includes('RESOURCE_EXHAUSTED')) {
       userMessage = 'Gemini AI free tier quota exhausted. Please try again later or fill the form manually.';
       quotaExhausted = true;
-      console.log('⚠️  Gemini API quota exhausted');
+      console.log('Gemini API quota exhausted');
     } else if (error.message.includes('403') || error.message.includes('API_KEY_INVALID')) {
       userMessage = 'Gemini API key is invalid or expired.';
-      console.log('⚠️  Invalid Gemini API key');
+      console.log('Invalid Gemini API key');
     } else if (error.message.includes('500') || error.message.includes('503')) {
       userMessage = 'Gemini API is temporarily unavailable.';
-      console.log('⚠️  Gemini API service unavailable');
+      console.log('Gemini API service unavailable');
     }
     
     return {

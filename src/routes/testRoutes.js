@@ -38,7 +38,7 @@ router.post('/gemini', async (req, res) => {
       const response = await result.response;
       const text = response.text();
       
-      console.log('✅ SUCCESS! Response received');
+      console.log('SUCCESS! Response received');
       console.log('Response length:', text.length);
       
       return res.json({
@@ -49,7 +49,7 @@ router.post('/gemini', async (req, res) => {
       });
       
     } catch (flashError) {
-      console.log('❌ gemini-2.0-flash failed:', flashError.message);
+      console.log('gemini-2.0-flash failed:', flashError.message);
       
       // Try gemini-1.5-flash as backup
       console.log('Trying gemini-1.5-flash...');
@@ -62,7 +62,7 @@ router.post('/gemini', async (req, res) => {
         const response = await result.response;
         const text = response.text();
         
-        console.log('✅ gemini-1.5-flash SUCCESS!');
+        console.log('gemini-1.5-flash SUCCESS!');
         
         return res.json({
           success: true,
@@ -73,8 +73,8 @@ router.post('/gemini', async (req, res) => {
         });
         
       } catch (flash15Error) {
-        console.log('❌ gemini-1.5-flash also failed:', flash15Error.message);
-        console.log('❌ All models failed');
+        console.log('gemini-1.5-flash also failed:', flash15Error.message);
+        console.log('All models failed');
         
         return res.json({
           success: false,
@@ -89,7 +89,7 @@ router.post('/gemini', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('❌ Fatal error in Gemini test:', error);
+    console.error('Fatal error in Gemini test:', error);
     
     return res.json({
       success: false,

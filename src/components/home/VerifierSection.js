@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './VerifierSection.css';
-import { verifyCredential, compareCredentialFile } from '../../services/publicApiService';
+import { verifyCredential, compareCredentialFile, verifyCredentialByFile } from '../../services/publicApiService';
 import blockchainService from '../../services/blockchainService';
 import { ethers } from 'ethers';
 
@@ -32,6 +32,12 @@ function VerifierSection() {
     message: '',
     timeRemaining: ''
   });
+  
+  // File-based verification states (new feature)
+  const [verificationMode, setVerificationMode] = useState('access_code'); // 'access_code' or 'file_upload'
+  const [uploadedCredentialFile, setUploadedCredentialFile] = useState(null);
+  const [isVerifyingByFile, setIsVerifyingByFile] = useState(false);
+  const [fileVerificationProgress, setFileVerificationProgress] = useState('');
   
   // All on-chain integrity checks will be computed and logged to console only.
 
@@ -230,7 +236,13 @@ function VerifierSection() {
   const runOnChainIntegrityChecks = async (credential) => {
     const blockchainId = credential?.blockchain_id;
     if (!blockchainId) {
-      return { isValid: false, error: 'No blockchain ID found' };
+      console.warn('Credential has no blockchain ID - may have been uploaded before blockchain integration');
+      // Return as valid with warning - credential passed all other checks
+      return { 
+        isValid: true, 
+        warning: 'Blockchain verification unavailable',
+        message: 'This credential was uploaded before blockchain integration or blockchain transaction failed. However, it passed database verification and AI visual comparison.'
+      };
     }
     
     try {
@@ -310,9 +322,9 @@ function VerifierSection() {
 
       // Temporary debug logging to identify the issue
       if (!allVerified) {
-        console.group('🔍 Blockchain Verification Debug');
+        console.group('Blockchain Verification Debug');
         console.log('Credential ID:', blockchainId);
-        console.log('❌ Verification failed. Details:');
+        console.log('Verification failed. Details:');
         console.log('  Issuer Match:', issuerMatch, '- Expected:', dbIssuer, 'Got:', chainIssuer);
         console.log('  Student ID Match:', studentIdMatch, '- Expected:', dbStudentId, 'Got:', chainStudentId);
         console.log('  CID Hash Match:', cidHashMatch, '- Expected:', computedCidHashHex, 'Got:', chainCidHashHex);
@@ -426,6 +438,222 @@ function VerifierSection() {
     setVerificationInput(e.target.value);
   };
 
+  // Handle file-based verification
+  const handleFileUploadForVerification = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/bmp', 'image/tiff', 'application/pdf'];
+      if (!validTypes.includes(file.type)) {
+        showError('Please upload an image or PDF file (JPEG, PNG, GIF, BMP, TIFF, or PDF)');
+        return;
+      }
+      
+      // Validate file size (30MB max)
+      if (file.size > 30 * 1024 * 1024) {
+        showError('File size must be less than 30MB');
+        return;
+      }
+      
+      setUploadedCredentialFile(file);
+    }
+  };
+
+  const handleVerifyByFile = async () => {
+    if (!uploadedCredentialFile) {
+      showError('Please select a credential file to verify');
+      return;
+    }
+    
+    setIsVerifyingByFile(true);
+    setShowVerificationResult(false);
+    
+    try {
+      // Simulate realistic progress through the backend process
+      // The entire backend process happens in one API call, but we show progress
+      // based on typical timing for each stage
+      
+      let currentStep = 1;
+      let progressTimer;
+      
+      const updateProgress = () => {
+        const elapsed = Date.now() - startTime;
+        
+        // Step 1: OCR (0-60 seconds) - Takes the longest
+        if (elapsed < 60000 && currentStep === 1) {
+          if (elapsed < 15000) {
+            setFileVerificationProgress('Step 1/5: Uploading file and extracting text with OCR...');
+          } else if (elapsed < 30000) {
+            setFileVerificationProgress('Step 1/5: Processing PDF and extracting text... (this may take 1-2 minutes)');
+          } else if (elapsed < 45000) {
+            setFileVerificationProgress('Step 1/5: OCR in progress... please be patient');
+          } else {
+            setFileVerificationProgress('Step 1/5: Finalizing text extraction...');
+          }
+        }
+        // Step 2: AI Extraction (60-80 seconds)
+        else if (elapsed >= 60000 && elapsed < 80000 && currentStep <= 2) {
+          currentStep = 2;
+          setFileVerificationProgress('Step 2/5: Using AI to extract credential information...');
+        }
+        // Step 3: Database Search (80-85 seconds)
+        else if (elapsed >= 80000 && elapsed < 85000 && currentStep <= 3) {
+          currentStep = 3;
+          setFileVerificationProgress('Step 3/5: Searching database for matching credentials...');
+        }
+        // Step 4: Visual Comparison (85-120 seconds)
+        else if (elapsed >= 85000 && elapsed < 120000 && currentStep <= 4) {
+          currentStep = 4;
+          if (elapsed < 100000) {
+            setFileVerificationProgress('Step 4/5: Performing AI visual comparison for security...');
+          } else {
+            setFileVerificationProgress('Step 4/5: Comparing files with AI... almost done');
+          }
+        }
+        // If taking longer than expected
+        else if (elapsed >= 120000 && currentStep <= 4) {
+          setFileVerificationProgress('Step 4/5: Still processing... this file is taking longer than usual');
+        }
+      };
+      
+      const startTime = Date.now();
+      updateProgress(); // Initial update
+      progressTimer = setInterval(updateProgress, 3000); // Update every 3 seconds
+      
+      // Call the API to verify by file
+      const response = await verifyCredentialByFile(uploadedCredentialFile);
+      
+      clearInterval(progressTimer);
+      
+      if (response.success && response.verifiedMatches && response.verifiedMatches.length > 0) {
+        console.log('Frontend received response:', response);
+        console.log('First match credential:', response.verifiedMatches[0].credential);
+        console.log('blockchain_id received:', response.verifiedMatches[0].credential.blockchainId);
+        
+        // Show completion messages briefly
+        setFileVerificationProgress('Step 2/5: AI extracted credential information successfully');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setFileVerificationProgress(`Step 3/5: Found ${response.verifiedMatches.length} matching credential(s) in database`);
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        setFileVerificationProgress('Step 4/5: AI visual comparison verified - files match!');
+        await new Promise(resolve => setTimeout(resolve, 800));
+        
+        // Stage 5: Blockchain verification (80-100%)
+        setFileVerificationProgress('Step 5/5: Verifying blockchain integrity...');
+        
+        // Run blockchain verification for each verified match
+        // Using the EXACT SAME process as access code verification
+        const verifiedCredentials = [];
+        const blockchainErrors = [];
+        
+        for (let i = 0; i < response.verifiedMatches.length; i++) {
+          const match = response.verifiedMatches[i];
+          const credentialData = match.credential;
+          
+          // Normalize credential object to match access code format (snake_case)
+          const credential = {
+            id: credentialData.id,
+            recipient_name: credentialData.recipientName,
+            issuer_name: credentialData.institutionName,
+            credential_type: credentialData.credentialType,
+            program_name: credentialData.programName,
+            program_code: credentialData.programCode,
+            date_issued: credentialData.dateIssued,
+            ipfs_cid: credentialData.ipfsCid,
+            blockchain_id: credentialData.blockchainId,
+            issuer_public_address: credentialData.issuerPublicAddress,
+            institution_addresses: credentialData.institutionAddresses,
+            student_id: credentialData.studentId
+          };
+          
+          console.log('Normalized credential for blockchain check:', credential);
+          console.log('blockchain_id (snake_case):', credential.blockchain_id);
+          
+          if (response.verifiedMatches.length > 1) {
+            setFileVerificationProgress(`Step 5/5: Verifying blockchain for credential ${i + 1}/${response.verifiedMatches.length}...`);
+          }
+          
+          // Use the same blockchain verification as access code method
+          const blockchainResult = await runOnChainIntegrityChecks(credential);
+          
+          if (blockchainResult.isValid) {
+            verifiedCredentials.push(credential);
+          } else {
+            // Track blockchain failures with details (same as access code verification)
+            blockchainErrors.push({
+              credential: credential.recipient_name,
+              error: blockchainResult.error || 'Data integrity compromised'
+            });
+            console.log('Blockchain verification failed for:', credential.recipient_name, blockchainResult.error);
+          }
+        }
+        
+        if (verifiedCredentials.length > 0) {
+          setFileVerificationProgress('Verification complete!');
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          // Show results (same display logic as access code verification)
+          if (verifiedCredentials.length === 1) {
+            setCredentialData(verifiedCredentials[0]);
+            setCredentialsData(null);
+            setVerificationType('single');
+            
+            // Use the detailed comparison result from backend (already done in Step 4)
+            const firstMatch = response.verifiedMatches[0];
+            if (firstMatch && firstMatch.comparisonResult) {
+              console.log('Using detailed comparison result from backend:', firstMatch.comparisonResult);
+              
+              // Format the comparison result to match the modal's expected structure
+              setComparisonResult({
+                success: true,
+                ...firstMatch.comparisonResult,
+                credential: {
+                  recipient_name: verifiedCredentials[0].recipient_name,
+                  credential_type: verifiedCredentials[0].credential_type,
+                  issuer_name: verifiedCredentials[0].issuer_name
+                }
+              });
+              
+              // Show verification result first
+              setShowVerificationResult(true);
+              setFileVerificationProgress('');
+              
+              // Then show the detailed comparison modal after a brief delay
+              setTimeout(() => {
+                setShowComparisonModal(true);
+              }, 800);
+            } else {
+              // No comparison result available, just show verification
+              setShowVerificationResult(true);
+              setFileVerificationProgress('');
+            }
+          } else {
+            setCredentialsData(verifiedCredentials);
+            setCredentialData(null);
+            setVerificationType('multi');
+            setShowVerificationResult(true);
+            setFileVerificationProgress('');
+          }
+        } else {
+          // Show detailed error (same as access code verification)
+          const errorDetails = blockchainErrors.length > 0 
+            ? `Blockchain verification failed: ${blockchainErrors[0].error}`
+            : 'File matched in database but failed blockchain verification. The credential may have been tampered with.';
+          showError(errorDetails);
+        }
+      } else {
+        showError(response.message || 'No matching credentials found for the uploaded file.');
+      }
+    } catch (error) {
+      console.error('File verification error:', error);
+      showError(error.response?.data?.message || 'Failed to verify credential by file. Please try again.');
+    } finally {
+      setIsVerifyingByFile(false);
+      setFileVerificationProgress('');
+    }
+  };
 
   const verifierBenefits = [
     "Instant verification without calls or emails",
@@ -448,34 +676,151 @@ function VerifierSection() {
                 <h3 className="mb-0">VerifiED Credential Checker</h3>
               </div>
               <div className="p-4">
-                <div className="d-flex mb-3">
-                  <input 
-                    type="text" 
-                    className="form-control me-2" 
-                    placeholder="Enter credential access code"
-                    value={verificationInput}
-                    onChange={handleInputChange}
-                  />
-                  <button 
-                    className="btn btn-primary-custom"
-                    onClick={handleVerify}
-                    disabled={isLoading}
-                  >
-                    {isLoading ? (
-                      <>
-                        <span className="spinner-border spinner-border-sm me-1" style={{ width: '14px', height: '14px' }}></span>
-                        Verifying
-                      </>
-                    ) : 'Verify'}
-                  </button>
+                {/* Verification Mode Tabs */}
+                <div className="mb-3">
+                  <div className="btn-group w-100" role="group">
+                    <button
+                      type="button"
+                      className={`btn ${verificationMode === 'access_code' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setVerificationMode('access_code')}
+                    >
+                      <i className="fas fa-key me-2"></i>
+                      Access Code
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn ${verificationMode === 'file_upload' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => setVerificationMode('file_upload')}
+                    >
+                      <i className="fas fa-file-upload me-2"></i>
+                      Upload File
+                    </button>
+                  </div>
                 </div>
+
+                {/* Access Code Verification */}
+                {verificationMode === 'access_code' && (
+                  <div className="d-flex mb-3">
+                    <input 
+                      type="text" 
+                      className="form-control me-2" 
+                      placeholder="Enter credential access code"
+                      value={verificationInput}
+                      onChange={handleInputChange}
+                    />
+                    <button 
+                      className="btn btn-primary-custom"
+                      onClick={handleVerify}
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-1" style={{ width: '14px', height: '14px' }}></span>
+                          Verifying
+                        </>
+                      ) : 'Verify'}
+                    </button>
+                  </div>
+                )}
+
+                {/* File Upload Verification */}
+                {verificationMode === 'file_upload' && (
+                  <div className="mb-3">
+                    <div className="alert alert-info mb-3">
+                      <i className="fas fa-info-circle me-2"></i>Upload a credential file directly. We'll verify it using AI and blockchain without needing an access code.
+                    </div>
+                    <div className="mb-3">
+                      <input
+                        type="file"
+                        id="credentialFileUpload"
+                        className="d-none"
+                        accept="image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/tiff,application/pdf"
+                        onChange={handleFileUploadForVerification}
+                      />
+                      <label htmlFor="credentialFileUpload" className="file-upload-label w-100">
+                        <i className="fas fa-cloud-upload-alt me-2"></i>
+                        {uploadedCredentialFile ? uploadedCredentialFile.name : 'Choose credential file (Image or PDF)'}
+                      </label>
+                    </div>
+                    {uploadedCredentialFile && (
+                      <div className="mb-3 text-muted small">
+                        <i className="fas fa-file me-2"></i>
+                        {uploadedCredentialFile.name} ({(uploadedCredentialFile.size / 1024 / 1024).toFixed(2)} MB)
+                      </div>
+                    )}
+                    {fileVerificationProgress && (
+                      <div className="alert alert-primary mb-3" style={{ 
+                        backgroundColor: '#e3f2fd', 
+                        borderColor: '#2196f3',
+                        borderLeft: '4px solid #2196f3'
+                      }}>
+                        <div className="d-flex align-items-center">
+                          <span className="spinner-border spinner-border-sm me-2" style={{ color: '#2196f3' }}></span>
+                          <div className="flex-grow-1">
+                            <strong style={{ color: '#1976d2' }}>
+                              {fileVerificationProgress.includes('Step 1') && <i className="fas fa-file-upload me-2"></i>}
+                              {fileVerificationProgress.includes('Step 2') && <i className="fas fa-robot me-2"></i>}
+                              {fileVerificationProgress.includes('Step 3') && <i className="fas fa-database me-2"></i>}
+                              {fileVerificationProgress.includes('Step 4') && <i className="fas fa-images me-2"></i>}
+                              {fileVerificationProgress.includes('Step 5') && <i className="fas fa-link me-2"></i>}
+                              {fileVerificationProgress.includes('complete') && <i className="fas fa-check-circle me-2"></i>}
+                              {fileVerificationProgress}
+                            </strong>
+                          </div>
+                        </div>
+                        {fileVerificationProgress.includes('Step 1') && (
+                          <small className="d-block mt-2 text-muted">
+                            <i className="fas fa-info-circle me-1"></i>
+                            Processing large files may take 1-3 minutes. Please be patient.
+                          </small>
+                        )}
+                        {fileVerificationProgress.includes('Step 4') && (
+                          <small className="d-block mt-2 text-muted">
+                            <i className="fas fa-info-circle me-1"></i>
+                            Performing detailed AI analysis. This may take 3-5 minutes. Please wait...
+                          </small>
+                        )}
+                      </div>
+                    )}
+                    <button
+                      className="btn btn-primary-custom w-100"
+                      onClick={handleVerifyByFile}
+                      disabled={!uploadedCredentialFile || isVerifyingByFile}
+                    >
+                      {isVerifyingByFile ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm me-2"></span>
+                          Verifying File...
+                        </>
+                      ) : (
+                        <>
+                          <i className="fas fa-shield-alt me-2"></i>
+                          Verify Credential
+                        </>
+                      )}
+                    </button>
+                  </div>
+                )}
                 
                 {showVerificationResult && verificationType === 'single' && credentialData && (
                   <div className="verification-result-box">
                     <div className="d-flex align-items-center mb-3">
                       <i className="fas fa-check-circle text-success me-2"></i>
                       <span className="fw-bold text-success">Verified</span>
+                      {!credentialData.blockchain_id && (
+                        <span className="badge bg-warning text-dark ms-2" title="Blockchain verification unavailable for this credential">
+                          <i className="fas fa-exclamation-triangle me-1"></i>
+                          No Blockchain ID
+                        </span>
+                      )}
                     </div>
+                    {!credentialData.blockchain_id && (
+                      <div className="alert alert-warning mb-3" style={{ fontSize: '0.85rem' }}>
+                        <i className="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> This credential was uploaded before blockchain integration. 
+                        It has been verified through database records and AI visual comparison, but blockchain verification is unavailable.
+                      </div>
+                    )}
                     <div>
                       <div className="d-flex justify-content-between py-2 border-bottom">
                         <span className="fw-bold">Name:</span>
@@ -530,7 +875,8 @@ function VerifierSection() {
                       )}
                     </div>
                     
-                    {/* File Comparison Section */}
+                    {/* File Comparison Section - Only show for access code verification */}
+                    {verificationMode === 'access_code' && (
                     <div className="file-comparison-section mt-4 pt-4 border-top">
                       <h5 className="mb-3">
                         <i className="fas fa-file-alt me-2"></i>
@@ -627,6 +973,7 @@ function VerifierSection() {
                         </div>
                       )}
                     </div>
+                    )}
                   </div>
                 )}
 

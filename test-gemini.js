@@ -17,10 +17,10 @@ async function testGeminiAPI() {
       const result = await model.generateContent('Say "Hello, I am working!" if you can read this.');
       const response = await result.response;
       const text = response.text();
-      console.log('✅ gemini-1.5-flash WORKS!');
+      console.log('gemini-1.5-flash WORKS!');
       console.log('Response:', text);
     } catch (error) {
-      console.log('❌ gemini-1.5-flash FAILED');
+      console.log('gemini-1.5-flash FAILED');
       console.log('Error:', error.message);
       if (error.response) {
         console.log('API Response:', JSON.stringify(error.response, null, 2));
@@ -34,10 +34,10 @@ async function testGeminiAPI() {
       const result = await model.generateContent('Say "Hello, I am working!" if you can read this.');
       const response = await result.response;
       const text = response.text();
-      console.log('✅ gemini-1.5-pro WORKS!');
+      console.log('gemini-1.5-pro WORKS!');
       console.log('Response:', text);
     } catch (error) {
-      console.log('❌ gemini-1.5-pro FAILED');
+      console.log('gemini-1.5-pro FAILED');
       console.log('Error:', error.message);
     }
     
@@ -48,10 +48,10 @@ async function testGeminiAPI() {
       const result = await model.generateContent('Say "Hello, I am working!" if you can read this.');
       const response = await result.response;
       const text = response.text();
-      console.log('✅ gemini-pro WORKS!');
+      console.log('gemini-pro WORKS!');
       console.log('Response:', text);
     } catch (error) {
-      console.log('❌ gemini-pro FAILED');
+      console.log('gemini-pro FAILED');
       console.log('Error:', error.message);
     }
     

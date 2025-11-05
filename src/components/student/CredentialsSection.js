@@ -71,7 +71,7 @@ function CredentialsSection({
       }
     } catch (error) {
       console.error('Failed to generate access code:', error);
-      alert('❌ Failed to generate access code. Please try again.');
+      alert('Failed to generate access code. Please try again.');
     } finally {
       setGeneratingId(null);
       setSelectedSingleCredential(null);
@@ -128,7 +128,7 @@ function CredentialsSection({
       }
     } catch (error) {
       console.error('Failed to generate multi-access code:', error);
-      alert('❌ Failed to generate multi-access code. Please try again.');
+      alert('Failed to generate multi-access code. Please try again.');
     } finally {
       setGeneratingMultiCode(false);
     }

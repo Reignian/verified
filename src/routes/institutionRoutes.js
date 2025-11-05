@@ -1178,28 +1178,28 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       });
     }
     
-    console.log('📄 Analyzing credential file:', req.file.originalname);
+    console.log('Analyzing credential file:', req.file.originalname);
     console.log('File path:', uploadedFilePath);
     console.log('File size:', req.file.size, 'bytes');
     
     // Step 1: Extract text with OCR (Tesseract)
-    console.log('🔍 Step 1: Extracting text with OCR...');
+    console.log('Step 1: Extracting text with OCR...');
     const extractedText = await tesseractService.extractTextFromImage(uploadedFilePath);
-    console.log('✅ OCR completed. Text length:', extractedText.length);
+    console.log('OCR completed. Text length:', extractedText.length);
     
     // Step 2: Identify credential type from OCR text
-    console.log('🔍 Step 2: Identifying credential type from OCR...');
+    console.log('Step 2: Identifying credential type from OCR...');
     const ocrCredentialType = tesseractService.identifyCredentialType(extractedText);
     console.log('OCR identified type:', ocrCredentialType);
     
     // Step 3: Use Gemini AI for intelligent extraction
-    console.log('🤖 Step 3: Analyzing with Gemini AI...');
+    console.log('Step 3: Analyzing with Gemini AI...');
     const aiResult = await geminiService.extractCredentialInfo(uploadedFilePath);
     
     let result;
     
     if (aiResult.success) {
-      console.log('✅ AI analysis successful');
+      console.log('AI analysis successful');
       result = {
         success: true,
         data: {
@@ -1218,7 +1218,7 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       };
     } else {
       // Fallback to OCR-only mode
-      console.log('⚠️  AI analysis failed, using OCR-only mode');
+      console.log('AI analysis failed, using OCR-only mode');
       console.log('AI Error:', aiResult.error);
       
       result = {
@@ -1244,14 +1244,14 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
     // Cleanup temporary file
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       fs.unlinkSync(uploadedFilePath);
-      console.log('🗑️  Temporary file cleaned up');
+      console.log('Temporary file cleaned up');
     }
     
-    console.log('✅ Analysis complete');
+    console.log('Analysis complete');
     res.json(result);
     
   } catch (error) {
-    console.error('❌ Credential analysis error:', error);
+    console.error('Credential analysis error:', error);
     
     // Cleanup temporary file on error
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {

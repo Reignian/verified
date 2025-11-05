@@ -36,16 +36,16 @@ const GeminiTestModal = () => {
       if (data.success) {
         setTestStatus('success');
         setApiKeyStatus('valid');
-        setResponse(`✅ SUCCESS!\n\nModel: ${data.model}\nResponse: ${data.response}\n\nYour Gemini API is working correctly!`);
+        setResponse(`SUCCESS!\n\nModel: ${data.model}\nResponse: ${data.response}\n\nYour Gemini API is working correctly!`);
       } else {
         setTestStatus('error');
         setApiKeyStatus('invalid');
-        setResponse(`❌ ERROR\n\n${data.error}\n\nDetails: ${data.details || 'No additional details'}`);
+        setResponse(`ERROR\n\n${data.error}\n\nDetails: ${data.details || 'No additional details'}`);
       }
     } catch (error) {
       setTestStatus('error');
       setApiKeyStatus('error');
-      setResponse(`❌ CONNECTION ERROR\n\nCannot reach server: ${error.message}\n\nMake sure your backend server is running on port 3001.`);
+      setResponse(`CONNECTION ERROR\n\nCannot reach server: ${error.message}\n\nMake sure your backend server is running on port 3001.`);
     } finally {
       setLoading(false);
     }
@@ -70,14 +70,14 @@ const GeminiTestModal = () => {
 
       if (data.success) {
         setTestStatus('success');
-        setResponse(`✅ Gemini Response:\n\n${data.response}`);
+        setResponse(`Gemini Response:\n\n${data.response}`);
       } else {
         setTestStatus('error');
-        setResponse(`❌ Error: ${data.error}`);
+        setResponse(`Error: ${data.error}`);
       }
     } catch (error) {
       setTestStatus('error');
-      setResponse(`❌ Error: ${error.message}`);
+      setResponse(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -96,7 +96,7 @@ const GeminiTestModal = () => {
     <div className="gemini-test-overlay">
       <div className="gemini-test-modal">
         <div className="gemini-test-header">
-          <h3>🤖 Gemini API Connection Test</h3>
+          <h3>Gemini API Connection Test</h3>
           <button className="close-btn" onClick={() => setShow(false)}>×</button>
         </div>
 
@@ -105,9 +105,9 @@ const GeminiTestModal = () => {
           <div className={`api-status api-status-${apiKeyStatus}`}>
             <strong>API Key Status:</strong> 
             {apiKeyStatus === 'checking' && ' Checking...'}
-            {apiKeyStatus === 'valid' && ' ✅ Valid & Working'}
-            {apiKeyStatus === 'invalid' && ' ❌ Invalid or No Access'}
-            {apiKeyStatus === 'error' && ' ⚠️ Connection Error'}
+            {apiKeyStatus === 'valid' && ' Valid & Working'}
+            {apiKeyStatus === 'invalid' && ' Invalid or No Access'}
+            {apiKeyStatus === 'error' && ' Connection Error'}
           </div>
 
           {/* Response Display */}
@@ -132,14 +132,14 @@ const GeminiTestModal = () => {
                 onClick={sendMessage}
                 disabled={loading || !message.trim()}
               >
-                {loading ? '⏳ Sending...' : '📤 Send Message'}
+                {loading ? 'Sending...' : 'Send Message'}
               </button>
               <button 
                 className="btn-retest" 
                 onClick={testConnection}
                 disabled={loading}
               >
-                🔄 Retest Connection
+                Retest Connection
               </button>
             </div>
           </div>

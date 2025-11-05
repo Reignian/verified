@@ -51,3 +51,23 @@ export const compareCredentialFile = async (credentialId, file) => {
     throw error;
   }
 };
+
+// Verify credential by uploading file directly (no access code needed)
+export const verifyCredentialByFile = async (file) => {
+  try {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    const response = await axios.post(`${API_URL}/public/verify-by-file`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      },
+      timeout: 600000 // 10 minute timeout for OCR + AI extraction + full AI-enhanced comparison
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error('Error verifying credential by file:', error);
+    throw error;
+  }
+};
