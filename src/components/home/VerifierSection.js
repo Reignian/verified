@@ -25,6 +25,11 @@ function VerifierSection() {
   const [comparisonResult, setComparisonResult] = useState(null);
   const [comparisonError, setComparisonError] = useState('');
   
+  // Multi-credential comparison states (for each credential in multi-access code)
+  const [multiSelectedFiles, setMultiSelectedFiles] = useState({}); // { credentialId: File }
+  const [multiComparingStates, setMultiComparingStates] = useState({}); // { credentialId: boolean }
+  const [multiComparisonErrors, setMultiComparisonErrors] = useState({}); // { credentialId: string }
+  
   // Progress tracking states
   const [comparisonProgress, setComparisonProgress] = useState({
     stage: '',
@@ -231,6 +236,58 @@ function VerifierSection() {
     setComparisonResult(null);
     setComparisonError('');
     setShowComparisonModal(false);
+  };
+
+  // Multi-credential comparison handlers
+  const handleMultiFileSelect = (credentialId, event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setMultiSelectedFiles(prev => ({ ...prev, [credentialId]: file }));
+      setMultiComparisonErrors(prev => ({ ...prev, [credentialId]: '' }));
+    }
+  };
+
+  const handleMultiCompareFiles = async (credentialId) => {
+    const file = multiSelectedFiles[credentialId];
+    if (!file) return;
+
+    setMultiComparingStates(prev => ({ ...prev, [credentialId]: true }));
+    setMultiComparisonErrors(prev => ({ ...prev, [credentialId]: '' }));
+
+    try {
+      const result = await compareCredentialFile(credentialId, file);
+      
+      if (result.success) {
+        setComparisonResult(result);
+        setShowComparisonModal(true);
+      } else {
+        setMultiComparisonErrors(prev => ({ 
+          ...prev, 
+          [credentialId]: result.message || result.error || 'Comparison failed' 
+        }));
+      }
+    } catch (error) {
+      console.error('Multi-credential comparison error:', error);
+      setMultiComparisonErrors(prev => ({ 
+        ...prev, 
+        [credentialId]: error.response?.data?.message || error.response?.data?.error || 'Failed to compare files. Please try again.'
+      }));
+    } finally {
+      setMultiComparingStates(prev => ({ ...prev, [credentialId]: false }));
+    }
+  };
+
+  const resetMultiComparison = (credentialId) => {
+    setMultiSelectedFiles(prev => {
+      const newState = { ...prev };
+      delete newState[credentialId];
+      return newState;
+    });
+    setMultiComparisonErrors(prev => {
+      const newState = { ...prev };
+      delete newState[credentialId];
+      return newState;
+    });
   };
 
   const runOnChainIntegrityChecks = async (credential) => {
@@ -468,13 +525,14 @@ function VerifierSection() {
     setIsVerifyingByFile(true);
     setShowVerificationResult(false);
     
+    let progressTimer; // Declare outside try block so it's accessible in catch/finally
+    
     try {
       // Simulate realistic progress through the backend process
       // The entire backend process happens in one API call, but we show progress
       // based on typical timing for each stage
       
       let currentStep = 1;
-      let progressTimer;
       
       const updateProgress = () => {
         const elapsed = Date.now() - startTime;
@@ -648,8 +706,27 @@ function VerifierSection() {
       }
     } catch (error) {
       console.error('File verification error:', error);
-      showError(error.response?.data?.message || 'Failed to verify credential by file. Please try again.');
+      
+      // Stop the progress timer immediately
+      if (progressTimer) {
+        clearInterval(progressTimer);
+      }
+      
+      // Clear progress and show error
+      setFileVerificationProgress('');
+      setIsVerifyingByFile(false);
+      
+      // Show error message
+      const errorMsg = error.response?.data?.message || 
+                      error.response?.data?.error || 
+                      error.message || 
+                      'Failed to verify credential by file. Please try again.';
+      showError(errorMsg);
     } finally {
+      // Ensure everything is cleaned up
+      if (progressTimer) {
+        clearInterval(progressTimer);
+      }
       setIsVerifyingByFile(false);
       setFileVerificationProgress('');
     }
@@ -1044,6 +1121,76 @@ function VerifierSection() {
                                 </span>
                               </div>
                             )}
+                          </div>
+                          
+                          {/* File Comparison Section for this credential */}
+                          <div className="file-comparison-section mt-3 pt-3 border-top">
+                            <h6 className="mb-2">
+                              <i className="fas fa-file-alt me-2"></i>
+                              Compare with Another File
+                            </h6>
+                            <div className="alert alert-info d-flex align-items-start mb-2 py-2" style={{ backgroundColor: '#e7f3ff', border: '1px solid #b3d9ff', fontSize: '0.85rem' }}>
+                              <i className="fas fa-lightbulb me-2 mt-1" style={{ color: '#0066cc', fontSize: '0.9rem' }}></i>
+                              <div>
+                                <strong style={{ color: '#0066cc' }}>Tip:</strong> Upload a <strong>clear, high-quality photo or PDF</strong> for best results.
+                              </div>
+                            </div>
+                            
+                            <div className="file-upload-area mb-2">
+                              <input
+                                type="file"
+                                id={`multiFileUpload-${credential.id}`}
+                                className="d-none"
+                                accept="image/jpeg,image/jpg,image/png,image/gif,image/bmp,image/tiff,application/pdf"
+                                onChange={(e) => handleMultiFileSelect(credential.id, e)}
+                              />
+                              <label htmlFor={`multiFileUpload-${credential.id}`} className="file-upload-label" style={{ fontSize: '0.9rem', padding: '0.5rem' }}>
+                                <i className="fas fa-cloud-upload-alt me-2"></i>
+                                {multiSelectedFiles[credential.id] ? multiSelectedFiles[credential.id].name : 'Choose image or PDF file'}
+                              </label>
+                            </div>
+                            
+                            {multiSelectedFiles[credential.id] && (
+                              <div className="selected-file-info mb-2">
+                                <i className={`fas ${multiSelectedFiles[credential.id].type === 'application/pdf' ? 'fa-file-pdf' : 'fa-file-image'} text-primary me-2`}></i>
+                                <span className="text-muted small">
+                                  {multiSelectedFiles[credential.id].name} ({(multiSelectedFiles[credential.id].size / 1024 / 1024).toFixed(2)} MB)
+                                </span>
+                                <button 
+                                  className="btn btn-sm btn-link text-danger ms-2 p-0"
+                                  onClick={() => resetMultiComparison(credential.id)}
+                                  disabled={multiComparingStates[credential.id]}
+                                  title={multiComparingStates[credential.id] ? 'Cannot remove file during comparison' : 'Remove file'}
+                                >
+                                  <i className="fas fa-times"></i>
+                                </button>
+                              </div>
+                            )}
+                            
+                            {multiComparisonErrors[credential.id] && (
+                              <div className="alert alert-danger py-2 small mb-2">
+                                <i className="fas fa-exclamation-triangle me-2"></i>
+                                {multiComparisonErrors[credential.id]}
+                              </div>
+                            )}
+                            
+                            <button
+                              className="btn btn-primary btn-sm w-100"
+                              onClick={() => handleMultiCompareFiles(credential.id)}
+                              disabled={!multiSelectedFiles[credential.id] || multiComparingStates[credential.id]}
+                            >
+                              {multiComparingStates[credential.id] ? (
+                                <>
+                                  <span className="spinner-border spinner-border-sm me-2"></span>
+                                  Processing...
+                                </>
+                              ) : (
+                                <>
+                                  <i className="fas fa-exchange-alt me-2"></i>
+                                  Compare Files
+                                </>
+                              )}
+                            </button>
                           </div>
                         </div>
                       ))}

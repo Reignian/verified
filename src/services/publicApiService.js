@@ -53,20 +53,34 @@ export const compareCredentialFile = async (credentialId, file) => {
 };
 
 // Verify credential by uploading file directly (no access code needed)
-export const verifyCredentialByFile = async (file) => {
+export const verifyCredentialByFile = async (file, onCancel) => {
   try {
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Create cancel token for aborting request
+    const CancelToken = axios.CancelToken;
+    const source = CancelToken.source();
+    
+    // Allow external cancellation
+    if (onCancel) {
+      onCancel(() => source.cancel('Verification cancelled by user'));
+    }
     
     const response = await axios.post(`${API_URL}/public/verify-by-file`, formData, {
       headers: {
         'Content-Type': 'multipart/form-data'
       },
-      timeout: 600000 // 10 minute timeout for OCR + AI extraction + full AI-enhanced comparison
+      timeout: 600000, // 10 minute timeout for OCR + AI extraction + full AI-enhanced comparison
+      cancelToken: source.token
     });
     
     return response.data;
   } catch (error) {
+    if (axios.isCancel(error)) {
+      console.log('Request cancelled:', error.message);
+      throw new Error('Verification cancelled');
+    }
     console.error('Error verifying credential by file:', error);
     throw error;
   }

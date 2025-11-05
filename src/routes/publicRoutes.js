@@ -427,7 +427,7 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
         error: 'No matching credentials found',
         message: 'Could not find any credentials in the database that match the uploaded file. The credential may not exist in our system.',
         extractedInfo: {
-          credentialType: credentialType || 'Unknown',
+          credentialType: searchParams.credentialType || 'Unknown',
           textLength: extractedText.length
         }
       });
