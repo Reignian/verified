@@ -56,6 +56,7 @@ function MyVerifiED() {
         middle_name: studentData.middle_name,
         last_name: studentData.last_name,
         email: studentData.email,
+        username: studentData.username,
         institution_name: studentData.institution_name,
         program_id: studentData.program_id,
         program_name: studentData.program_name,

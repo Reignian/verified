@@ -12,6 +12,7 @@ const getStudentName = (studentId, callback) => {
       s.middle_name,
       s.last_name,
       a.email,
+      a.username,
       i.institution_name,
       s.program_id,
       p.program_name,

@@ -16,6 +16,7 @@ const mammoth = require('mammoth');
 const pdfParse = require('pdf-parse');
 const tesseractService = require('../services/tesseractService');
 const geminiService = require('../services/geminiService');
+const smtpEmailService = require('../services/smtpEmailService');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -364,17 +365,29 @@ router.post('/students/add/:institutionId', (req, res) => {
       }
 
       const studentData = { student_id, first_name, middle_name, last_name, username, email, password, program_id };
+      const plainPassword = password; // Store plain password for email
 
-      academicQueries.addStudent(studentData, institutionId, (err, result) => {
+      academicQueries.addStudent(studentData, institutionId, async (err, result) => {
         if (err) {
           console.error('Error adding student:', err);
           return res.status(500).json({ error: 'Failed to create student account' });
         }
 
+        // Send automated welcome email with credentials
+        const studentFullName = `${first_name} ${middle_name ? middle_name + ' ' : ''}${last_name}`.trim();
+        const emailResult = await smtpEmailService.sendWelcomeEmail(
+          email,
+          studentFullName,
+          username,
+          plainPassword
+        );
+
         res.json({
           success: true,
           message: 'Student account created successfully',
-          student: result
+          student: result,
+          email_sent: emailResult.success,
+          email_message_id: emailResult.messageId || null
         });
       });
     });
@@ -575,33 +588,131 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       metadata
     );
 
-    // Save to database with credential ID as blockchain_id
-    const credentialData = {
-      credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
-      custom_type: custom_type || null,
-      owner_id: parseInt(owner_id),
-      sender_id: parseInt(sender_id),
-      ipfs_cid: pinataResult.ipfsHash,
-      blockchain_id: blockchain_id, // This is now the credential ID from smart contract
-      transaction_id: transaction_hash || null, // Store transaction hash
-      status: 'blockchain_verified',
-      program_id: program_id ? parseInt(program_id) : null
-    };
-    
-    academicQueries.createCredential(credentialData, (err, results) => {
+    // Check credential count BEFORE inserting the new credential
+    academicQueries.getStudentAccountDetails(owner_id, async (err, studentResults) => {
       if (err) {
-        console.error('Error creating credential:', err);
-        return res.status(500).json({ error: 'Database error' });
+        console.error('Error fetching student details before credential insert:', err);
       }
       
-      res.json({
-        message: 'Credential uploaded successfully',
-        credential_id: results.insertId,
-        ipfs_hash: pinataResult.ipfsHash,
-        ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
-        blockchain_id: blockchain_id, // Credential ID
-        transaction_hash: transaction_hash, // Transaction hash for reference
-        status: 'Blockchain verified and uploaded to IPFS'
+      const isFirstCredential = studentResults && studentResults.length > 0 
+        ? studentResults[0].credential_count === 0 
+        : false;
+      
+      console.log(`📊 Credential count check for student ${owner_id}: ${studentResults?.[0]?.credential_count || 0} credentials`);
+      console.log(`🎯 Is first credential: ${isFirstCredential ? 'Yes' : 'No'}`);
+      
+      // Save to database with credential ID as blockchain_id
+      const credentialData = {
+        credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
+        custom_type: custom_type || null,
+        owner_id: parseInt(owner_id),
+        sender_id: parseInt(sender_id),
+        ipfs_cid: pinataResult.ipfsHash,
+        blockchain_id: blockchain_id, // This is now the credential ID from smart contract
+        transaction_id: transaction_hash || null, // Store transaction hash
+        status: 'blockchain_verified',
+        program_id: program_id ? parseInt(program_id) : null
+      };
+      
+      academicQueries.createCredential(credentialData, async (err, results) => {
+        if (err) {
+          console.error('Error creating credential:', err);
+          return res.status(500).json({ error: 'Database error' });
+        }
+        
+        // Get student account details again for email notification (with updated info)
+        academicQueries.getStudentAccountDetails(owner_id, async (err, studentResults) => {
+        let emailSent = false;
+        let emailMessageId = null;
+        
+        if (!err && studentResults && studentResults.length > 0) {
+          const student = studentResults[0];
+          
+          // Determine credential type name
+          let credentialTypeName = custom_type || 'Credential';
+          if (credential_type_id && !custom_type) {
+            // Fetch credential type name from database
+            academicQueries.getCredentialTypes(async (err, types) => {
+              if (!err && types) {
+                const type = types.find(t => t.id === parseInt(credential_type_id));
+                if (type) credentialTypeName = type.type_name;
+              }
+              
+              // Send email after determining credential type
+              await sendCredentialEmail(student, credentialTypeName);
+            });
+          } else {
+            // Send email immediately if using custom type
+            await sendCredentialEmail(student, credentialTypeName);
+          }
+          
+          async function sendCredentialEmail(student, typeName) {
+            // Use the isFirstCredential flag captured BEFORE insertion
+            const studentFullName = `${student.first_name} ${student.middle_name ? student.middle_name + ' ' : ''}${student.last_name}`.trim();
+            
+            let passwordToSend = null;
+            
+            // If this is the first credential, generate a temporary password
+            if (isFirstCredential) {
+              const bcrypt = require('bcrypt');
+              const SALT_ROUNDS = 10;
+              
+              // Generate temporary password (you can customize this)
+              const tempPassword = 'student123'; // Or generate random: Math.random().toString(36).slice(-8)
+              
+              // Hash the temporary password
+              const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
+              
+              // Update the account password
+              const db = require('../config/database');
+              await new Promise((resolve, reject) => {
+                db.query(
+                  'UPDATE account SET password = ? WHERE id = ?',
+                  [hashedPassword, student.id],
+                  (err) => {
+                    if (err) {
+                      console.error('Error updating temporary password:', err);
+                      reject(err);
+                    } else {
+                      console.log(`🔑 Temporary password generated for student ID: ${student.id}`);
+                      resolve();
+                    }
+                  }
+                );
+              });
+              
+              passwordToSend = tempPassword;
+            }
+            
+            // Send automated credential notification email
+            const emailResult = await smtpEmailService.sendCredentialIssuanceEmail(
+              student.email,
+              studentFullName,
+              student.username,
+              typeName,
+              isFirstCredential,
+              passwordToSend
+            );
+            
+            emailSent = emailResult.success;
+            emailMessageId = emailResult.messageId || null;
+          }
+        } else {
+          console.error('Error fetching student details for email:', err);
+        }
+        
+        res.json({
+          message: 'Credential uploaded successfully',
+          credential_id: results.insertId,
+          ipfs_hash: pinataResult.ipfsHash,
+          ipfs_url: `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${pinataResult.ipfsHash}`,
+          blockchain_id: blockchain_id, // Credential ID
+          transaction_hash: transaction_hash, // Transaction hash for reference
+          status: 'Blockchain verified and uploaded to IPFS',
+          email_sent: emailSent,
+          email_message_id: emailMessageId
+        });
+        });
       });
     });
 
@@ -1178,28 +1289,28 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       });
     }
     
-    console.log('Analyzing credential file:', req.file.originalname);
+    console.log('📄 Analyzing credential file:', req.file.originalname);
     console.log('File path:', uploadedFilePath);
     console.log('File size:', req.file.size, 'bytes');
     
     // Step 1: Extract text with OCR (Tesseract)
-    console.log('Step 1: Extracting text with OCR...');
+    console.log('🔍 Step 1: Extracting text with OCR...');
     const extractedText = await tesseractService.extractTextFromImage(uploadedFilePath);
-    console.log('OCR completed. Text length:', extractedText.length);
+    console.log('✅ OCR completed. Text length:', extractedText.length);
     
     // Step 2: Identify credential type from OCR text
-    console.log('Step 2: Identifying credential type from OCR...');
+    console.log('🔍 Step 2: Identifying credential type from OCR...');
     const ocrCredentialType = tesseractService.identifyCredentialType(extractedText);
     console.log('OCR identified type:', ocrCredentialType);
     
     // Step 3: Use Gemini AI for intelligent extraction
-    console.log('Step 3: Analyzing with Gemini AI...');
+    console.log('🤖 Step 3: Analyzing with Gemini AI...');
     const aiResult = await geminiService.extractCredentialInfo(uploadedFilePath);
     
     let result;
     
     if (aiResult.success) {
-      console.log('AI analysis successful');
+      console.log('✅ AI analysis successful');
       result = {
         success: true,
         data: {
@@ -1218,7 +1329,7 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       };
     } else {
       // Fallback to OCR-only mode
-      console.log('AI analysis failed, using OCR-only mode');
+      console.log('⚠️  AI analysis failed, using OCR-only mode');
       console.log('AI Error:', aiResult.error);
       
       result = {
@@ -1244,14 +1355,14 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
     // Cleanup temporary file
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       fs.unlinkSync(uploadedFilePath);
-      console.log('Temporary file cleaned up');
+      console.log('🗑️  Temporary file cleaned up');
     }
     
-    console.log('Analysis complete');
+    console.log('✅ Analysis complete');
     res.json(result);
     
   } catch (error) {
-    console.error('Credential analysis error:', error);
+    console.error('❌ Credential analysis error:', error);
     
     // Cleanup temporary file on error
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {

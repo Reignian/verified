@@ -22,6 +22,8 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   const [programs, setPrograms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showProgramDropdown, setShowProgramDropdown] = useState(false);
+  const [emailNotificationUrl, setEmailNotificationUrl] = useState(null);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Load programs when modal opens
   useEffect(() => {
@@ -98,6 +100,11 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
       const result = await addStudent(studentData, institutionId);
       setSuccess(result.message || 'Student account created successfully!');
       
+      // Store email notification URL if available
+      if (result.email_notification_url) {
+        setEmailNotificationUrl(result.email_notification_url);
+      }
+      
       // Log the activity
       const userId = localStorage.getItem('userId');
       const studentFullName = `${formData.first_name} ${formData.middle_name ? formData.middle_name + ' ' : ''}${formData.last_name}`.trim();
@@ -121,11 +128,13 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
         onStudentAdded(result.student);
       }
 
-      // Close modal after 1.5 seconds
-      setTimeout(() => {
-        onClose();
-        setSuccess('');
-      }, 1500);
+      // Don't auto-close if email notification is available
+      if (!result.email_notification_url) {
+        setTimeout(() => {
+          onClose();
+          setSuccess('');
+        }, 1500);
+      }
 
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to create student account';
@@ -335,18 +344,27 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
               </div>
 
               <div className="add-student-form-group">
-                <label htmlFor="password">
+                <label htmlFor="password" className="form-label">
                   Password <span className="text-muted" style={{ fontWeight: 'normal' }}>(Optional)</span>
                 </label>
-                <input
-                  type="password"
-                  id="password"
-                  name="password"
-                  value={formData.password}
-                  onChange={handleChange}
-                  placeholder="Leave empty for auto-generated password"
-                  disabled={loading}
-                />
+                <div className="input-group">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    className="form-control"
+                    placeholder="Leave blank for auto-generated password"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowPassword(!showPassword)}
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
                 <small className="text-muted" style={{ display: 'block', marginTop: '0.25rem' }}>
                   <i className="fas fa-info-circle me-1"></i>
                   If left empty, password will be auto-generated

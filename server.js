@@ -20,15 +20,20 @@ const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001;
 
 // CORS Configuration - Allow Netlify frontend and local development
 const allowedOrigins = [
-  'https://bc-verified.netlify.app',
+  'https://verifi-ed.netlify.app',
   'http://localhost:3000',
   'http://localhost:3001'
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, curl, or proxy requests)
     if (!origin) return callback(null, true);
+    
+    // In development, allow all localhost origins
+    if (origin.includes('localhost') || origin.includes('127.0.0.1')) {
+      return callback(null, true);
+    }
     
     if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
@@ -98,23 +103,6 @@ async function initBlockchain() {
 
 initBlockchain();
 
-// Root endpoint - API status
-app.get('/', (req, res) => {
-  res.json({
-    status: 'online',
-    message: 'VerifiED Backend API',
-    version: '1.0.0',
-    endpoints: {
-      public: '/api/public',
-      student: '/api/student',
-      institution: '/api/institution',
-      auth: '/api/auth',
-      admin: '/api/admin',
-      test: '/api/test'
-    }
-  });
-});
-
 // Mount route modules (organized by page/dashboard)
 app.use('/api/public', publicRoutes);           // HomePage - Contact & Verification
 app.use('/api/student', studentRoutes);         // Student Dashboard (MyVerifiED)
@@ -145,18 +133,18 @@ app.get('/api/credential-stats', (req, res) => {
   });
 });
 
-// // Serve React build (same-origin deployment) only in production when build output exists
-// const clientBuildPath = path.join(__dirname, 'build');
-// const clientIndexPath = path.join(clientBuildPath, 'index.html');
-// if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
-//   app.use(express.static(clientBuildPath));
-//   // SPA Fallback: send index.html for all non-API routes
-//   app.get('*', (req, res) => {
-//     res.sendFile(clientIndexPath);
-//   });
-// }
+// Serve React build (same-origin deployment) only in production when build output exists
+const clientBuildPath = path.join(__dirname, 'build');
+const clientIndexPath = path.join(clientBuildPath, 'index.html');
+if (process.env.NODE_ENV === 'production' && fs.existsSync(clientIndexPath)) {
+  app.use(express.static(clientBuildPath));
+  // SPA Fallback: send index.html for all non-API routes
+  app.get('*', (req, res) => {
+    res.sendFile(clientIndexPath);
+  });
+}
 
- // Start the server
+// Start the server
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

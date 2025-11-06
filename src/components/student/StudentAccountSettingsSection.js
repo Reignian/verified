@@ -12,6 +12,7 @@ function StudentAccountSettingsSection({ user }) {
   const [linkLoading, setLinkLoading] = useState(false);
   const [linkError, setLinkError] = useState('');
   const [linkSuccess, setLinkSuccess] = useState('');
+  const [showLinkPassword, setShowLinkPassword] = useState(false);
 
   // Linked accounts state
   const [linkedAccounts, setLinkedAccounts] = useState([]);
@@ -23,6 +24,7 @@ function StudentAccountSettingsSection({ user }) {
   const [unlinkTargetId, setUnlinkTargetId] = useState(null);
   const [unlinkModalError, setUnlinkModalError] = useState('');
   const [unlinkSubmitting, setUnlinkSubmitting] = useState(false);
+  const [showUnlinkPassword, setShowUnlinkPassword] = useState(false);
 
   // Change password modal state
   const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
@@ -32,6 +34,29 @@ function StudentAccountSettingsSection({ user }) {
   const [changePasswordError, setChangePasswordError] = useState('');
   const [changePasswordSuccess, setChangePasswordSuccess] = useState('');
   const [changePasswordSubmitting, setChangePasswordSubmitting] = useState(false);
+
+  // Change username modal state
+  const [showChangeUsernameModal, setShowChangeUsernameModal] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
+  const [usernamePassword, setUsernamePassword] = useState('');
+  const [changeUsernameError, setChangeUsernameError] = useState('');
+  const [changeUsernameSuccess, setChangeUsernameSuccess] = useState('');
+  const [changeUsernameSubmitting, setChangeUsernameSubmitting] = useState(false);
+  const [showUsernamePassword, setShowUsernamePassword] = useState(false);
+
+  // Change email modal state
+  const [showChangeEmailModal, setShowChangeEmailModal] = useState(false);
+  const [newEmail, setNewEmail] = useState('');
+  const [emailPassword, setEmailPassword] = useState('');
+  const [changeEmailError, setChangeEmailError] = useState('');
+  const [changeEmailSuccess, setChangeEmailSuccess] = useState('');
+  const [changeEmailSubmitting, setChangeEmailSubmitting] = useState(false);
+  const [showEmailPassword, setShowEmailPassword] = useState(false);
+
+  // Change password modal state - show/hide toggles
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const loadLinkedAccounts = async () => {
     if (!user?.id) return;
@@ -93,6 +118,9 @@ function StudentAccountSettingsSection({ user }) {
     setConfirmPassword('');
     setChangePasswordError('');
     setChangePasswordSuccess('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
     setShowChangePasswordModal(true);
   };
 
@@ -104,6 +132,9 @@ function StudentAccountSettingsSection({ user }) {
     setConfirmPassword('');
     setChangePasswordError('');
     setChangePasswordSuccess('');
+    setShowCurrentPassword(false);
+    setShowNewPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const submitChangePassword = async (e) => {
@@ -142,12 +173,167 @@ function StudentAccountSettingsSection({ user }) {
       // Clear form after success
       setTimeout(() => {
         closeChangePasswordModal();
+        window.location.reload(); // Refresh to update user data
       }, 2000);
     } catch (err) {
       const serverMsg = err?.response?.data?.error || err?.response?.data?.message;
       setChangePasswordError(serverMsg || err.message || 'Failed to change password.');
     } finally {
       setChangePasswordSubmitting(false);
+    }
+  };
+
+  const openChangeUsernameModal = () => {
+    console.log('Opening username modal, current user:', user);
+    console.log('Current username:', user?.username);
+    setNewUsername(''); // Start with empty field, not current username
+    setUsernamePassword('');
+    setChangeUsernameError('');
+    setChangeUsernameSuccess('');
+    setShowUsernamePassword(false);
+    setShowChangeUsernameModal(true);
+  };
+
+  const closeChangeUsernameModal = () => {
+    if (changeUsernameSubmitting) return;
+    setShowChangeUsernameModal(false);
+    setNewUsername('');
+    setUsernamePassword('');
+    setChangeUsernameError('');
+    setChangeUsernameSuccess('');
+    setShowUsernamePassword(false);
+  };
+
+  const submitChangeUsername = async (e) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    // Validation
+    if (!newUsername.trim()) {
+      setChangeUsernameError('Username is required.');
+      return;
+    }
+    if (newUsername.length < 3) {
+      setChangeUsernameError('Username must be at least 3 characters long.');
+      return;
+    }
+    if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+      setChangeUsernameError('Username can only contain letters, numbers, and underscores.');
+      return;
+    }
+    if (newUsername === user?.username) {
+      setChangeUsernameError('New username must be different from current username.');
+      return;
+    }
+    if (!usernamePassword.trim()) {
+      setChangeUsernameError('Password is required to change username.');
+      return;
+    }
+
+    setChangeUsernameError('');
+    setChangeUsernameSuccess('');
+
+    try {
+      setChangeUsernameSubmitting(true);
+      const response = await fetch(`/api/student/${user.id}/change-username`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newUsername, password: usernamePassword })
+      });
+      
+      // Check if response is JSON
+      const contentType = response.headers.get('content-type');
+      if (!contentType || !contentType.includes('application/json')) {
+        throw new Error('Server error: Invalid response format. Please check if the backend server is running on port 3001.');
+      }
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to change username');
+      }
+      
+      setChangeUsernameSuccess('Username changed successfully!');
+      setTimeout(() => {
+        closeChangeUsernameModal();
+        window.location.reload(); // Refresh to update user data
+      }, 2000);
+    } catch (err) {
+      console.error('Change username error:', err);
+      setChangeUsernameError(err.message || 'Failed to change username.');
+    } finally {
+      setChangeUsernameSubmitting(false);
+    }
+  };
+
+  const openChangeEmailModal = () => {
+    setNewEmail(''); // Start with empty field, not current email
+    setEmailPassword('');
+    setChangeEmailError('');
+    setChangeEmailSuccess('');
+    setShowEmailPassword(false);
+    setShowChangeEmailModal(true);
+  };
+
+  const closeChangeEmailModal = () => {
+    if (changeEmailSubmitting) return;
+    setShowChangeEmailModal(false);
+    setNewEmail('');
+    setEmailPassword('');
+    setChangeEmailError('');
+    setChangeEmailSuccess('');
+    setShowEmailPassword(false);
+  };
+
+  const submitChangeEmail = async (e) => {
+    e.preventDefault();
+    if (!user?.id) return;
+
+    // Validation
+    if (!newEmail.trim()) {
+      setChangeEmailError('Email is required.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newEmail)) {
+      setChangeEmailError('Please enter a valid email address.');
+      return;
+    }
+    if (newEmail === user?.email) {
+      setChangeEmailError('New email must be different from current email.');
+      return;
+    }
+    if (!emailPassword.trim()) {
+      setChangeEmailError('Password is required to change email.');
+      return;
+    }
+
+    setChangeEmailError('');
+    setChangeEmailSuccess('');
+
+    try {
+      setChangeEmailSubmitting(true);
+      const response = await fetch(`/api/student/${user.id}/change-email`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail, password: emailPassword })
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to change email');
+      }
+      
+      setChangeEmailSuccess('Email changed successfully!');
+      setTimeout(() => {
+        closeChangeEmailModal();
+        window.location.reload(); // Refresh to update user data
+      }, 2000);
+    } catch (err) {
+      setChangeEmailError(err.message || 'Failed to change email.');
+    } finally {
+      setChangeEmailSubmitting(false);
     }
   };
 
@@ -265,7 +451,13 @@ function StudentAccountSettingsSection({ user }) {
                     </div>
                   </div>
                   <div className="row">
-                    <div className="col-md-12 mb-3">
+                    <div className="col-md-6 mb-3">
+                      <div className="detail-item">
+                        <label className="detail-label">Username</label>
+                        <p className="detail-value">{user?.username || 'N/A'}</p>
+                      </div>
+                    </div>
+                    <div className="col-md-6 mb-3">
                       <div className="detail-item">
                         <label className="detail-label">Email Address</label>
                         <p className="detail-value">{user?.email || 'N/A'}</p>
@@ -275,6 +467,22 @@ function StudentAccountSettingsSection({ user }) {
                 </div>
                 
                 <div className="profile-actions mt-4">
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-primary me-2"
+                    onClick={openChangeUsernameModal}
+                  >
+                    <i className="fas fa-user me-2"></i>
+                    Change Username
+                  </button>
+                  <button 
+                    type="button" 
+                    className="btn btn-outline-primary me-2"
+                    onClick={openChangeEmailModal}
+                  >
+                    <i className="fas fa-envelope me-2"></i>
+                    Change Email
+                  </button>
                   <button 
                     type="button" 
                     className="btn btn-outline-primary"
@@ -336,15 +544,24 @@ function StudentAccountSettingsSection({ user }) {
                   <div className="row">
                     <div className="col-md-12 mb-3">
                       <label className="form-label">Password</label>
-                      <input
-                        type="password"
-                        className="form-control"
-                        placeholder="Enter your password for that account"
-                        name="linkPassword"
-                        value={linkPassword}
-                        onChange={(e) => setLinkPassword(e.target.value)}
-                        required
-                      />
+                      <div className="input-group">
+                        <input
+                          type={showLinkPassword ? "text" : "password"}
+                          className="form-control"
+                          placeholder="Enter your password for that account"
+                          name="linkPassword"
+                          value={linkPassword}
+                          onChange={(e) => setLinkPassword(e.target.value)}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => setShowLinkPassword(!showLinkPassword)}
+                        >
+                          <i className={`fas ${showLinkPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                   </div>
                   <div className="form-actions">
@@ -430,19 +647,30 @@ function StudentAccountSettingsSection({ user }) {
                         <div className="alert alert-danger" role="alert">{unlinkModalError}</div>
                       )}
                       <label className="form-label">Password</label>
-                      <input
-                        type="password"
-                        className="form-control"
-                        value={unlinkPassword}
-                        onChange={(e) => setUnlinkPassword(e.target.value)}
-                        autoFocus
-                        disabled={unlinkSubmitting}
-                      />
+                      <div className="input-group">
+                        <input
+                          type={showUnlinkPassword ? "text" : "password"}
+                          className="form-control"
+                          value={unlinkPassword}
+                          onChange={(e) => setUnlinkPassword(e.target.value)}
+                          autoFocus
+                          disabled={unlinkSubmitting}
+                          required
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary"
+                          onClick={() => setShowUnlinkPassword(!showUnlinkPassword)}
+                          disabled={unlinkSubmitting}
+                        >
+                          <i className={`fas ${showUnlinkPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                     <div className="modal-footer">
                       <button type="button" className="btn btn-secondary" onClick={closeUnlinkModal} disabled={unlinkSubmitting}>Cancel</button>
                       <button type="submit" className="btn btn-danger" disabled={unlinkSubmitting}>
-                        {unlinkSubmitting ? 'Unlinking…' : 'Confirm Unlink'}
+                        {unlinkSubmitting ? 'Unlinking...' : 'Unlink Account'}
                       </button>
                     </div>
                   </form>
@@ -452,6 +680,195 @@ function StudentAccountSettingsSection({ user }) {
           </div>
         )}
       </div>
+
+      {/* Change Username Modal */}
+      {showChangeUsernameModal && (
+        <div className="change-password-modal-overlay show" role="dialog" aria-modal="true">
+          <div className="change-password-modal">
+            <div className="modal-header">
+              <h5 className="modal-title">Change Username</h5>
+              <button 
+                type="button" 
+                className="btn-close" 
+                aria-label="Close" 
+                onClick={closeChangeUsernameModal} 
+                disabled={changeUsernameSubmitting}
+              ></button>
+            </div>
+            <form onSubmit={submitChangeUsername}>
+              <div className="modal-body">
+                <p className="text-muted mb-4">Enter your new username and confirm with your password.</p>
+                
+                {changeUsernameError && (
+                  <div className="alert alert-danger" role="alert">{changeUsernameError}</div>
+                )}
+                {changeUsernameSuccess && (
+                  <div className="alert alert-success" role="alert">{changeUsernameSuccess}</div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label">Current Username</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={user?.username || ''}
+                    disabled
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">New Username</label>
+                  <input
+                    type="text"
+                    className="form-control"
+                    value={newUsername}
+                    onChange={(e) => setNewUsername(e.target.value)}
+                    disabled={changeUsernameSubmitting}
+                    minLength="3"
+                    pattern="[a-zA-Z0-9_]+"
+                    autoFocus
+                    required
+                  />
+                  <div className="form-text">Username must be at least 3 characters (letters, numbers, underscores only).</div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Confirm Password</label>
+                  <div className="input-group">
+                    <input
+                      type={showUsernamePassword ? "text" : "password"}
+                      className="form-control"
+                      value={usernamePassword}
+                      onChange={(e) => setUsernamePassword(e.target.value)}
+                      disabled={changeUsernameSubmitting}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowUsernamePassword(!showUsernamePassword)}
+                      disabled={changeUsernameSubmitting}
+                    >
+                      <i className={`fas ${showUsernamePassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={closeChangeUsernameModal} 
+                  disabled={changeUsernameSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={changeUsernameSubmitting}
+                >
+                  <i className="fas fa-user me-2"></i>
+                  {changeUsernameSubmitting ? 'Changing Username...' : 'Change Username'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Change Email Modal */}
+      {showChangeEmailModal && (
+        <div className="change-password-modal-overlay show" role="dialog" aria-modal="true">
+          <div className="change-password-modal">
+            <div className="modal-header">
+              <h5 className="modal-title">Change Email</h5>
+              <button 
+                type="button" 
+                className="btn-close" 
+                aria-label="Close" 
+                onClick={closeChangeEmailModal} 
+                disabled={changeEmailSubmitting}
+              ></button>
+            </div>
+            <form onSubmit={submitChangeEmail}>
+              <div className="modal-body">
+                <p className="text-muted mb-4">Enter your new email address and confirm with your password.</p>
+                
+                {changeEmailError && (
+                  <div className="alert alert-danger" role="alert">{changeEmailError}</div>
+                )}
+                {changeEmailSuccess && (
+                  <div className="alert alert-success" role="alert">{changeEmailSuccess}</div>
+                )}
+
+                <div className="mb-3">
+                  <label className="form-label">Current Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={user?.email || ''}
+                    disabled
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">New Email</label>
+                  <input
+                    type="email"
+                    className="form-control"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    disabled={changeEmailSubmitting}
+                    autoFocus
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Confirm Password</label>
+                  <div className="input-group">
+                    <input
+                      type={showEmailPassword ? "text" : "password"}
+                      className="form-control"
+                      value={emailPassword}
+                      onChange={(e) => setEmailPassword(e.target.value)}
+                      disabled={changeEmailSubmitting}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowEmailPassword(!showEmailPassword)}
+                      disabled={changeEmailSubmitting}
+                    >
+                      <i className={`fas ${showEmailPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer">
+                <button 
+                  type="button" 
+                  className="btn btn-secondary" 
+                  onClick={closeChangeEmailModal} 
+                  disabled={changeEmailSubmitting}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="submit" 
+                  className="btn btn-primary" 
+                  disabled={changeEmailSubmitting}
+                >
+                  <i className="fas fa-envelope me-2"></i>
+                  {changeEmailSubmitting ? 'Changing Email...' : 'Change Email'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Change Password Modal */}
       {showChangePasswordModal && (
@@ -480,41 +897,71 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">Current Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    disabled={changePasswordSubmitting}
-                    autoFocus
-                    required
-                  />
+                  <div className="input-group">
+                    <input
+                      type={showCurrentPassword ? "text" : "password"}
+                      className="form-control"
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      disabled={changePasswordSubmitting}
+                      autoFocus
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      disabled={changePasswordSubmitting}
+                    >
+                      <i className={`fas ${showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label">New Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    disabled={changePasswordSubmitting}
-                    minLength="6"
-                    required
-                  />
+                  <div className="input-group">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      className="form-control"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      disabled={changePasswordSubmitting}
+                      minLength="6"
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      disabled={changePasswordSubmitting}
+                    >
+                      <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
                   <div className="form-text">Password must be at least 6 characters long.</div>
                 </div>
 
                 <div className="mb-3">
                   <label className="form-label">Confirm New Password</label>
-                  <input
-                    type="password"
-                    className="form-control"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={changePasswordSubmitting}
-                    required
-                  />
+                  <div className="input-group">
+                    <input
+                      type={showConfirmPassword ? "text" : "password"}
+                      className="form-control"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      disabled={changePasswordSubmitting}
+                      required
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      disabled={changePasswordSubmitting}
+                    >
+                      <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="modal-footer">

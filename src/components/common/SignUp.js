@@ -19,6 +19,8 @@ function SignUp() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -339,39 +341,55 @@ function SignUp() {
 
                 <div className="signup-form-group">
                   <label htmlFor="password">Password *</label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder="Min. 8 characters"
-                    required
-                    disabled={loading}
-                    minLength="8"
-                  />
+                  <div className="input-group">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      id="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      minLength="6"
+                      className="form-control"
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                    </button>
+                  </div>
+                  <small className="form-text">At least 6 characters</small>
                 </div>
               </div>
 
               <div className="signup-form-group full-width">
                 <label htmlFor="confirmPassword">Confirm Password *</label>
-                <input
-                  type="password"
-                  id="confirmPassword"
-                  name="confirmPassword"
-                  value={formData.confirmPassword}
-                  onChange={handleInputChange}
-                  placeholder="Re-enter your password"
-                  required
-                  disabled={loading}
-                  minLength="8"
-                />
+                <div className="input-group">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    required
+                    className="form-control"
+                  />
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
               </div>
 
               <div className="signup-note-box">
                 <i className="fas fa-clock"></i>
                 <div>
-                  <strong>After Submission:</strong> Admin reviews your request (24-48 hrs) - Email notification - Login & add MetaMask address
+                  <strong>After Submission:</strong> Admin reviews your request (24-48 hrs) → Email notification → Login & add MetaMask address
                 </div>
               </div>
 
@@ -488,7 +506,7 @@ function SignUp() {
                     <p><strong>Write it down on paper</strong> in the exact order shown</p>
                     <p>Store it in a safe place (fireproof safe, safety deposit box)</p>
                     <div className="signup-warning-box">
-                      <strong>Security Warnings:</strong>
+                      <strong>⚠️ Security Warnings:</strong>
                       <ul>
                         <li>NEVER share your recovery phrase with anyone</li>
                         <li>NEVER type it into any website or app</li>

@@ -417,4 +417,141 @@ router.put('/change-password', (req, res) => {
   );
 });
 
+// PUT /api/student/:studentId/change-username - Change username for a student account
+router.put('/:studentId/change-username', (req, res) => {
+  const { studentId } = req.params;
+  const { newUsername, password } = req.body;
+
+  if (!newUsername || !password) {
+    return res.status(400).json({ error: 'newUsername and password are required' });
+  }
+
+  // Validation
+  if (String(newUsername).length < 3) {
+    return res.status(400).json({ error: 'Username must be at least 3 characters long' });
+  }
+
+  if (!/^[a-zA-Z0-9_]+$/.test(newUsername)) {
+    return res.status(400).json({ error: 'Username can only contain letters, numbers, and underscores' });
+  }
+
+  const db = require('../config/database');
+  
+  // Verify password first
+  const pwSql = 'SELECT password FROM account WHERE id = ? LIMIT 1';
+  db.query(pwSql, [Number(studentId)], (pwErr, pwRows) => {
+    if (pwErr) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (!pwRows || pwRows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    bcrypt.compare(String(password), pwRows[0].password, (compareErr, isMatch) => {
+      if (compareErr) {
+        return res.status(500).json({ error: 'Authentication error' });
+      }
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
+
+      // Check if username already exists
+      const checkSql = 'SELECT id FROM account WHERE username = ? AND id != ?';
+      db.query(checkSql, [newUsername, Number(studentId)], (checkErr, checkRows) => {
+        if (checkErr) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+        if (checkRows && checkRows.length > 0) {
+          return res.status(400).json({ error: 'Username already exists' });
+        }
+
+        // Update username
+        const updateSql = 'UPDATE account SET username = ? WHERE id = ?';
+        db.query(updateSql, [newUsername, Number(studentId)], (updateErr) => {
+          if (updateErr) {
+            console.error('Error updating username:', updateErr);
+            return res.status(500).json({ error: 'Failed to update username' });
+          }
+
+          console.log(`✅ Username changed successfully for student ID: ${studentId}`);
+          console.log(`   New username: ${newUsername}`);
+
+          res.json({
+            success: true,
+            message: 'Username changed successfully',
+            newUsername
+          });
+        });
+      });
+    });
+  });
+});
+
+// PUT /api/student/:studentId/change-email - Change email for a student account
+router.put('/:studentId/change-email', (req, res) => {
+  const { studentId } = req.params;
+  const { newEmail, password } = req.body;
+
+  if (!newEmail || !password) {
+    return res.status(400).json({ error: 'newEmail and password are required' });
+  }
+
+  // Email validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(newEmail)) {
+    return res.status(400).json({ error: 'Invalid email address' });
+  }
+
+  const db = require('../config/database');
+  
+  // Verify password first
+  const pwSql = 'SELECT password FROM account WHERE id = ? LIMIT 1';
+  db.query(pwSql, [Number(studentId)], (pwErr, pwRows) => {
+    if (pwErr) {
+      return res.status(500).json({ error: 'Database error' });
+    }
+    if (!pwRows || pwRows.length === 0) {
+      return res.status(404).json({ error: 'Account not found' });
+    }
+
+    bcrypt.compare(String(password), pwRows[0].password, (compareErr, isMatch) => {
+      if (compareErr) {
+        return res.status(500).json({ error: 'Authentication error' });
+      }
+      if (!isMatch) {
+        return res.status(401).json({ error: 'Incorrect password' });
+      }
+
+      // Check if email already exists
+      const checkSql = 'SELECT id FROM account WHERE email = ? AND id != ?';
+      db.query(checkSql, [newEmail, Number(studentId)], (checkErr, checkRows) => {
+        if (checkErr) {
+          return res.status(500).json({ error: 'Database error' });
+        }
+        if (checkRows && checkRows.length > 0) {
+          return res.status(400).json({ error: 'Email already exists' });
+        }
+
+        // Update email
+        const updateSql = 'UPDATE account SET email = ? WHERE id = ?';
+        db.query(updateSql, [newEmail, Number(studentId)], (updateErr) => {
+          if (updateErr) {
+            console.error('Error updating email:', updateErr);
+            return res.status(500).json({ error: 'Failed to update email' });
+          }
+
+          console.log(`✅ Email changed successfully for student ID: ${studentId}`);
+          console.log(`   New email: ${newEmail}`);
+
+          res.json({
+            success: true,
+            message: 'Email changed successfully',
+            newEmail
+          });
+        });
+      });
+    });
+  });
+});
+
 module.exports = router;

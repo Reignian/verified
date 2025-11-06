@@ -1123,6 +1123,26 @@ const createActivityLog = (logData, callback) => {
   connection.query(query, params, callback);
 };
 
+// Get student account details by student ID (for email notification)
+const getStudentAccountDetails = (studentId, callback) => {
+  const query = `
+    SELECT 
+      s.id,
+      s.student_id,
+      s.first_name,
+      s.middle_name,
+      s.last_name,
+      a.username,
+      a.email,
+      a.created_at,
+      (SELECT COUNT(*) FROM credential WHERE owner_id = s.id AND status = 'blockchain_verified') as credential_count
+    FROM student s
+    JOIN account a ON s.id = a.id
+    WHERE s.id = ?
+  `;
+  connection.query(query, [studentId], callback);
+};
+
 module.exports = {
   getCredentialTypes,
   getRecentCustomType,
@@ -1157,5 +1177,6 @@ module.exports = {
   getStudentsByProgram,
   getRecentActivity,
   getDailyCredentialTrends,
-  getVerificationStats
+  getVerificationStats,
+  getStudentAccountDetails
 };
