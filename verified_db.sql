@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 27, 2025 at 02:19 PM
+-- Generation Time: Nov 07, 2025 at 05:04 AM
 -- Server version: 8.0.43
 -- PHP Version: 8.2.12
 
@@ -44,13 +44,11 @@ CREATE TABLE `account` (
 INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `status`, `created_at`) VALUES
 (1, 'institution', 'wmsu', '$2b$10$5QBpi7tFxS.ca.dvyQZDLuG.VbTFwTtOphtIi8R53ycXwhT3E3.4i', 'wmsu@gmail.com', 'approved', '2025-09-06 17:20:14'),
 (999, 'admin', 'admin', '$2b$10$n5S1mPhT7v/vIACT4Fv1lOZBIVsbujU2tsrEUxHEje3qZA4cldJ0C', 'admin@verified.com', 'approved', '2025-10-17 23:34:01'),
-(1025, 'student', 'reign', '$2b$10$yNrpxD4EpgQ8TJ2Cw/fuse0WsgDGdoQ4qaRULjW8LyBiaGX6UTtiC', 'reign@wmsu.edu.ph', 'approved', '2025-10-17 23:48:58'),
-(1026, 'institution', 'test', '$2b$10$sJA82wOSpSEfvwbl.6LtwOQYXPDAw/ze7UbAUTqWL9Wf4Ayrecr9i', 'hallasgogerby@gmail.com', 'rejected', '2025-10-25 17:51:08'),
-(1027, 'student', 'thuifon', '$2b$10$qRv6D/fl/Y/agXDLNm3oDu3L5bG5xZ6Oe8wRIuoghOGbGmgdDtYku', 'thuifon@gmail.com', 'approved', '2025-10-25 18:12:03'),
-(1028, 'institution_staff', 'Staff 1', '$2b$10$ygc87AHlFJdhYXz38xTwve.8gfxDmRL0CatKixU5xrt/frljVMpj6', 'staff1@gmail.com', 'approved', '2025-10-25 18:15:12'),
-(1029, 'student', 'gerby123', '$2b$10$sT519uwNkpoc0D6pI4gMjuvEyH28yR1NZ4tqIIH8BrWUynCY/5oqe', 'imzaylee@gmail.com', 'approved', '2025-10-26 13:05:58'),
+(1025, 'student', 'reign', '$2b$10$o63mh0CVDTQK8qmQIegFS.f5WqzDRBbAJjWSNG6sI7uwh3Z/YlCdu', 'reign@wmsu.edu.ph', 'approved', '2025-10-17 23:48:58'),
 (1030, 'institution_staff', 'jamal', '$2b$10$lwZI11oQ2qFfro7XpFwqTOR3heLpG/eha/b2Qs3t7efXh7RdH6oMe', 'jamal@gmail.com', 'approved', '2025-10-27 03:10:08'),
-(1038, 'institution_staff', 'teststaff', '$2b$10$gKOOUDthfC253gv6NiZoH.B57.SLk/QUzMy3cJmm4U5OyyoWSPkP.', 'test@gmail.com', 'deleted', '2025-10-27 12:24:09');
+(1039, 'student', 'gerby', '$2b$10$FJq3WZbppKNxoibiPRpF8uHsw7ROH.T9Gvcm32/r6TwywHAw0Q892', 'gerby@wmsu.edu.ph', NULL, '2025-10-29 13:03:13'),
+(1040, 'student', 'huifon', '$2b$10$RsF3MSeuZ3qMaSfYh0zbnO7x.p72fN5YqJhu4ulaM/sdxqS7Rgkbu', 'huifon@wmsu.edu.ph', NULL, '2025-10-29 13:10:59'),
+(1041, 'institution', 'sample', '$2b$10$pUPqOhYA2Bz9lZY6yqEErOcNyhGEEaKGxpF66c2RQma43RrAObCrW', 'reignianc.magno@gmail.com', 'approved', '2025-10-30 13:30:32');
 
 -- --------------------------------------------------------
 
@@ -73,28 +71,25 @@ CREATE TABLE `activity_log` (
 --
 
 INSERT INTO `activity_log` (`id`, `institution_id`, `user_id`, `action`, `action_type`, `description`, `created_at`) VALUES
-(21, 1, 1, 'student_added', 'create', 'Added student: sample2 sample sample', '2025-10-27 03:40:04'),
-(22, 1, 1, 'student_imported', 'create', 'Imported 1 student', '2025-10-27 03:40:53'),
-(23, 1, 1030, 'student_added', 'create', 'Added student: sample2 sample sample', '2025-10-27 03:41:31'),
-(24, 1, 1030, 'student_imported', 'create', 'Imported 1 student', '2025-10-27 03:42:06'),
-(25, 1, 1, 'student_added', 'create', 'Added student: sample2 sample sample', '2025-10-27 03:43:56'),
-(26, 1, 1, 'student_deleted', 'delete', 'Deleted student: sample2 sample sample', '2025-10-27 03:47:57'),
-(27, 1, 1, 'student_deleted', 'delete', 'Deleted student: 312 321 321', '2025-10-27 03:48:09'),
-(28, 1, 1, 'student_deleted', 'delete', 'Deleted student: sample2 sample sample', '2025-10-27 03:51:48'),
-(29, 1, 1, 'student_deleted', 'delete', 'Deleted student: 312 321 321', '2025-10-27 03:54:21'),
-(30, 1, 1, 'student_deleted', 'delete', 'Deleted student: sample2 sample sample', '2025-10-27 03:54:29'),
-(31, 1, 1, 'credential_deleted', 'delete', 'Deleted Diploma credential', '2025-10-27 04:13:03'),
-(32, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-10-27 04:15:12'),
-(33, 1, 1, 'credential_deleted', 'delete', 'Deleted Transcript of Records (TOR) credential', '2025-10-27 04:15:52'),
-(34, 1, 1, 'credential_deleted', 'delete', 'Deleted Transcript of Records (TOR) credential', '2025-10-27 04:18:57'),
-(35, 1, 1030, 'credential_issued', 'create', 'Issued Certificate of Graduation credential to Reign Ian Carreon Magno', '2025-10-27 04:48:51'),
-(36, 1, 1030, 'credential_issued', 'create', 'Issued test credential to Reign Ian Carreon Magno', '2025-10-27 11:53:49'),
-(37, 1, 1, 'program_added', 'create', 'Added program: test program', '2025-10-27 12:12:25'),
-(38, 1, 1, 'program_deleted', 'delete', 'Deleted program: test program', '2025-10-27 12:12:32'),
-(39, 1, 1, 'staff_added', 'create', 'Added staff member: test staff staff staff', '2025-10-27 12:17:34'),
-(40, 1, 1, 'staff_deleted', 'delete', 'Deleted staff member: test staff staff', '2025-10-27 12:17:52'),
-(41, 1, 1, 'staff_added', 'create', 'Added staff member: test staff staff staff', '2025-10-27 12:24:09'),
-(42, 1, 1, 'staff_deleted', 'delete', 'Deleted staff member: test staff staff', '2025-10-27 12:24:20');
+(44, 1, 1, 'student_added', 'create', 'Added student: Gerby P. Hallasgo', '2025-10-29 13:03:13'),
+(45, 1, 1, 'credential_issued', 'create', 'Issued test credential credential to Gerby P. Hallasgo', '2025-10-29 13:06:00'),
+(46, 1, 1, 'program_added', 'create', 'Added program: Associate in Computer Technology', '2025-10-29 13:10:14'),
+(47, 1, 1, 'student_added', 'create', 'Added student: Hui Fon Tulawe', '2025-10-29 13:10:59'),
+(48, 1, 1, 'credential_issued', 'create', 'Issued Certificate of Graduation credential to Hui Fon Tulawe', '2025-10-29 13:11:48'),
+(49, 1, 1, 'credential_issued', 'create', 'Issued test credential credential to Reign Ian Carreon Magno', '2025-10-30 06:09:38'),
+(50, 1, 1, 'credential_issued', 'create', 'Issued test credential credential to Reign Ian Carreon Magno', '2025-10-30 06:50:24'),
+(51, 1041, 1041, 'program_added', 'create', 'Added program: Bachelor of Science in Computer Science', '2025-10-30 13:31:16'),
+(52, 1041, 1041, 'student_added', 'create', 'Added student: Reign Ian Carreon Magno', '2025-10-30 13:31:58'),
+(53, 1041, 1041, 'credential_issued', 'create', 'Issued Diploma credential to Reign Ian Carreon Magno', '2025-10-30 13:32:33'),
+(54, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-05 03:50:51'),
+(55, 1, 1, 'credential_issued', 'create', 'Issued Diploma credential to Reign Ian Carreon Magno', '2025-11-05 04:04:45'),
+(56, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-05 12:28:07'),
+(57, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-05 13:32:28'),
+(58, 1, 1, 'credential_issued', 'create', 'Issued Diploma credential to Reign Ian Carreon Magno', '2025-11-05 14:15:13'),
+(59, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-07 03:41:15'),
+(60, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-07 03:46:43'),
+(61, 1, 1, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-07 03:49:43'),
+(62, 1, 1030, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Reign Ian Carreon Magno', '2025-11-07 04:00:42');
 
 -- --------------------------------------------------------
 
@@ -126,7 +121,8 @@ INSERT INTO `contact_messages` (`id`, `name`, `email`, `user_type`, `message`, `
 (6, 'ciao', 'eh202201076@wmsu.edu.ph', 'other', 'hi', 'replied', 'contact', NULL, '2025-10-08 12:51:25', '2025-10-12 15:40:52', NULL, NULL, NULL),
 (7, 'Hallasgo Gerby P.', 'jcpowerzone@gmail.com', 'institution', 'halo', 'replied', 'contact', NULL, '2025-10-12 15:24:50', '2025-10-12 15:33:58', '5i34gr', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'),
 (8, 'test', 'hallasgogerby@gmail.com', 'institution', 'New institution signup request from test.\n\nUsername: test\nEmail: hallasgogerby@gmail.com\n\nPlease review and approve or reject this request.', 'replied', 'signup_request', 1026, '2025-10-25 17:51:08', '2025-10-25 17:55:51', NULL, NULL, NULL),
-(9, 'hui', 'thuifon@gmail.com', 'institution', 'test 1', 'replied', 'contact', NULL, '2025-10-25 18:04:57', '2025-10-25 18:28:44', '60kd3r', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36');
+(9, 'hui', 'thuifon@gmail.com', 'institution', 'test 1', 'replied', 'contact', NULL, '2025-10-25 18:04:57', '2025-10-25 18:28:44', '60kd3r', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36'),
+(10, 'sample university', 'reignianc.magno@gmail.com', 'institution', 'New institution signup request from sample university.\n\nUsername: sample\nEmail: reignianc.magno@gmail.com\n\nPlease review and approve or reject this request.', 'replied', 'signup_request', 1041, '2025-10-30 13:30:32', '2025-10-30 13:30:48', NULL, NULL, NULL);
 
 -- --------------------------------------------------------
 
@@ -174,15 +170,6 @@ CREATE TABLE `credential` (
   `updated_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Dumping data for table `credential`
---
-
-INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `program_id`, `ipfs_cid`, `status`, `blockchain_id`, `transaction_id`, `created_at`, `updated_at`) VALUES
-(52, 2, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'deleted', '22', '', '2025-10-27 04:15:12', '2025-10-27 04:15:52'),
-(53, 3, NULL, 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '23', '0xee6eafb9e5934c4850a4df859d6891591ceecc1d0d722f1900ef8781770e1d85', '2025-10-27 04:48:51', '2025-10-27 05:09:57'),
-(54, NULL, 'test', 1025, 1, 2, 'QmS9HSkhB2RcYuc7s1rgcxAsQ5KhbXq84JMjrgV9zQrpRx', 'blockchain_verified', '24', '0x341fb0d50147f098d769eccff42d7d91e683955b323c17df224cd2f4835118d1', '2025-10-27 11:53:49', '2025-10-27 11:53:49');
-
 -- --------------------------------------------------------
 
 --
@@ -197,13 +184,6 @@ CREATE TABLE `credential_access` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `credential_access`
---
-
-INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_active`, `created_at`, `is_deleted`) VALUES
-(13, 54, '8HL6AQ', 1, '2025-10-27 11:54:22', 0);
 
 -- --------------------------------------------------------
 
@@ -252,19 +232,12 @@ CREATE TABLE `credential_validation_logs` (
 CREATE TABLE `credential_verifications` (
   `id` int NOT NULL,
   `credential_id` int NOT NULL,
-  `access_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `access_code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `verifier_ip` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT NULL,
   `verifier_user_agent` text CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci,
   `verification_timestamp` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `status` enum('success','failed') CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci DEFAULT 'success'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `credential_verifications`
---
-
-INSERT INTO `credential_verifications` (`id`, `credential_id`, `access_code`, `verifier_ip`, `verifier_user_agent`, `verification_timestamp`, `status`) VALUES
-(60, 54, '8HL6AQ', '::1', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36 Edg/141.0.0.0', '2025-10-27 11:54:30', 'success');
 
 -- --------------------------------------------------------
 
@@ -284,7 +257,7 @@ CREATE TABLE `institution` (
 
 INSERT INTO `institution` (`id`, `institution_name`, `public_address`) VALUES
 (1, 'Western Mindanao State University', '0xbda9c415c28e06bffe626313c2aa429dce2c6016'),
-(1026, 'test', NULL);
+(1041, 'sample university', '0xbda9c415c28e06bffe626313c2aa429dce2c6016');
 
 -- --------------------------------------------------------
 
@@ -305,7 +278,8 @@ CREATE TABLE `institution_addresses` (
 
 INSERT INTO `institution_addresses` (`id`, `institution_id`, `public_address`, `created_at`) VALUES
 (1, 1, '0xbda9c415c28e06bffe626313c2aa429dce2c6016', '2025-10-27 13:15:08'),
-(2, 1, '0x852a8e5c3d309626810944b1a520dd81b3b5a7fa', '2025-10-27 13:15:56');
+(2, 1, '0x852a8e5c3d309626810944b1a520dd81b3b5a7fa', '2025-10-27 13:15:56'),
+(3, 1041, '0xbda9c415c28e06bffe626313c2aa429dce2c6016', '2025-10-30 13:31:07');
 
 -- --------------------------------------------------------
 
@@ -326,9 +300,7 @@ CREATE TABLE `institution_staff` (
 --
 
 INSERT INTO `institution_staff` (`id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
-(1028, 'test', '', '1', 1),
-(1030, 'Jamal', 'Alumbre', 'Al badi', 1),
-(1038, 'test staff', 'staff', 'staff', 1);
+(1030, 'Jamal', 'Alumbre', 'Al badi', 1);
 
 -- --------------------------------------------------------
 
@@ -356,6 +328,13 @@ CREATE TABLE `multi_access_code` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `multi_access_code`
+--
+
+INSERT INTO `multi_access_code` (`id`, `access_code`, `student_id`, `is_active`, `created_at`, `is_deleted`) VALUES
+(10, 'UY9ZEL', 1025, 1, '2025-11-05 04:06:41', 0);
 
 -- --------------------------------------------------------
 
@@ -391,7 +370,8 @@ CREATE TABLE `program` (
 INSERT INTO `program` (`id`, `institution_id`, `program_name`, `program_code`, `created_at`) VALUES
 (2, 1, 'Bachelor of Science in Computer Science', 'BSCS', '2025-10-17 18:42:29'),
 (3, 1, 'Bachelor of Science in Information Technology', 'BSIT', '2025-10-17 18:42:51'),
-(5, 1, 'College of Nursing', 'CN', '2025-10-26 13:04:19');
+(7, 1, 'Associate in Computer Technology', 'ACT', '2025-10-29 13:10:14'),
+(8, 1041, 'Bachelor of Science in Computer Science', 'BSCS', '2025-10-30 13:31:16');
 
 -- --------------------------------------------------------
 
@@ -415,8 +395,8 @@ CREATE TABLE `student` (
 
 INSERT INTO `student` (`id`, `program_id`, `student_id`, `first_name`, `middle_name`, `last_name`, `institution_id`) VALUES
 (1025, 2, '2022-01084', 'Reign Ian', 'Carreon', 'Magno', 1),
-(1027, 2, '2022-01148', 'Hui Fon', '', 'Tulawe', 1),
-(1029, 5, '123', 'gerby', '', 'hallasgo', 1);
+(1039, 3, '2022-01085', 'Gerby', 'P.', 'Hallasgo', 1),
+(1040, 7, '2022-01086', 'Hui Fon', '', 'Tulawe', 1);
 
 -- --------------------------------------------------------
 
@@ -441,6 +421,28 @@ INSERT INTO `system_settings` (`id`, `setting_key`, `setting_value`, `setting_de
 (1, 'reply_email', 'gerby.hallasgo@gmail.com', 'Default email address used for replying to contact messages', '2025-10-12 15:33:41', '2025-10-12 15:33:41'),
 (2, 'system_name', 'VerifiED Support Team', 'Name displayed in email replies and signatures', '2025-10-12 15:33:41', '2025-10-12 15:33:41'),
 (3, 'reply_signature', 'Best regards,\nVerifiED Support Team\n\nThis is an automated response from the VerifiED credential verification system.', 'Default signature for email replies', '2025-10-12 15:33:41', '2025-10-12 15:33:41');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `transaction_costs`
+--
+
+CREATE TABLE `transaction_costs` (
+  `id` int NOT NULL,
+  `credential_id` int NOT NULL,
+  `transaction_hash` varchar(66) COLLATE utf8mb4_unicode_ci NOT NULL,
+  `institution_id` int NOT NULL,
+  `gas_used` bigint NOT NULL,
+  `gas_price_gwei` decimal(20,9) NOT NULL,
+  `gas_cost_pol` decimal(20,18) NOT NULL,
+  `pol_price_usd` decimal(10,6) NOT NULL,
+  `pol_price_php` decimal(10,4) NOT NULL,
+  `gas_cost_usd` decimal(10,6) NOT NULL,
+  `gas_cost_php` decimal(10,4) NOT NULL,
+  `tx_timestamp` bigint NOT NULL,
+  `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Indexes for dumped tables
@@ -584,6 +586,17 @@ ALTER TABLE `system_settings`
   ADD UNIQUE KEY `setting_key` (`setting_key`);
 
 --
+-- Indexes for table `transaction_costs`
+--
+ALTER TABLE `transaction_costs`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `unique_transaction` (`transaction_hash`),
+  ADD KEY `idx_credential_id` (`credential_id`),
+  ADD KEY `idx_institution_id` (`institution_id`),
+  ADD KEY `idx_transaction_hash` (`transaction_hash`),
+  ADD KEY `idx_created_at` (`created_at`);
+
+--
 -- AUTO_INCREMENT for dumped tables
 --
 
@@ -591,19 +604,19 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1039;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1043;
 
 --
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=43;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=63;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
 --
 ALTER TABLE `contact_messages`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `contact_submissions`
@@ -615,13 +628,13 @@ ALTER TABLE `contact_submissions`
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=55;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=71;
 
 --
 -- AUTO_INCREMENT for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=20;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
@@ -639,19 +652,19 @@ ALTER TABLE `credential_validation_logs`
 -- AUTO_INCREMENT for table `credential_verifications`
 --
 ALTER TABLE `credential_verifications`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=61;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=76;
 
 --
 -- AUTO_INCREMENT for table `institution`
 --
 ALTER TABLE `institution`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1027;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1042;
 
 --
 -- AUTO_INCREMENT for table `institution_addresses`
 --
 ALTER TABLE `institution_addresses`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
 -- AUTO_INCREMENT for table `institution_staff`
@@ -663,30 +676,36 @@ ALTER TABLE `institution_staff`
 -- AUTO_INCREMENT for table `multi_access_code`
 --
 ALTER TABLE `multi_access_code`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `multi_access_code_credentials`
 --
 ALTER TABLE `multi_access_code_credentials`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=18;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=22;
 
 --
 -- AUTO_INCREMENT for table `program`
 --
 ALTER TABLE `program`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1037;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1043;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
 --
 ALTER TABLE `system_settings`
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+
+--
+-- AUTO_INCREMENT for table `transaction_costs`
+--
+ALTER TABLE `transaction_costs`
   MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
 --
@@ -713,7 +732,7 @@ ALTER TABLE `credential`
 -- Constraints for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  ADD CONSTRAINT `credential_access_ibfk_1` FOREIGN KEY (`credential_id`) REFERENCES `credential` (`id`);
+  ADD CONSTRAINT `credential_access_ibfk_1` FOREIGN KEY (`credential_id`) REFERENCES `credential` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `credential_validation_logs`
@@ -733,7 +752,7 @@ ALTER TABLE `credential_verifications`
 -- Constraints for table `institution`
 --
 ALTER TABLE `institution`
-  ADD CONSTRAINT `institution_ibfk_1` FOREIGN KEY (`id`) REFERENCES `account` (`id`);
+  ADD CONSTRAINT `institution_ibfk_1` FOREIGN KEY (`id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `institution_addresses`
@@ -745,13 +764,14 @@ ALTER TABLE `institution_addresses`
 -- Constraints for table `institution_staff`
 --
 ALTER TABLE `institution_staff`
-  ADD CONSTRAINT `institution_staff_ibfk_1` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`);
+  ADD CONSTRAINT `institution_staff_ibfk_1` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`),
+  ADD CONSTRAINT `institution_staff_ibfk_2` FOREIGN KEY (`id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `linked_accounts`
 --
 ALTER TABLE `linked_accounts`
-  ADD CONSTRAINT `linked_accounts_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `account` (`id`);
+  ADD CONSTRAINT `linked_accounts_ibfk_1` FOREIGN KEY (`student_id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT;
 
 --
 -- Constraints for table `multi_access_code`
@@ -779,6 +799,13 @@ ALTER TABLE `student`
   ADD CONSTRAINT `student_ibfk_1` FOREIGN KEY (`program_id`) REFERENCES `program` (`id`),
   ADD CONSTRAINT `student_ibfk_2` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`),
   ADD CONSTRAINT `student_ibfk_3` FOREIGN KEY (`id`) REFERENCES `account` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
+-- Constraints for table `transaction_costs`
+--
+ALTER TABLE `transaction_costs`
+  ADD CONSTRAINT `transaction_costs_ibfk_1` FOREIGN KEY (`credential_id`) REFERENCES `credential` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `transaction_costs_ibfk_2` FOREIGN KEY (`institution_id`) REFERENCES `institution` (`id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
