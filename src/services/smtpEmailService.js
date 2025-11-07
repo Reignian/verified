@@ -4,7 +4,7 @@
 const nodemailer = require('nodemailer');
 const SystemSettingsService = require('./systemSettingsService');
 
-// Create reusable transporter
+// Create reusable transporter with timeout and connection pooling
 const createTransporter = () => {
   return nodemailer.createTransport({
     host: process.env.EMAIL_HOST || 'smtp.gmail.com',
@@ -14,6 +14,22 @@ const createTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
+    // Connection timeout settings (critical for Railway hosting)
+    connectionTimeout: 10000, // 10 seconds to establish connection
+    greetingTimeout: 10000,   // 10 seconds to wait for greeting
+    socketTimeout: 30000,      // 30 seconds for socket inactivity
+    // Connection pooling for better performance
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 10,
+    // Retry settings
+    tls: {
+      rejectUnauthorized: false, // Allow self-signed certificates if needed
+      minVersion: 'TLSv1.2'
+    },
+    // Debug logging (set to true if you need to troubleshoot)
+    debug: process.env.NODE_ENV !== 'production',
+    logger: process.env.NODE_ENV !== 'production'
   });
 };
 
@@ -98,17 +114,40 @@ ${signature}
       `
     };
     
-    const info = await transporter.sendMail(mailOptions);
+    // Add timeout wrapper for sendMail operation
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
+      return Promise.race([
+        transporter.sendMail(mailOptions),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email send operation timed out')), timeout)
+        )
+      ]);
+    };
     
-    console.log('✅ Welcome email sent successfully!');
+    const info = await sendMailWithTimeout(transporter, mailOptions);
+    
+    console.log('[SUCCESS] Welcome email sent successfully!');
     console.log(`   To: ${studentEmail}`);
     console.log(`   Subject: Welcome to ${systemName}`);
     console.log(`   Message ID: ${info.messageId}`);
     
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Failed to send welcome email:', error.message);
-    return { success: false, error: error.message };
+    console.error('[ERROR] Failed to send welcome email:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error command:', error.command);
+    
+    // Provide more specific error information
+    let errorDetail = error.message;
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      errorDetail = 'Connection timeout - SMTP server took too long to respond. This may be due to network restrictions or Gmail rate limiting.';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorDetail = 'Connection refused - Unable to connect to SMTP server. Check EMAIL_HOST and EMAIL_PORT settings.';
+    } else if (error.code === 'EAUTH') {
+      errorDetail = 'Authentication failed - Check EMAIL_USER and EMAIL_PASS credentials.';
+    }
+    
+    return { success: false, error: errorDetail, errorCode: error.code };
   }
 };
 
@@ -251,9 +290,19 @@ ${signature}
       `
     };
     
-    const info = await transporter.sendMail(mailOptions);
+    // Add timeout wrapper for sendMail operation
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
+      return Promise.race([
+        transporter.sendMail(mailOptions),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Email send operation timed out')), timeout)
+        )
+      ]);
+    };
     
-    console.log('✅ Credential notification email sent successfully!');
+    const info = await sendMailWithTimeout(transporter, mailOptions);
+    
+    console.log('[SUCCESS] Credential notification email sent successfully!');
     console.log(`   To: ${studentEmail}`);
     console.log(`   Subject: ${credentialType} Issued`);
     console.log(`   First Credential: ${isNewAccount ? 'Yes' : 'No'}`);
@@ -262,8 +311,21 @@ ${signature}
     
     return { success: true, messageId: info.messageId };
   } catch (error) {
-    console.error('❌ Failed to send credential notification email:', error.message);
-    return { success: false, error: error.message };
+    console.error('[ERROR] Failed to send credential notification email:', error.message);
+    console.error('   Error code:', error.code);
+    console.error('   Error command:', error.command);
+    
+    // Provide more specific error information
+    let errorDetail = error.message;
+    if (error.code === 'ETIMEDOUT' || error.message.includes('timeout')) {
+      errorDetail = 'Connection timeout - SMTP server took too long to respond. This may be due to network restrictions or Gmail rate limiting.';
+    } else if (error.code === 'ECONNREFUSED') {
+      errorDetail = 'Connection refused - Unable to connect to SMTP server. Check EMAIL_HOST and EMAIL_PORT settings.';
+    } else if (error.code === 'EAUTH') {
+      errorDetail = 'Authentication failed - Check EMAIL_USER and EMAIL_PASS credentials.';
+    }
+    
+    return { success: false, error: errorDetail, errorCode: error.code };
   }
 };
 
@@ -272,10 +334,10 @@ const testEmailConfiguration = async () => {
   try {
     const transporter = createTransporter();
     await transporter.verify();
-    console.log('✅ SMTP server is ready to send emails');
+    console.log('[SUCCESS] SMTP server is ready to send emails');
     return { success: true, message: 'SMTP configuration is valid' };
   } catch (error) {
-    console.error('❌ SMTP configuration error:', error.message);
+    console.error('[ERROR] SMTP configuration error:', error.message);
     return { success: false, error: error.message };
   }
 };
