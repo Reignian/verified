@@ -27,9 +27,9 @@ const createTransporter = () => {
       rejectUnauthorized: false, // Allow self-signed certificates if needed
       minVersion: 'TLSv1.2'
     },
-    // Debug logging (set to true if you need to troubleshoot)
-    debug: process.env.NODE_ENV !== 'production',
-    logger: process.env.NODE_ENV !== 'production'
+    // Debug logging disabled for cleaner console output
+    debug: false,
+    logger: false
   });
 };
 
