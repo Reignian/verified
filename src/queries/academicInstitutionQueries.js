@@ -1143,40 +1143,112 @@ const getStudentAccountDetails = (studentId, callback) => {
   connection.query(query, [studentId], callback);
 };
 
+// Insert transaction cost data
+const insertTransactionCost = (costData, callback) => {
+  const query = `
+    INSERT INTO transaction_costs (
+      credential_id,
+      transaction_hash,
+      institution_id,
+      gas_used,
+      gas_price_gwei,
+      gas_cost_pol,
+      pol_price_usd,
+      pol_price_php,
+      gas_cost_usd,
+      gas_cost_php,
+      tx_timestamp
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `;
+  
+  const params = [
+    costData.credential_id,
+    costData.transaction_hash,
+    costData.institution_id,
+    costData.gas_used,
+    costData.gas_price_gwei,
+    costData.gas_cost_pol,
+    costData.pol_price_usd,
+    costData.pol_price_php,
+    costData.gas_cost_usd,
+    costData.gas_cost_php,
+    costData.tx_timestamp
+  ];
+  
+  connection.query(query, params, callback);
+};
+
+// Get transaction history with blockchain details and costs for an institution
+const getTransactionHistory = (institutionId, callback) => {
+  const query = `
+    SELECT 
+      c.id,
+      c.blockchain_id,
+      c.transaction_id as transaction_hash,
+      c.created_at as transaction_date,
+      CONCAT(s.first_name, ' ', s.last_name) as student_name,
+      s.student_id,
+      COALESCE(ct.type_name, c.custom_type) as credential_type,
+      p.program_name,
+      p.program_code,
+      c.ipfs_cid,
+      tc.gas_used,
+      tc.gas_price_gwei,
+      tc.gas_cost_pol,
+      tc.pol_price_usd,
+      tc.pol_price_php,
+      tc.gas_cost_usd,
+      tc.gas_cost_php,
+      tc.tx_timestamp
+    FROM credential c
+    JOIN student s ON c.owner_id = s.id
+    LEFT JOIN credential_types ct ON c.credential_type_id = ct.id
+    LEFT JOIN program p ON s.program_id = p.id
+    LEFT JOIN transaction_costs tc ON c.id = tc.credential_id
+    WHERE s.institution_id = ? 
+      AND c.transaction_id IS NOT NULL 
+      AND c.status = 'blockchain_verified'
+    ORDER BY c.created_at DESC
+  `;
+  connection.query(query, [institutionId], callback);
+};
+
 module.exports = {
-  getCredentialTypes,
-  getRecentCustomType,
-  getStudents,
-  getInstitutionName,
-  getInstitutionPublicAddress,
-  getInstitutionAddresses,
-  updateInstitutionPublicAddress,
-  createCredential,
-  getIssuedCredentials,
-  getCredentialStats,
-  bulkCreateStudents,
-  addStudent,
-  deleteStudent,
-  checkStudentIdExists,
-  checkUsernameExists,
-  getBulkImportStats,
-  getDashboardStats,
-  getInstitutionProfile,
-  verifyInstitutionPassword,
-  updateInstitutionProfile,
-  getInstitutionStaff,
-  addInstitutionStaff,
-  deleteInstitutionStaff,
-  getInstitutionPrograms,
-  addInstitutionProgram,
-  deleteInstitutionProgram,
-  deleteCredential,
-  getActivityLogs,
-  createActivityLog,
-  getCredentialTypeDistribution,
-  getStudentsByProgram,
-  getRecentActivity,
-  getDailyCredentialTrends,
-  getVerificationStats,
-  getStudentAccountDetails
+getCredentialTypes,
+getRecentCustomType,
+getStudents,
+getInstitutionName,
+getInstitutionPublicAddress,
+getInstitutionAddresses,
+updateInstitutionPublicAddress,
+createCredential,
+getIssuedCredentials,
+getCredentialStats,
+bulkCreateStudents,
+addStudent,
+deleteStudent,
+checkStudentIdExists,
+checkUsernameExists,
+getBulkImportStats,
+getDashboardStats,
+getInstitutionProfile,
+verifyInstitutionPassword,
+updateInstitutionProfile,
+getInstitutionStaff,
+addInstitutionStaff,
+deleteInstitutionStaff,
+getInstitutionPrograms,
+addInstitutionProgram,
+deleteInstitutionProgram,
+deleteCredential,
+getActivityLogs,
+createActivityLog,
+getCredentialTypeDistribution,
+getStudentsByProgram,
+getRecentActivity,
+getDailyCredentialTrends,
+getVerificationStats,
+getStudentAccountDetails,
+getTransactionHistory,
+insertTransactionCost
 };

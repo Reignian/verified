@@ -39,6 +39,8 @@
   margin-bottom: 20px;
   display: flex;
   align-items: center;
+  min-height: 110px;
+  height: 110px;
 }
 
 .dashboard-stats-section .stat-card:hover {
@@ -66,10 +68,6 @@
 .dashboard-stats-section .row .col-md-6:nth-child(2) .stat-card .stat-icon,
 .dashboard-stats-section .row .col-md-4:nth-child(2) .stat-card .stat-icon {
   background: linear-gradient(135deg, #f093fb, #f5576c);
-}
-
-.dashboard-stats-section .row .col-md-4:nth-child(3) .stat-card .stat-icon {
-  background: linear-gradient(135deg, #4facfe, #00f2fe);
 }
 
 .dashboard-stats-section .stat-content h3 {

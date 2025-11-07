@@ -28,6 +28,7 @@ import ErrorModal from '../common/ErrorModal';
 import PublicAddressCheck from './PublicAddressCheck';
 import PublicAddressModal from './PublicAddressModal';
 import DashboardAnalytics from './DashboardAnalytics';
+import TransactionHistoryTable from './TransactionHistoryTable';
 
 function AcademicInstitution() {
   const [account, setAccount] = useState(null);
@@ -41,7 +42,7 @@ function AcademicInstitution() {
   const [issuedCredentials, setIssuedCredentials] = useState([]);
   const [credentialStats, setCredentialStats] = useState({ total_credentials: 0, new_credentials_week: 0 });
   const [dashboardStats, setDashboardStats] = useState({ total_students: 0, total_credentials: 0, daily_verifications: 0 });
-  const [maticPrice, setMaticPrice] = useState({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+  const [maticPrice, setMaticPrice] = useState({ priceUSD: null, pricePHP: null, change24h: 0, volume24h: 0, lastUpdated: null });
   const [maticPriceLoading, setMaticPriceLoading] = useState(true);
   const [institutionProfile, setInstitutionProfile] = useState({ institution_name: '', username: '', email: '' });
   const [showModal, setShowModal] = useState(false);
@@ -55,7 +56,7 @@ function AcademicInstitution() {
   // Modal now owns its own internal state
 
   // Section navigation (like MyVerifiED): controls which content shows below the stats
-  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard' | 'issued' | 'students'
+  const [activeSection, setActiveSection] = useState('dashboard'); // 'dashboard' | 'issued' | 'students' | 'transactions'
   // Trigger for refreshing student management data after bulk import
   const [studentsRefreshTick, setStudentsRefreshTick] = useState(0);
 
@@ -160,10 +161,10 @@ function AcademicInstitution() {
     loadData();
     loadMaticPrice();
 
-    // Auto-refresh MATIC price every 5min
+    // Auto-refresh POL price every 5 minutes for real-time data
     const priceInterval = setInterval(() => {
       loadMaticPrice();
-    }, 300000); // 5min
+    }, 300000); // 5 minutes
 
     // Cleanup event listeners on component unmount
     return () => {
@@ -219,7 +220,7 @@ function AcademicInstitution() {
     window.open(ipfsUrl, '_blank');
   };
 
-  // Fetch MATIC price via backend API
+  // Fetch POL (Polygon) price via backend API from CoinGecko
   const loadMaticPrice = async () => {
     try {
       setMaticPriceLoading(true);
@@ -229,14 +230,15 @@ function AcademicInstitution() {
           priceUSD: data.priceUSD,
           pricePHP: data.pricePHP,
           change24h: data.change24h,
-          changeValue24h: data.changeValue24h
+          volume24h: data.volume24h || 0,
+          lastUpdated: data.lastUpdated || Date.now()
         });
       } else {
-        setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+        setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, volume24h: 0, lastUpdated: null });
       }
     } catch (error) {
-      console.error('Failed to fetch MATIC price:', error);
-      setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, changeValue24h: 0 });
+      console.error('Failed to fetch POL price:', error);
+      setMaticPrice({ priceUSD: null, pricePHP: null, change24h: 0, volume24h: 0, lastUpdated: null });
     } finally {
       setMaticPriceLoading(false);
     }
@@ -365,6 +367,14 @@ function AcademicInstitution() {
           >
             Students
           </button>
+          <button
+            className={`tab ${activeSection === 'transactions' ? 'active' : ''}`}
+            onClick={() => setActiveSection('transactions')}
+            role="tab"
+            aria-selected={activeSection === 'transactions'}
+          >
+            Transactions
+          </button>
           {localStorage.getItem('userType') === 'institution' && (
             <button
               className={`tab ${activeSection === 'settings' ? 'active' : ''}`}
@@ -407,7 +417,11 @@ function AcademicInstitution() {
               <div className="col-md-4">
                 <div className="stat-card">
                   <div className="stat-icon">
-                    <i className="fab fa-ethereum"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 38.4 33.5" width="35" height="35">
+                      <g fill="#8247e5">
+                        <path d="M29,10.2c-0.7-0.4-1.6-0.4-2.4,0L21,13.5l-3.8,2.1l-5.5,3.3c-0.7,0.4-1.6,0.4-2.4,0L5,16.3c-0.7-0.4-1.2-1.2-1.2-2.1v-5c0-0.8,0.4-1.6,1.2-2.1l4.3-2.5c0.7-0.4,1.6-0.4,2.4,0L16,7.2c0.7,0.4,1.2,1.2,1.2,2.1v3.3l3.8-2.2V7c0-0.8-0.4-1.6-1.2-2.1l-8-4.7c-0.7-0.4-1.6-0.4-2.4,0L1.2,5C0.4,5.4,0,6.2,0,7v9.4c0,0.8,0.4,1.6,1.2,2.1l8.1,4.7c0.7,0.4,1.6,0.4,2.4,0l5.5-3.2l3.8-2.2l5.5-3.2c0.7-0.4,1.6-0.4,2.4,0l4.3,2.5c0.7,0.4,1.2,1.2,1.2,2.1v5c0,0.8-0.4,1.6-1.2,2.1L29,28.8c-0.7,0.4-1.6,0.4-2.4,0l-4.3-2.5c-0.7-0.4-1.2-1.2-1.2-2.1V21l-3.8,2.2v3.3c0,0.8,0.4,1.6,1.2,2.1l8.1,4.7c0.7,0.4,1.6,0.4,2.4,0l8.1-4.7c0.7-0.4,1.2-1.2,1.2-2.1V17c0-0.8-0.4-1.6-1.2-2.1L29,10.2z"/>
+                      </g>
+                    </svg>
                   </div>
                   <div className="stat-content">
                     {maticPriceLoading ? (
@@ -417,7 +431,7 @@ function AcademicInstitution() {
                       </>
                     ) : maticPrice.priceUSD ? (
                       <>
-                        <h3 style={{ marginBottom: '2px' }}>${maticPrice.priceUSD.toFixed(4)}</h3>
+                        <h3 style={{ margin: 0 }}>${maticPrice.priceUSD.toFixed(4)}</h3>
                         <p style={{ fontSize: '13px', color: '#95a5a6', margin: '0 0 5px 0' }}>
                           ₱{maticPrice.pricePHP.toFixed(2)} PHP
                         </p>
@@ -463,6 +477,10 @@ function AcademicInstitution() {
             refreshTrigger={studentsRefreshTick}
             onStudentListChanged={refreshStudentsData}
           />
+        )}
+
+        {activeSection === 'transactions' && (
+          <TransactionHistoryTable institutionId={institutionId} />
         )}
 
         {activeSection === 'settings' && (

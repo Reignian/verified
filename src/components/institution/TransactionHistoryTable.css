@@ -1,0 +1,364 @@
+/* Transaction History Table Styles */
+
+.transaction-history-container {
+  background: white;
+  border-radius: 12px;
+  padding: 25px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  border: 1px solid #e9ecef;
+  margin-top: 20px;
+}
+
+.transaction-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 2px solid #f0f0f0;
+}
+
+.transaction-history-header h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #2c3e50;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.transaction-history-header h3 i {
+  color: #667eea;
+}
+
+.header-subtitle {
+  font-size: 13px;
+  color: #7f8c8d;
+  margin: 5px 0 0 0;
+}
+
+.refresh-button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.refresh-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.spinner {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #667eea;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  animation: spin 1s linear infinite;
+  margin: 0 auto 20px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-state p {
+  color: #7f8c8d;
+  font-size: 16px;
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #e74c3c;
+}
+
+.error-state i {
+  font-size: 48px;
+  margin-bottom: 15px;
+}
+
+.error-state p {
+  font-size: 16px;
+  margin-bottom: 20px;
+}
+
+.retry-button {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+
+.retry-button:hover {
+  background: #c0392b;
+  transform: translateY(-2px);
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  color: #95a5a6;
+}
+
+.empty-state i {
+  font-size: 64px;
+  margin-bottom: 15px;
+  opacity: 0.5;
+}
+
+.empty-state p {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 5px;
+  color: #7f8c8d;
+}
+
+.empty-state span {
+  font-size: 14px;
+  color: #95a5a6;
+}
+
+/* Transaction Summary */
+.transaction-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 15px;
+  margin-bottom: 25px;
+}
+
+.summary-card {
+  background: linear-gradient(135deg, #f8f9fa, #ffffff);
+  border: 1px solid #e9ecef;
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all 0.3s ease;
+}
+
+.summary-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.1);
+}
+
+.summary-label {
+  font-size: 12px;
+  color: #7f8c8d;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+/* Table Styles */
+.table-responsive {
+  overflow-x: auto;
+  margin-top: 20px;
+}
+
+.transaction-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.transaction-table thead {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+}
+
+.transaction-table th {
+  padding: 15px 12px;
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.transaction-table tbody tr {
+  border-bottom: 1px solid #e9ecef;
+  transition: background-color 0.2s ease;
+}
+
+.transaction-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.transaction-table tbody tr.error-row {
+  background-color: #fff5f5;
+}
+
+.transaction-table td {
+  padding: 15px 12px;
+  color: #2c3e50;
+}
+
+/* Cell Specific Styles */
+.date-cell {
+  font-size: 13px;
+  color: #7f8c8d;
+  white-space: nowrap;
+}
+
+.student-cell {
+  min-width: 180px;
+}
+
+.student-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.student-name {
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.student-id {
+  font-size: 12px;
+  color: #95a5a6;
+}
+
+.credential-cell {
+  font-weight: 500;
+  color: #667eea;
+}
+
+.program-cell {
+  min-width: 150px;
+}
+
+.program-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.program-name {
+  font-size: 13px;
+  color: #2c3e50;
+}
+
+.program-code {
+  font-size: 11px;
+  color: #95a5a6;
+}
+
+.no-program {
+  color: #bdc3c7;
+}
+
+.gas-cell,
+.gas-price-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: #34495e;
+  text-align: right;
+}
+
+.cost-pol-cell,
+.cost-usd-cell,
+.cost-php-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: right;
+}
+
+.cost-pol-cell {
+  color: #8247e5;
+}
+
+.cost-usd-cell {
+  color: #27ae60;
+}
+
+.cost-php-cell {
+  color: #3498db;
+}
+
+.transaction-cell {
+  text-align: center;
+}
+
+.view-tx-button {
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.view-tx-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.no-tx {
+  color: #bdc3c7;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .transaction-summary {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .transaction-history-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 15px;
+  }
+
+  .transaction-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .transaction-table {
+    font-size: 12px;
+  }
+
+  .transaction-table th,
+  .transaction-table td {
+    padding: 10px 8px;
+  }
+}

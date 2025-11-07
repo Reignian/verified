@@ -598,8 +598,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         ? studentResults[0].credential_count === 0 
         : false;
       
-      console.log(`📊 Credential count check for student ${owner_id}: ${studentResults?.[0]?.credential_count || 0} credentials`);
-      console.log(`🎯 Is first credential: ${isFirstCredential ? 'Yes' : 'No'}`);
+      console.log(`Credential count check for student ${owner_id}: ${studentResults?.[0]?.credential_count || 0} credentials`);
+      console.log(`Is first credential: ${isFirstCredential ? 'Yes' : 'No'}`);
       
       // Save to database with credential ID as blockchain_id
       const credentialData = {
@@ -618,6 +618,124 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         if (err) {
           console.error('Error creating credential:', err);
           return res.status(500).json({ error: 'Database error' });
+        }
+        
+        const credentialId = results.insertId;
+        
+        // Fetch and save transaction costs from blockchain
+        if (transaction_hash) {
+          try {
+            const RPC_URL = process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-';
+            
+            // Fetch current POL price
+            let polPriceUSD = 0.16;
+            let polPricePHP = 9.0;
+            
+            try {
+              const priceResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+                params: { ids: 'polygon-ecosystem-token', vs_currencies: 'usd,php' },
+                timeout: 5000
+              });
+              const priceData = priceResponse.data['polygon-ecosystem-token'];
+              if (priceData) {
+                polPriceUSD = priceData.usd;
+                polPricePHP = priceData.php;
+              }
+            } catch (priceErr) {
+              console.error('Failed to fetch POL price for cost calculation:', priceErr.message);
+            }
+            
+            // Fetch transaction receipt
+            const receiptResponse = await axios.post(RPC_URL, {
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'eth_getTransactionReceipt',
+              params: [transaction_hash]
+            }, { timeout: 10000 });
+            
+            const receipt = receiptResponse.data?.result;
+            
+            if (receipt) {
+              // Fetch transaction details for gas price
+              const txResponse = await axios.post(RPC_URL, {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'eth_getTransactionByHash',
+                params: [transaction_hash]
+              }, { timeout: 10000 });
+              
+              const txDetails = txResponse.data?.result;
+              
+              if (txDetails) {
+                // Calculate costs
+                const gasUsed = parseInt(receipt.gasUsed, 16);
+                const gasPriceWei = parseInt(txDetails.gasPrice, 16);
+                const gasPriceGwei = gasPriceWei / 1e9;
+                const gasCostPOL = (gasUsed * gasPriceWei) / 1e18;
+                const gasCostUSD = gasCostPOL * polPriceUSD;
+                const gasCostPHP = gasCostPOL * polPricePHP;
+                const txTimestamp = parseInt(txDetails.blockNumber, 16); // Use block number as timestamp
+                
+                // Get institution_id from sender (check staff first, then institution)
+                const db = require('../config/database');
+                
+                // First, try to get institution_id from institution_staff table
+                db.query('SELECT institution_id FROM institution_staff WHERE id = ?', [sender_id], (err, staffResults) => {
+                  if (!err && staffResults && staffResults.length > 0) {
+                    // Sender is staff, use their institution_id
+                    const institutionId = staffResults[0].institution_id;
+                    saveTransactionCost(institutionId);
+                  } else {
+                    // Sender might be institution directly, check institution table
+                    db.query('SELECT id FROM institution WHERE id = ?', [sender_id], (err, instResults) => {
+                      if (!err && instResults && instResults.length > 0) {
+                        // Sender is institution
+                        const institutionId = instResults[0].id;
+                        saveTransactionCost(institutionId);
+                      } else {
+                        console.error('Could not determine institution_id for sender:', sender_id);
+                      }
+                    });
+                  }
+                });
+                
+                // Helper function to save transaction costs
+                function saveTransactionCost(institutionId) {
+                  const costData = {
+                    credential_id: credentialId,
+                    transaction_hash: transaction_hash,
+                    institution_id: institutionId,
+                    gas_used: gasUsed,
+                    gas_price_gwei: gasPriceGwei,
+                    gas_cost_pol: gasCostPOL,
+                    pol_price_usd: polPriceUSD,
+                    pol_price_php: polPricePHP,
+                    gas_cost_usd: gasCostUSD,
+                    gas_cost_php: gasCostPHP,
+                    tx_timestamp: txTimestamp
+                  };
+                  
+                  console.log('Attempting to save transaction costs:', {
+                    credential_id: credentialId,
+                    transaction_hash: transaction_hash,
+                    institution_id: institutionId,
+                    gas_cost_pol: gasCostPOL,
+                    gas_cost_usd: gasCostUSD
+                  });
+                  
+                  academicQueries.insertTransactionCost(costData, (err) => {
+                    if (err) {
+                      console.error('Error saving transaction costs:', err);
+                    } else {
+                      console.log(`Transaction costs saved successfully for credential ${credentialId}`);
+                    }
+                  });
+                }
+              }
+            }
+          } catch (blockchainErr) {
+            console.error('Error fetching blockchain data for cost calculation:', blockchainErr.message);
+          }
         }
         
         // Get student account details again for email notification (with updated info)
@@ -674,7 +792,7 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
                       console.error('Error updating temporary password:', err);
                       reject(err);
                     } else {
-                      console.log(`🔑 Temporary password generated for student ID: ${student.id}`);
+                      console.log(`Temporary password generated for student ID: ${student.id}`);
                       resolve();
                     }
                   }
@@ -1289,28 +1407,28 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       });
     }
     
-    console.log('📄 Analyzing credential file:', req.file.originalname);
+    console.log('Analyzing credential file:', req.file.originalname);
     console.log('File path:', uploadedFilePath);
     console.log('File size:', req.file.size, 'bytes');
     
     // Step 1: Extract text with OCR (Tesseract)
-    console.log('🔍 Step 1: Extracting text with OCR...');
+    console.log('Step 1: Extracting text with OCR...');
     const extractedText = await tesseractService.extractTextFromImage(uploadedFilePath);
-    console.log('✅ OCR completed. Text length:', extractedText.length);
+    console.log('OCR completed. Text length:', extractedText.length);
     
     // Step 2: Identify credential type from OCR text
-    console.log('🔍 Step 2: Identifying credential type from OCR...');
+    console.log('Step 2: Identifying credential type from OCR...');
     const ocrCredentialType = tesseractService.identifyCredentialType(extractedText);
     console.log('OCR identified type:', ocrCredentialType);
     
     // Step 3: Use Gemini AI for intelligent extraction
-    console.log('🤖 Step 3: Analyzing with Gemini AI...');
+    console.log('Step 3: Analyzing with Gemini AI...');
     const aiResult = await geminiService.extractCredentialInfo(uploadedFilePath);
     
     let result;
     
     if (aiResult.success) {
-      console.log('✅ AI analysis successful');
+      console.log('AI analysis successful');
       result = {
         success: true,
         data: {
@@ -1329,7 +1447,7 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       };
     } else {
       // Fallback to OCR-only mode
-      console.log('⚠️  AI analysis failed, using OCR-only mode');
+      console.log('AI analysis failed, using OCR-only mode');
       console.log('AI Error:', aiResult.error);
       
       result = {
@@ -1355,10 +1473,10 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
     // Cleanup temporary file
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       fs.unlinkSync(uploadedFilePath);
-      console.log('🗑️  Temporary file cleaned up');
+      console.log('Temporary file cleaned up');
     }
     
-    console.log('✅ Analysis complete');
+    console.log('Analysis complete');
     res.json(result);
     
   } catch (error) {
@@ -1380,40 +1498,245 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
   }
 });
 
-// GET /api/institution/matic-price - Fetch current MATIC price with 24h change and PHP conversion
+// GET /api/institution/transaction-history/:institutionId - Fetch transaction history with gas costs
+router.get('/transaction-history/:institutionId', async (req, res) => {
+  const { institutionId } = req.params;
+  
+  try {
+    // Fetch transaction history from database
+    academicQueries.getTransactionHistory(institutionId, async (err, transactions) => {
+      if (err) {
+        console.error('Error fetching transaction history:', err);
+        return res.status(500).json({ success: false, error: 'Failed to fetch transaction history' });
+      }
+      
+      // Fetch current POL price for cost calculations
+      let polPriceUSD = 0.16; // Fallback price
+      let polPricePHP = 9.0; // Fallback price
+      
+      try {
+        const priceResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+          params: {
+            ids: 'polygon-ecosystem-token',
+            vs_currencies: 'usd,php'
+          },
+          timeout: 5000
+        });
+        
+        const priceData = priceResponse.data['polygon-ecosystem-token'];
+        if (priceData) {
+          polPriceUSD = priceData.usd;
+          polPricePHP = priceData.php;
+        }
+      } catch (priceErr) {
+        console.error('Failed to fetch POL price, using fallback:', priceErr.message);
+      }
+      
+      // Fetch gas details for each transaction from Polygon blockchain
+      const RPC_URL = process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-';
+      
+      const transactionsWithCosts = await Promise.all(
+        transactions.map(async (tx) => {
+          if (!tx.transaction_hash) {
+            return {
+              ...tx,
+              gas_used: null,
+              gas_price_gwei: null,
+              gas_cost_pol: null,
+              gas_cost_usd: null,
+              gas_cost_php: null,
+              error: 'No transaction hash'
+            };
+          }
+          
+          // If transaction costs are already stored in database, use them
+          if (tx.gas_used && tx.gas_cost_pol) {
+            return {
+              ...tx,
+              gas_used: tx.gas_used,
+              gas_price_gwei: parseFloat(tx.gas_price_gwei),
+              gas_cost_pol: parseFloat(tx.gas_cost_pol),
+              gas_cost_usd: parseFloat(tx.gas_cost_usd),
+              gas_cost_php: parseFloat(tx.gas_cost_php),
+              pol_price_usd: parseFloat(tx.pol_price_usd),
+              pol_price_php: parseFloat(tx.pol_price_php)
+            };
+          }
+          
+          // Otherwise, fetch from blockchain (for old transactions without stored costs)
+          try {
+            // Fetch transaction receipt from blockchain
+            const receiptResponse = await axios.post(RPC_URL, {
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'eth_getTransactionReceipt',
+              params: [tx.transaction_hash]
+            }, { timeout: 10000 });
+            
+            const receipt = receiptResponse.data?.result;
+            
+            if (!receipt) {
+              return {
+                ...tx,
+                gas_used: null,
+                gas_price_gwei: null,
+                gas_cost_pol: null,
+                gas_cost_usd: null,
+                gas_cost_php: null,
+                error: 'Transaction not found'
+              };
+            }
+            
+            // Fetch transaction details for gas price
+            const txResponse = await axios.post(RPC_URL, {
+              jsonrpc: '2.0',
+              id: 1,
+              method: 'eth_getTransactionByHash',
+              params: [tx.transaction_hash]
+            }, { timeout: 10000 });
+            
+            const txDetails = txResponse.data?.result;
+            
+            if (!txDetails) {
+              return {
+                ...tx,
+                gas_used: parseInt(receipt.gasUsed, 16),
+                gas_price_gwei: null,
+                gas_cost_pol: null,
+                gas_cost_usd: null,
+                gas_cost_php: null,
+                error: 'Transaction details not found'
+              };
+            }
+            
+            // Calculate gas costs
+            const gasUsed = parseInt(receipt.gasUsed, 16);
+            const gasPriceWei = parseInt(txDetails.gasPrice, 16);
+            const gasPriceGwei = gasPriceWei / 1e9;
+            const gasCostPOL = (gasUsed * gasPriceWei) / 1e18; // Convert Wei to POL
+            const gasCostUSD = gasCostPOL * polPriceUSD;
+            const gasCostPHP = gasCostPOL * polPricePHP;
+            
+            return {
+              ...tx,
+              gas_used: gasUsed,
+              gas_price_gwei: gasPriceGwei,
+              gas_cost_pol: gasCostPOL,
+              gas_cost_usd: gasCostUSD,
+              gas_cost_php: gasCostPHP,
+              pol_price_usd: polPriceUSD,
+              pol_price_php: polPricePHP
+            };
+          } catch (blockchainErr) {
+            console.error(`Error fetching blockchain data for tx ${tx.transaction_hash}:`, blockchainErr.message);
+            return {
+              ...tx,
+              gas_used: null,
+              gas_price_gwei: null,
+              gas_cost_pol: null,
+              gas_cost_usd: null,
+              gas_cost_php: null,
+              error: 'Blockchain fetch failed'
+            };
+          }
+        })
+      );
+      
+      res.json({
+        success: true,
+        transactions: transactionsWithCosts,
+        pol_price_usd: polPriceUSD,
+        pol_price_php: polPricePHP
+      });
+    });
+  } catch (error) {
+    console.error('Error in transaction history endpoint:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+});
+
+// Cache for POL price to avoid hitting CoinGecko rate limits
+let polPriceCache = {
+  data: null,
+  timestamp: 0,
+  CACHE_DURATION: 60000 // 1 minute cache
+};
+
+// GET /api/institution/matic-price - Fetch current POL (Polygon) price with 24h change and PHP conversion
 router.get('/matic-price', async (req, res) => {
   try {
-    // Fetch current price in USD and PHP
-    const priceResponse = await axios.get('https://min-api.cryptocompare.com/data/price?fsym=MATIC&tsyms=USD,PHP', {
-      timeout: 5000
+    // Check if we have cached data that's still valid
+    const now = Date.now();
+    if (polPriceCache.data && (now - polPriceCache.timestamp) < polPriceCache.CACHE_DURATION) {
+      console.log('Returning cached POL price data');
+      return res.json(polPriceCache.data);
+    }
+    
+    // Try CoinGecko simple price API first (more reliable, less rate limiting)
+    const response = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+      params: {
+        ids: 'polygon-ecosystem-token',
+        vs_currencies: 'usd,php',
+        include_24hr_change: true,
+        include_24hr_vol: true
+      },
+      timeout: 10000,
+      headers: {
+        'Accept': 'application/json'
+      }
     });
     
-    // Fetch 24h price change data
-    const changeResponse = await axios.get('https://min-api.cryptocompare.com/data/pricemultifull?fsyms=MATIC&tsyms=USD', {
-      timeout: 5000
-    });
+    console.log('CoinGecko Simple API Response:', JSON.stringify(response.data, null, 2));
     
-    if (priceResponse.data && priceResponse.data.USD && priceResponse.data.PHP) {
-      const changeData = changeResponse.data?.RAW?.MATIC?.USD || {};
-      
-      res.json({ 
+    const data = response.data['polygon-ecosystem-token'];
+    
+    if (data && data.usd && data.php) {
+      const responseData = { 
         success: true, 
-        priceUSD: priceResponse.data.USD,
-        pricePHP: priceResponse.data.PHP,
-        change24h: changeData.CHANGEPCT24HOUR || 0,
-        changeValue24h: changeData.CHANGE24HOUR || 0
-      });
+        priceUSD: data.usd,
+        pricePHP: data.php,
+        change24h: data.usd_24h_change || 0,
+        volume24h: data.usd_24h_vol || 0,
+        lastUpdated: Math.floor(Date.now() / 1000)
+      };
+      
+      // Update cache
+      polPriceCache.data = responseData;
+      polPriceCache.timestamp = now;
+      
+      res.json(responseData);
     } else {
+      console.error('Invalid data structure from CoinGecko:', response.data);
+      
+      // If we have old cached data, return it instead of failing
+      if (polPriceCache.data) {
+        console.log('Returning stale cached data due to API error');
+        return res.json(polPriceCache.data);
+      }
+      
       res.status(404).json({ 
         success: false, 
-        error: 'Price data not available' 
+        error: 'Price data not available',
+        debug: response.data
       });
     }
   } catch (error) {
-    console.error('Failed to fetch MATIC price:', error.message);
+    console.error('Failed to fetch POL price:', error.message);
+    if (error.response) {
+      console.error('Response status:', error.response.status);
+      console.error('Response data:', error.response.data);
+    }
+    
+    // If we have cached data (even if stale), return it instead of failing
+    if (polPriceCache.data) {
+      console.log('Returning cached data due to API error');
+      return res.json(polPriceCache.data);
+    }
+    
     res.status(500).json({ 
       success: false, 
-      error: 'Failed to fetch MATIC price' 
+      error: 'Failed to fetch POL price from CoinGecko',
+      details: error.message
     });
   }
 });

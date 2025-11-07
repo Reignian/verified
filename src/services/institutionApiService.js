@@ -489,3 +489,16 @@ export const fetchMaticPrice = async () => {
     throw error;
   }
 };
+
+// Fetch transaction history with gas costs
+export const fetchTransactionHistory = async (institutionId) => {
+  try {
+    const response = await axios.get(`${API_URL}/institution/transaction-history/${institutionId}`, {
+      timeout: 30000 // 30 seconds timeout for blockchain queries
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching transaction history:', error);
+    throw error;
+  }
+};
