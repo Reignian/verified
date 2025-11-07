@@ -147,20 +147,21 @@ function Login({ onLoginSuccess }) {
 
           <div className="mb-3">
             <label htmlFor="password" className="form-label">Password</label>
-            <div className="input-group">
+            <div className="password-input-wrapper">
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 name="password"
-                className="form-control"
+                className="form-control password-input-with-icon"
                 value={formData.password}
                 onChange={handleInputChange}
                 required
               />
               <button
                 type="button"
-                className="btn btn-outline-secondary"
+                className="password-toggle-icon"
                 onClick={() => setShowPassword(!showPassword)}
+                tabIndex="-1"
               >
                 <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
               </button>

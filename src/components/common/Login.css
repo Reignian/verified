@@ -141,6 +141,46 @@
   margin-bottom: 16px !important;
 }
 
+/* Password input with icon inside */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-with-icon {
+  padding-right: 45px !important;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: var(--muted-text, #6b7280);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  border-radius: 0 12px 12px 0;
+}
+
+.password-toggle-icon:hover {
+  color: var(--primary-color, #4F46E5);
+  background: color-mix(in srgb, var(--primary-color, #4F46E5) 8%, transparent);
+}
+
+.password-toggle-icon:active {
+  transform: scale(0.95);
+}
+
+.password-toggle-icon i {
+  font-size: 16px;
+}
+
 /* Signup Divider */
 .login-toggle {
   display: flex;

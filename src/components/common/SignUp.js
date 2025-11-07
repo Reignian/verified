@@ -341,7 +341,7 @@ function SignUp() {
 
                 <div className="signup-form-group">
                   <label htmlFor="password">Password *</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showPassword ? "text" : "password"}
                       id="password"
@@ -350,12 +350,13 @@ function SignUp() {
                       onChange={handleInputChange}
                       required
                       minLength="6"
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowPassword(!showPassword)}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -366,7 +367,7 @@ function SignUp() {
 
               <div className="signup-form-group full-width">
                 <label htmlFor="confirmPassword">Confirm Password *</label>
-                <div className="input-group">
+                <div className="password-input-wrapper">
                   <input
                     type={showConfirmPassword ? "text" : "password"}
                     id="confirmPassword"
@@ -374,12 +375,13 @@ function SignUp() {
                     value={formData.confirmPassword}
                     onChange={handleInputChange}
                     required
-                    className="form-control"
+                    className="form-control password-input-with-icon"
                   />
                   <button
                     type="button"
-                    className="btn btn-outline-secondary"
+                    className="password-toggle-icon"
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex="-1"
                   >
                     <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>

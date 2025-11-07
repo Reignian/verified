@@ -22,7 +22,6 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
   const [programs, setPrograms] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [showProgramDropdown, setShowProgramDropdown] = useState(false);
-  const [emailNotificationUrl, setEmailNotificationUrl] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   // Load programs when modal opens
@@ -30,6 +29,7 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
     if (show && institutionId) {
       loadPrograms();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [show, institutionId]);
 
   const loadPrograms = async () => {
@@ -347,20 +347,21 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
                 <label htmlFor="password" className="form-label">
                   Password <span className="text-muted" style={{ fontWeight: 'normal' }}>(Optional)</span>
                 </label>
-                <div className="input-group">
+                <div className="password-input-wrapper">
                   <input
                     type={showPassword ? "text" : "password"}
                     id="password"
                     name="password"
                     value={formData.password}
                     onChange={handleChange}
-                    className="form-control"
+                    className="form-control password-input-with-icon"
                     placeholder="Leave blank for auto-generated password"
                   />
                   <button
                     type="button"
-                    className="btn btn-outline-secondary"
+                    className="password-toggle-icon"
                     onClick={() => setShowPassword(!showPassword)}
+                    tabIndex="-1"
                   >
                     <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                   </button>

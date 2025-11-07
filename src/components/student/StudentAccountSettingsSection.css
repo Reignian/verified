@@ -414,9 +414,67 @@
 
 /* Profile Actions */
 .profile-actions {
-  text-align: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
   padding-top: 20px;
   border-top: 2px solid #f0f0f0;
+}
+
+.profile-actions .action-btn {
+  flex: 1 1 auto;
+  min-width: 180px;
+  max-width: 220px;
+  padding: 12px 20px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Password input with icon inside */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-with-icon {
+  padding-right: 45px !important;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease, background 0.2s ease;
+  border-radius: 0 8px 8px 0;
+}
+
+.password-toggle-icon:hover {
+  color: #4050b5;
+  background: rgba(64, 80, 181, 0.08);
+}
+
+.password-toggle-icon:active {
+  transform: scale(0.95);
+}
+
+.password-toggle-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle-icon i {
+  font-size: 16px;
 }
 
 /* Unlink Modal */
@@ -602,6 +660,16 @@
   
   .profile-card {
     padding: 20px;
+  }
+  
+  .profile-actions {
+    flex-direction: column;
+  }
+  
+  .profile-actions .action-btn {
+    width: 100%;
+    max-width: 100%;
+    min-width: 100%;
   }
 }
 

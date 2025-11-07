@@ -21,11 +21,14 @@ function StaffManagement({ institutionId, profile }) {
   const [staffLoading, setStaffLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   useEffect(() => {
     if (institutionId) {
       loadStaffList();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [institutionId]);
 
   const loadStaffList = async () => {
@@ -279,15 +282,25 @@ function StaffManagement({ institutionId, profile }) {
                 <label htmlFor="staff_password">
                   Password <span className="required">*</span>
                 </label>
-                <input
-                  type="password"
-                  id="staff_password"
-                  name="password"
-                  className={`form-control ${staffValidationErrors.password ? 'is-invalid' : ''}`}
-                  value={staffFormData.password}
-                  onChange={handleStaffChange}
-                  placeholder="Enter password"
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    id="staff_password"
+                    name="password"
+                    className={`form-control password-input-with-icon ${staffValidationErrors.password ? 'is-invalid' : ''}`}
+                    value={staffFormData.password}
+                    onChange={handleStaffChange}
+                    placeholder="Enter password"
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-icon"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex="-1"
+                  >
+                    <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
                 {staffValidationErrors.password && (
                   <div className="invalid-feedback">{staffValidationErrors.password}</div>
                 )}
@@ -297,15 +310,25 @@ function StaffManagement({ institutionId, profile }) {
                 <label htmlFor="staff_confirmPassword">
                   Confirm Password <span className="required">*</span>
                 </label>
-                <input
-                  type="password"
-                  id="staff_confirmPassword"
-                  name="confirmPassword"
-                  className={`form-control ${staffValidationErrors.confirmPassword ? 'is-invalid' : ''}`}
-                  value={staffFormData.confirmPassword}
-                  onChange={handleStaffChange}
-                  placeholder="Confirm password"
-                />
+                <div className="password-input-wrapper">
+                  <input
+                    type={showConfirmPassword ? "text" : "password"}
+                    id="staff_confirmPassword"
+                    name="confirmPassword"
+                    className={`form-control password-input-with-icon ${staffValidationErrors.confirmPassword ? 'is-invalid' : ''}`}
+                    value={staffFormData.confirmPassword}
+                    onChange={handleStaffChange}
+                    placeholder="Confirm password"
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle-icon"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                    tabIndex="-1"
+                  >
+                    <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                  </button>
+                </div>
                 {staffValidationErrors.confirmPassword && (
                   <div className="invalid-feedback">{staffValidationErrors.confirmPassword}</div>
                 )}

@@ -23,6 +23,7 @@ function InstitutionManagement({ onStatsUpdate }) {
     institution_name: ''
   });
   const [submitting, setSubmitting] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   useEffect(() => {
     loadInstitutions();
@@ -364,16 +365,26 @@ function InstitutionManagement({ onStatsUpdate }) {
                       <label htmlFor="password" className="form-label">
                         Password *
                       </label>
-                      <input
-                        type="password"
-                        className="form-control"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        required
-                        placeholder="Secure password for the account"
-                      />
+                      <div className="password-input-wrapper">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          className="form-control password-input-with-icon"
+                          id="password"
+                          name="password"
+                          value={formData.password}
+                          onChange={handleInputChange}
+                          required
+                          placeholder="Secure password for the account"
+                        />
+                        <button
+                          type="button"
+                          className="password-toggle-icon"
+                          onClick={() => setShowPassword(!showPassword)}
+                          tabIndex="-1"
+                        >
+                          <i className={`fas ${showPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
+                        </button>
+                      </div>
                     </div>
                   )}
 

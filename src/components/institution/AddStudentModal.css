@@ -346,3 +346,43 @@
 .program-dropdown::-webkit-scrollbar-thumb:hover {
   background: #a0aec0;
 }
+
+/* Password input with icon inside */
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.password-input-with-icon {
+  padding-right: 45px !important;
+}
+
+.password-toggle-icon {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  width: 44px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+  border-radius: 0 8px 8px 0;
+}
+
+.password-toggle-icon:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.08);
+}
+
+.password-toggle-icon:active {
+  transform: scale(0.95);
+}
+
+.password-toggle-icon i {
+  font-size: 16px;
+}

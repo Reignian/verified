@@ -469,7 +469,7 @@ function StudentAccountSettingsSection({ user }) {
                 <div className="profile-actions mt-4">
                   <button 
                     type="button" 
-                    className="btn btn-outline-primary me-2"
+                    className="btn btn-outline-primary action-btn"
                     onClick={openChangeUsernameModal}
                   >
                     <i className="fas fa-user me-2"></i>
@@ -477,7 +477,7 @@ function StudentAccountSettingsSection({ user }) {
                   </button>
                   <button 
                     type="button" 
-                    className="btn btn-outline-primary me-2"
+                    className="btn btn-outline-primary action-btn"
                     onClick={openChangeEmailModal}
                   >
                     <i className="fas fa-envelope me-2"></i>
@@ -485,7 +485,7 @@ function StudentAccountSettingsSection({ user }) {
                   </button>
                   <button 
                     type="button" 
-                    className="btn btn-outline-primary"
+                    className="btn btn-outline-primary action-btn"
                     onClick={openChangePasswordModal}
                   >
                     <i className="fas fa-key me-2"></i>
@@ -544,10 +544,10 @@ function StudentAccountSettingsSection({ user }) {
                   <div className="row">
                     <div className="col-md-12 mb-3">
                       <label className="form-label">Password</label>
-                      <div className="input-group">
+                      <div className="password-input-wrapper">
                         <input
                           type={showLinkPassword ? "text" : "password"}
-                          className="form-control"
+                          className="form-control password-input-with-icon"
                           placeholder="Enter your password for that account"
                           name="linkPassword"
                           value={linkPassword}
@@ -556,8 +556,9 @@ function StudentAccountSettingsSection({ user }) {
                         />
                         <button
                           type="button"
-                          className="btn btn-outline-secondary"
+                          className="password-toggle-icon"
                           onClick={() => setShowLinkPassword(!showLinkPassword)}
+                          tabIndex="-1"
                         >
                           <i className={`fas ${showLinkPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>
@@ -647,10 +648,10 @@ function StudentAccountSettingsSection({ user }) {
                         <div className="alert alert-danger" role="alert">{unlinkModalError}</div>
                       )}
                       <label className="form-label">Password</label>
-                      <div className="input-group">
+                      <div className="password-input-wrapper">
                         <input
                           type={showUnlinkPassword ? "text" : "password"}
-                          className="form-control"
+                          className="form-control password-input-with-icon"
                           value={unlinkPassword}
                           onChange={(e) => setUnlinkPassword(e.target.value)}
                           autoFocus
@@ -659,9 +660,10 @@ function StudentAccountSettingsSection({ user }) {
                         />
                         <button
                           type="button"
-                          className="btn btn-outline-secondary"
+                          className="password-toggle-icon"
                           onClick={() => setShowUnlinkPassword(!showUnlinkPassword)}
                           disabled={unlinkSubmitting}
+                          tabIndex="-1"
                         >
                           <i className={`fas ${showUnlinkPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                         </button>
@@ -734,10 +736,10 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">Confirm Password</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showUsernamePassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                       value={usernamePassword}
                       onChange={(e) => setUsernamePassword(e.target.value)}
                       disabled={changeUsernameSubmitting}
@@ -745,9 +747,10 @@ function StudentAccountSettingsSection({ user }) {
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowUsernamePassword(!showUsernamePassword)}
                       disabled={changeUsernameSubmitting}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showUsernamePassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -827,10 +830,10 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">Confirm Password</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showEmailPassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                       value={emailPassword}
                       onChange={(e) => setEmailPassword(e.target.value)}
                       disabled={changeEmailSubmitting}
@@ -838,9 +841,10 @@ function StudentAccountSettingsSection({ user }) {
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowEmailPassword(!showEmailPassword)}
                       disabled={changeEmailSubmitting}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showEmailPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -897,10 +901,10 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">Current Password</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showCurrentPassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
                       disabled={changePasswordSubmitting}
@@ -909,9 +913,10 @@ function StudentAccountSettingsSection({ user }) {
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowCurrentPassword(!showCurrentPassword)}
                       disabled={changePasswordSubmitting}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -920,10 +925,10 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">New Password</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showNewPassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       disabled={changePasswordSubmitting}
@@ -932,9 +937,10 @@ function StudentAccountSettingsSection({ user }) {
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowNewPassword(!showNewPassword)}
                       disabled={changePasswordSubmitting}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showNewPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -944,10 +950,10 @@ function StudentAccountSettingsSection({ user }) {
 
                 <div className="mb-3">
                   <label className="form-label">Confirm New Password</label>
-                  <div className="input-group">
+                  <div className="password-input-wrapper">
                     <input
                       type={showConfirmPassword ? "text" : "password"}
-                      className="form-control"
+                      className="form-control password-input-with-icon"
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
                       disabled={changePasswordSubmitting}
@@ -955,9 +961,10 @@ function StudentAccountSettingsSection({ user }) {
                     />
                     <button
                       type="button"
-                      className="btn btn-outline-secondary"
+                      className="password-toggle-icon"
                       onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                       disabled={changePasswordSubmitting}
+                      tabIndex="-1"
                     >
                       <i className={`fas ${showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'}`}></i>
                     </button>
@@ -967,7 +974,7 @@ function StudentAccountSettingsSection({ user }) {
               <div className="modal-footer">
                 <button 
                   type="button" 
-                  className="btn btn-secondary" 
+                  className="btn btn-secondary btn-sm" 
                   onClick={closeChangePasswordModal} 
                   disabled={changePasswordSubmitting}
                 >
