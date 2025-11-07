@@ -4,31 +4,6 @@
 const nodemailer = require('nodemailer');
 const SystemSettingsService = require('./systemSettingsService');
 
-// Retry helper function with exponential backoff
-const retryWithBackoff = async (fn, maxRetries = 3, initialDelay = 2000) => {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn();
-    } catch (error) {
-      const isLastAttempt = attempt === maxRetries;
-      const isRetriableError = 
-        error.code === 'ETIMEDOUT' || 
-        error.code === 'ECONNREFUSED' || 
-        error.code === 'ENOTFOUND' ||
-        error.message.includes('timeout');
-      
-      if (isLastAttempt || !isRetriableError) {
-        throw error;
-      }
-      
-      const delay = initialDelay * Math.pow(2, attempt - 1);
-      console.log(`[RETRY] Attempt ${attempt} failed. Retrying in ${delay}ms...`);
-      console.log(`   Error: ${error.message}`);
-      await new Promise(resolve => setTimeout(resolve, delay));
-    }
-  }
-};
-
 // Create reusable transporter with timeout and connection pooling
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -39,21 +14,20 @@ const createTransporter = () => {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
     },
-    // Extended timeout settings for Railway hosting environment
-    connectionTimeout: 60000,  // 60 seconds to establish connection (increased from 10s)
-    greetingTimeout: 30000,    // 30 seconds to wait for greeting (increased from 10s)
-    socketTimeout: 60000,      // 60 seconds for socket inactivity (increased from 30s)
-    // Disable connection pooling to avoid connection reuse issues
-    pool: false,
-    // TLS settings optimized for cloud hosting
+    // Connection timeout settings (critical for Railway hosting)
+    connectionTimeout: 10000, // 10 seconds to establish connection
+    greetingTimeout: 10000,   // 10 seconds to wait for greeting
+    socketTimeout: 30000,      // 30 seconds for socket inactivity
+    // Connection pooling for better performance
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 10,
+    // Retry settings
     tls: {
-      rejectUnauthorized: false,
-      minVersion: 'TLSv1.2',
-      ciphers: 'SSLv3'
+      rejectUnauthorized: false, // Allow self-signed certificates if needed
+      minVersion: 'TLSv1.2'
     },
-    // Force IPv4 (some cloud providers have IPv6 routing issues)
-    dnsTimeout: 30000,
-    // Debug logging
+    // Debug logging (set to true if you need to troubleshoot)
     debug: process.env.NODE_ENV !== 'production',
     logger: process.env.NODE_ENV !== 'production'
   });
@@ -141,7 +115,7 @@ ${signature}
     };
     
     // Add timeout wrapper for sendMail operation
-    const sendMailWithTimeout = (transporter, mailOptions, timeout = 90000) => {
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
       return Promise.race([
         transporter.sendMail(mailOptions),
         new Promise((_, reject) => 
@@ -150,10 +124,7 @@ ${signature}
       ]);
     };
     
-    // Wrap sendMail with retry logic
-    const info = await retryWithBackoff(async () => {
-      return await sendMailWithTimeout(transporter, mailOptions);
-    });
+    const info = await sendMailWithTimeout(transporter, mailOptions);
     
     console.log('[SUCCESS] Welcome email sent successfully!');
     console.log(`   To: ${studentEmail}`);
@@ -320,7 +291,7 @@ ${signature}
     };
     
     // Add timeout wrapper for sendMail operation
-    const sendMailWithTimeout = (transporter, mailOptions, timeout = 90000) => {
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
       return Promise.race([
         transporter.sendMail(mailOptions),
         new Promise((_, reject) => 
@@ -329,10 +300,7 @@ ${signature}
       ]);
     };
     
-    // Wrap sendMail with retry logic
-    const info = await retryWithBackoff(async () => {
-      return await sendMailWithTimeout(transporter, mailOptions);
-    });
+    const info = await sendMailWithTimeout(transporter, mailOptions);
     
     console.log('[SUCCESS] Credential notification email sent successfully!');
     console.log(`   To: ${studentEmail}`);
