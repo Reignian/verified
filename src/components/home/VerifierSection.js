@@ -313,14 +313,15 @@ function VerifierSection() {
   const runOnChainIntegrityChecks = async (credential) => {
     const blockchainId = credential?.blockchain_id;
     if (!blockchainId) {
-      console.warn('Credential has no blockchain ID - may have been uploaded before blockchain integration');
-      // Return as valid with warning - credential passed all other checks
+      console.warn('No blockchain ID - credential uploaded before blockchain integration');
       return { 
         isValid: true, 
         warning: 'Blockchain verification unavailable',
         message: 'This credential was uploaded before blockchain integration or blockchain transaction failed. However, it passed database verification and AI visual comparison.'
       };
     }
+    
+    console.log('Blockchain verification for ID:', blockchainId);
     
     try {
       const chainData = await blockchainService.fetchOnChainCredential(blockchainId);
@@ -329,19 +330,18 @@ function VerifierSection() {
       const exists = !!chainVerify?.exists;
       
       if (!exists) {
+        console.error('Credential not found on blockchain');
         return { isValid: false, error: 'Credential not found on blockchain' };
       }
 
       // Check blockchain issuer against all institution addresses (current + historical)
       const chainIssuer = (chainData.issuer || '').trim().toLowerCase();
-      const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase(); // Current address
+      const dbIssuer = (credential.issuer_public_address || '').trim().toLowerCase();
       
-      // Get all institution addresses (includes historical addresses)
       const institutionAddresses = credential.institution_addresses 
         ? credential.institution_addresses.split(',').map(addr => addr.trim().toLowerCase())
         : [dbIssuer];
       
-      // Check if blockchain issuer matches ANY of the institution's addresses
       const issuerMatch = chainIssuer && institutionAddresses.length > 0 
         ? institutionAddresses.includes(chainIssuer)
         : false;
@@ -357,12 +357,10 @@ function VerifierSection() {
       
       if (dbCid && chainCidHashHex) {
         try {
-          // Download file from IPFS and compute file content hash for verification
           const ipfsUrl = `https://amethyst-tropical-jackal-879.mypinata.cloud/ipfs/${dbCid}`;
           const response = await fetch(ipfsUrl);
           
           if (response.ok) {
-            // Compute SHA-256 hash of file content (same as issuance process)
             const fileBuffer = await response.arrayBuffer();
             const hashBuffer = await crypto.subtle.digest('SHA-256', fileBuffer);
             const hashArray = Array.from(new Uint8Array(hashBuffer));
@@ -391,24 +389,18 @@ function VerifierSection() {
           ? new Date(chainData.createdAt * 1000).toISOString().slice(0, 10)
           : null;
         dateMatch = dbDayForMatch && chainDayForMatch ? dbDayForMatch === chainDayForMatch : false;
-      } catch {
+      } catch (error) {
         dateMatch = false;
       }
 
       const allVerified = issuerMatch && studentIdMatch && cidHashMatch && dateMatch;
-
-      // Temporary debug logging to identify the issue
-      if (!allVerified) {
-        console.group('Blockchain Verification Debug');
-        console.log('Credential ID:', blockchainId);
-        console.log('Verification failed. Details:');
-        console.log('  Issuer Match:', issuerMatch, '- Expected:', dbIssuer, 'Got:', chainIssuer);
-        console.log('  Student ID Match:', studentIdMatch, '- Expected:', dbStudentId, 'Got:', chainStudentId);
-        console.log('  CID Hash Match:', cidHashMatch, '- Expected:', computedCidHashHex, 'Got:', chainCidHashHex);
-        console.log('  Date Match:', dateMatch, '- Expected:', dbDayForMatch, 'Got:', chainDayForMatch);
-        console.log('  Database CID:', dbCid);
-        console.groupEnd();
-      }
+      
+      console.log('Blockchain verification result:', allVerified ? 'PASSED' : 'FAILED', {
+        issuerMatch,
+        studentIdMatch,
+        cidHashMatch,
+        dateMatch
+      });
 
       const indicators = {
         isValid: allVerified,
@@ -430,15 +422,20 @@ function VerifierSection() {
         }
       };
 
+      if (!allVerified) {
+        return { ...indicators, error: 'Data integrity check failed' };
+      }
 
       return indicators;
-    } catch (err) {
-      return { isValid: false, error: 'Blockchain verification failed: ' + err.message };
+
+    } catch (error) {
+      console.error('Blockchain verification error:', error.message);
+      return { isValid: false, error: 'Blockchain verification error: ' + error.message };
     }
   };
 
-  const handleVerify = async (codeArg) => {
-    const code = (typeof codeArg === 'string' ? codeArg : verificationInput).trim();
+  const handleVerify = async () => {
+    const code = verificationInput.trim();
     if (code) {
       setIsLoading(true);
       
@@ -633,6 +630,7 @@ function VerifierSection() {
         await new Promise(resolve => setTimeout(resolve, 800));
         
         // Stage 5: Blockchain verification (80-100%)
+        console.log('Starting blockchain verification for', response.verifiedMatches.length, 'credential(s)');
         setFileVerificationProgress('Step 5/5: Verifying blockchain integrity...');
         
         // Run blockchain verification for each verified match
@@ -660,26 +658,29 @@ function VerifierSection() {
             student_id: credentialData.studentId
           };
           
-          console.log('Normalized credential for blockchain check:', credential);
-          console.log('blockchain_id (snake_case):', credential.blockchain_id);
-          
           if (response.verifiedMatches.length > 1) {
             setFileVerificationProgress(`Step 5/5: Verifying blockchain for credential ${i + 1}/${response.verifiedMatches.length}...`);
           }
           
-          // Use the same blockchain verification as access code method
           const blockchainResult = await runOnChainIntegrityChecks(credential);
           
           if (blockchainResult.isValid) {
+            if (blockchainResult.warning) {
+              console.warn('Warning:', blockchainResult.warning);
+            }
             verifiedCredentials.push(credential);
           } else {
-            // Track blockchain failures with details (same as access code verification)
+            console.error('Blockchain verification failed for', credential.recipient_name, ':', blockchainResult.error);
             blockchainErrors.push({
               credential: credential.recipient_name,
               error: blockchainResult.error || 'Data integrity compromised'
             });
-            console.log('Blockchain verification failed for:', credential.recipient_name, blockchainResult.error);
           }
+        }
+        
+        console.log('Blockchain verification complete:', verifiedCredentials.length, '/', response.verifiedMatches.length, 'passed');
+        if (blockchainErrors.length > 0) {
+          console.error('Failed credentials:', blockchainErrors);
         }
         
         if (verifiedCredentials.length > 0) {
