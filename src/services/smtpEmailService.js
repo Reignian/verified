@@ -4,6 +4,28 @@
 const nodemailer = require('nodemailer');
 const SystemSettingsService = require('./systemSettingsService');
 
+// Retry helper function for transient network errors
+const retryOperation = async (operation, maxRetries = 3, delayMs = 5000) => {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      const isRetryable = error.code === 'ETIMEDOUT' || 
+                          error.code === 'ECONNRESET' || 
+                          error.code === 'ESOCKET' ||
+                          error.message.includes('timeout');
+      
+      if (attempt === maxRetries || !isRetryable) {
+        throw error;
+      }
+      
+      console.log(`[RETRY] Attempt ${attempt}/${maxRetries} failed: ${error.message}`);
+      console.log(`[RETRY] Waiting ${delayMs}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+};
+
 // Create reusable transporter with timeout and connection pooling
 const createTransporter = () => {
   return nodemailer.createTransport({
@@ -15,13 +37,11 @@ const createTransporter = () => {
       pass: process.env.EMAIL_PASS,
     },
     // Connection timeout settings (critical for Railway hosting)
-    connectionTimeout: 10000, // 10 seconds to establish connection
-    greetingTimeout: 10000,   // 10 seconds to wait for greeting
-    socketTimeout: 30000,      // 30 seconds for socket inactivity
-    // Connection pooling for better performance
-    pool: true,
-    maxConnections: 5,
-    maxMessages: 10,
+    connectionTimeout: 60000, // 60 seconds to establish connection (increased for hosted)
+    greetingTimeout: 60000,   // 60 seconds to wait for greeting (increased for hosted)
+    socketTimeout: 120000,    // 120 seconds for socket inactivity (increased for hosted)
+    // Connection pooling disabled for hosted environments (can cause delays)
+    pool: false, // Set to false to avoid connection pool issues in hosted environments
     // Retry settings
     tls: {
       rejectUnauthorized: false, // Allow self-signed certificates if needed
@@ -115,7 +135,7 @@ ${signature}
     };
     
     // Add timeout wrapper for sendMail operation
-    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 180000) => { // 3 minutes for hosted environments
       return Promise.race([
         transporter.sendMail(mailOptions),
         new Promise((_, reject) => 
@@ -124,7 +144,12 @@ ${signature}
       ]);
     };
     
-    const info = await sendMailWithTimeout(transporter, mailOptions);
+    // Wrap with retry logic for hosted environments
+    const info = await retryOperation(
+      () => sendMailWithTimeout(transporter, mailOptions),
+      3, // 3 retries
+      5000 // 5 second delay between retries
+    );
     
     console.log('[SUCCESS] Welcome email sent successfully!');
     console.log(`   To: ${studentEmail}`);
@@ -291,7 +316,7 @@ ${signature}
     };
     
     // Add timeout wrapper for sendMail operation
-    const sendMailWithTimeout = (transporter, mailOptions, timeout = 45000) => {
+    const sendMailWithTimeout = (transporter, mailOptions, timeout = 180000) => { // 3 minutes for hosted environments
       return Promise.race([
         transporter.sendMail(mailOptions),
         new Promise((_, reject) => 
@@ -300,7 +325,12 @@ ${signature}
       ]);
     };
     
-    const info = await sendMailWithTimeout(transporter, mailOptions);
+    // Wrap with retry logic for hosted environments
+    const info = await retryOperation(
+      () => sendMailWithTimeout(transporter, mailOptions),
+      3, // 3 retries
+      5000 // 5 second delay between retries
+    );
     
     console.log('[SUCCESS] Credential notification email sent successfully!');
     console.log(`   To: ${studentEmail}`);

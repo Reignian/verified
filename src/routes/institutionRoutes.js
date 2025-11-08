@@ -339,13 +339,14 @@ router.post('/students/add/:institutionId', (req, res) => {
   }
 
   // Auto-generate username if not provided
-  if (!username) {
+  if (!username || username.trim() === '') {
     username = `${first_name.toLowerCase()}${student_id}`;
   }
 
-  // Auto-generate password if not provided
-  if (!password) {
-    password = 'student123'; // Default password, will be hashed
+  // Auto-generate secure random password if not provided
+  if (!password || password.trim() === '') {
+    const { generateRandomPassword } = require('../utils/passwordGenerator');
+    password = generateRandomPassword(10); // 10-character random password
   }
 
   academicQueries.checkStudentIdExists(student_id, (err, exists) => {
@@ -770,36 +771,28 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
             
             let passwordToSend = null;
             
-            // If this is the first credential, generate a temporary password
+            // If this is the first credential, fetch the stored plain password from database
             if (isFirstCredential) {
-              const bcrypt = require('bcrypt');
-              const SALT_ROUNDS = 10;
+              // Use the plain_password from the student object (already fetched from database)
+              passwordToSend = student.plain_password;
               
-              // Generate temporary password (you can customize this)
-              const tempPassword = 'student123'; // Or generate random: Math.random().toString(36).slice(-8)
-              
-              // Hash the temporary password
-              const hashedPassword = await bcrypt.hash(tempPassword, SALT_ROUNDS);
-              
-              // Update the account password
+              // Clear the plain_password from database after sending email for security
               const db = require('../config/database');
               await new Promise((resolve, reject) => {
                 db.query(
-                  'UPDATE account SET password = ? WHERE id = ?',
-                  [hashedPassword, student.id],
+                  'UPDATE account SET plain_password = NULL WHERE id = ?',
+                  [student.id],
                   (err) => {
                     if (err) {
-                      console.error('Error updating temporary password:', err);
+                      console.error('Error clearing plain password:', err);
                       reject(err);
                     } else {
-                      console.log(`Temporary password generated for student ID: ${student.id}`);
+                      console.log(`Plain password cleared for student ID: ${student.id} after first credential email`);
                       resolve();
                     }
                   }
                 );
               });
-              
-              passwordToSend = tempPassword;
             }
             
             // Send automated credential notification email

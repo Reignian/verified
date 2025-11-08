@@ -304,7 +304,12 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
           }
 
           // Hash password before storing
-          const plainPassword = student.password || 'student123';
+          // Generate secure random password if not provided
+          let plainPassword = student.password;
+          if (!plainPassword || plainPassword.trim() === '') {
+            const { generateRandomPassword } = require('../utils/passwordGenerator');
+            plainPassword = generateRandomPassword(10);
+          }
           bcrypt.hash(plainPassword, SALT_ROUNDS, (err, hashedPassword) => {
             if (err) {
               return conn.rollback(() => {
@@ -320,14 +325,15 @@ const bulkCreateStudents = async (studentsData, institutionId) => {
             }
 
             const accountQuery = `
-              INSERT INTO account (account_type, username, password, email) 
-              VALUES ('student', ?, ?, ?)
+              INSERT INTO account (account_type, username, password, email, plain_password) 
+              VALUES ('student', ?, ?, ?, ?)
             `;
             
             const accountValues = [
               student.username || `${student.first_name.toLowerCase()}${student.student_id}`,
               hashedPassword,
-              student.email || `${student.username || student.first_name}@student.edu`
+              student.email || `${student.username || student.first_name}@student.edu`,
+              plainPassword
             ];
 
             conn.query(accountQuery, accountValues, (err, accountResult) => {
@@ -518,11 +524,11 @@ const addStudent = (studentData, institutionId, callback) => {
         }
 
         const accountQuery = `
-          INSERT INTO account (account_type, username, password, email) 
-          VALUES ('student', ?, ?, ?)
+          INSERT INTO account (account_type, username, password, email, plain_password) 
+          VALUES ('student', ?, ?, ?, ?)
         `;
 
-        conn.query(accountQuery, [username, hashedPassword, email], (err, accountResult) => {
+        conn.query(accountQuery, [username, hashedPassword, email, password], (err, accountResult) => {
           if (err) {
             return conn.rollback(() => {
               conn.release();
@@ -1134,6 +1140,7 @@ const getStudentAccountDetails = (studentId, callback) => {
       s.last_name,
       a.username,
       a.email,
+      a.plain_password,
       a.created_at,
       (SELECT COUNT(*) FROM credential WHERE owner_id = s.id AND status = 'blockchain_verified') as credential_count
     FROM student s
