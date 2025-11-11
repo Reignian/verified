@@ -100,11 +100,6 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
       const result = await addStudent(studentData, institutionId);
       setSuccess(result.message || 'Student account created successfully!');
       
-      // Store email notification URL if available
-      if (result.email_notification_url) {
-        setEmailNotificationUrl(result.email_notification_url);
-      }
-      
       // Log the activity
       const userId = localStorage.getItem('userId');
       const studentFullName = `${formData.first_name} ${formData.middle_name ? formData.middle_name + ' ' : ''}${formData.last_name}`.trim();
@@ -128,13 +123,11 @@ const AddStudentModal = ({ show, onClose, institutionId, onStudentAdded }) => {
         onStudentAdded(result.student);
       }
 
-      // Don't auto-close if email notification is available
-      if (!result.email_notification_url) {
-        setTimeout(() => {
-          onClose();
-          setSuccess('');
-        }, 1500);
-      }
+      // Auto-close modal after success
+      setTimeout(() => {
+        onClose();
+        setSuccess('');
+      }, 1500);
 
     } catch (err) {
       const errorMessage = err.response?.data?.error || 'Failed to create student account';
