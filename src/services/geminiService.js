@@ -4,6 +4,7 @@
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 const fs = require('fs').promises;
 const path = require('path');
+const { logMetric } = require('./metricsService');
 
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
@@ -92,6 +93,7 @@ async function fileToGenerativePart(filePath) {
  * @returns {Promise<Object>} - Analysis result
  */
 async function analyzeCredentialType(filePath) {
+  const startTime = Date.now();
   try {
     console.log('Analyzing credential type with Gemini AI:', filePath);
     console.log('API Key present:', !!process.env.GEMINI_API_KEY);
@@ -158,6 +160,30 @@ Analyze carefully and respond in JSON format:
     if (jsonMatch) {
       const analysis = JSON.parse(jsonMatch[0]);
       console.log('Gemini analysis completed:', analysis.documentType);
+
+      const durationMs = Date.now() - startTime;
+      let accuracy;
+      if (analysis.confidence === 'High') {
+        accuracy = 95;
+      } else if (analysis.confidence === 'Medium') {
+        accuracy = 80;
+      } else if (analysis.confidence === 'Low') {
+        accuracy = 60;
+      }
+
+      logMetric({
+        name: 'Gemini_AnalyzeCredentialType',
+        durationMs,
+        inputSize: imagePart && imagePart.inlineData && imagePart.inlineData.data
+          ? imagePart.inlineData.data.length
+          : undefined,
+        accuracy,
+        extra: {
+          documentType: analysis.documentType,
+          confidence: analysis.confidence
+        }
+      });
+
       return {
         success: true,
         analysis
@@ -174,6 +200,16 @@ Analyze carefully and respond in JSON format:
     if (error.response) {
       console.error('API Response:', error.response);
     }
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Gemini_AnalyzeCredentialType',
+      durationMs,
+      extra: {
+        error: error.message
+      }
+    });
+
     return {
       success: false,
       error: error.message,
@@ -189,6 +225,7 @@ Analyze carefully and respond in JSON format:
  * @returns {Promise<Object>} - Comparison result
  */
 async function compareCredentialImages(verifiedFilePath, uploadedFilePath) {
+  const startTime = Date.now();
   try {
     console.log('Comparing credentials with Gemini AI...');
     console.log('Verified file:', verifiedFilePath);
@@ -317,6 +354,35 @@ Respond in JSON format:
     if (jsonMatch) {
       const comparison = JSON.parse(jsonMatch[0]);
       console.log('Gemini comparison completed');
+
+      const durationMs = Date.now() - startTime;
+      let accuracy;
+      if (comparison.authenticityMarkers &&
+          typeof comparison.authenticityMarkers.overallAuthenticityScore === 'number') {
+        accuracy = comparison.authenticityMarkers.overallAuthenticityScore;
+      }
+
+      logMetric({
+        name: 'Gemini_CompareCredentialImages',
+        durationMs,
+        inputSize: (verifiedImage && verifiedImage.inlineData && verifiedImage.inlineData.data
+                    ? verifiedImage.inlineData.data.length
+                    : 0) +
+                  (uploadedImage && uploadedImage.inlineData && uploadedImage.inlineData.data
+                    ? uploadedImage.inlineData.data.length
+                    : 0),
+        accuracy,
+        extra: {
+          sameCredentialType: comparison.sameCredentialType,
+          exactSameDocument: comparison.exactSameDocument,
+          matchConfidence: comparison.matchConfidence,
+          tamperingSeverity: comparison.tamperingIndicators
+            ? comparison.tamperingIndicators.severity
+            : undefined,
+          recommendation: comparison.recommendation
+        }
+      });
+
       return {
         success: true,
         comparison
@@ -344,6 +410,16 @@ Respond in JSON format:
       userMessage = 'Gemini API is temporarily unavailable. Using OCR-only mode.';
       console.log('Gemini API service unavailable');
     }
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Gemini_CompareCredentialImages',
+      durationMs,
+      extra: {
+        error: error.message,
+        quotaExhausted
+      }
+    });
     
     return {
       success: false,
@@ -360,6 +436,7 @@ Respond in JSON format:
  * @returns {Promise<Object>} - Authenticity markers analysis
  */
 async function detectAuthenticityMarkers(filePath) {
+  const startTime = Date.now();
   try {
     console.log('Detecting authenticity markers with Gemini AI...');
     
@@ -434,6 +511,25 @@ Respond in JSON format:
     if (jsonMatch) {
       const markers = JSON.parse(jsonMatch[0]);
       console.log('Authenticity markers detected');
+
+      const durationMs = Date.now() - startTime;
+      let accuracy;
+      if (typeof markers.overallAuthenticityScore === 'number') {
+        accuracy = markers.overallAuthenticityScore;
+      }
+
+      logMetric({
+        name: 'Gemini_DetectAuthenticityMarkers',
+        durationMs,
+        inputSize: imagePart && imagePart.inlineData && imagePart.inlineData.data
+          ? imagePart.inlineData.data.length
+          : undefined,
+        accuracy,
+        extra: {
+          concernsCount: Array.isArray(markers.concerns) ? markers.concerns.length : undefined
+        }
+      });
+
       return {
         success: true,
         markers
@@ -476,6 +572,7 @@ Respond in JSON format:
  * @returns {Promise<Object>} - Extracted credential information
  */
 async function extractCredentialInfo(filePath) {
+  const startTime = Date.now();
   try {
     console.log('Extracting credential information with Gemini AI:', filePath);
     
@@ -526,6 +623,30 @@ Respond in JSON format:
     if (jsonMatch) {
       const extractedInfo = JSON.parse(jsonMatch[0]);
       console.log('Credential information extracted:', extractedInfo);
+
+      const durationMs = Date.now() - startTime;
+      let accuracy;
+      if (extractedInfo.confidence === 'High') {
+        accuracy = 95;
+      } else if (extractedInfo.confidence === 'Medium') {
+        accuracy = 80;
+      } else if (extractedInfo.confidence === 'Low') {
+        accuracy = 60;
+      }
+
+      logMetric({
+        name: 'Gemini_ExtractCredentialInfo',
+        durationMs,
+        inputSize: imagePart && imagePart.inlineData && imagePart.inlineData.data
+          ? imagePart.inlineData.data.length
+          : undefined,
+        accuracy,
+        extra: {
+          documentType: extractedInfo.documentType,
+          confidence: extractedInfo.confidence
+        }
+      });
+
       return {
         success: true,
         data: extractedInfo
@@ -552,6 +673,16 @@ Respond in JSON format:
       userMessage = 'Gemini API is temporarily unavailable.';
       console.log('Gemini API service unavailable');
     }
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Gemini_ExtractCredentialInfo',
+      durationMs,
+      extra: {
+        error: error.message,
+        quotaExhausted
+      }
+    });
     
     return {
       success: false,

@@ -15,6 +15,7 @@ require('path2d-polyfill');
 const pdfjsLib = require('pdfjs-dist/legacy/build/pdf.js');
 const { createCanvas } = require('canvas');
 const geminiService = require('./geminiService');
+const { logMetric } = require('./metricsService');
 
 // Configure PDF.js to work in Node.js environment
 pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.js');
@@ -262,13 +263,18 @@ async function extractTextFromImage(filePath) {
         console.log('PDF converted to image. Running OCR...');
         
         // Run OCR on the converted image
+        let lastPdfOcrProgress = -1;
         const { data: { text } } = await Tesseract.recognize(
           tempImagePath,
           'eng',
           {
             logger: m => {
               if (m.status === 'recognizing text') {
-                console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+                const percent = Math.round(m.progress * 100);
+                if (percent !== lastPdfOcrProgress && percent % 10 === 0) {
+                  console.log(`OCR Progress: ${percent}%`);
+                  lastPdfOcrProgress = percent;
+                }
               }
             }
           }
@@ -306,13 +312,18 @@ async function extractTextFromImage(filePath) {
     // Handle regular image files with Tesseract OCR
     console.log('Extracting text from image:', filePath);
     
+    let lastImageOcrProgress = -1;
     const { data: { text } } = await Tesseract.recognize(
       filePath,
       'eng',
       {
         logger: m => {
           if (m.status === 'recognizing text') {
-            console.log(`OCR Progress: ${Math.round(m.progress * 100)}%`);
+            const percent = Math.round(m.progress * 100);
+            if (percent !== lastImageOcrProgress && percent % 10 === 0) {
+              console.log(`OCR Progress: ${percent}%`);
+              lastImageOcrProgress = percent;
+            }
           }
         }
       }
@@ -720,6 +731,7 @@ async function compareCredentialFiles(verifiedFilePath, uploadedFilePath, dbCred
  */
 async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
   let verifiedFilePath = null;
+  const startTime = Date.now();
   
   try {
     // Download verified file from IPFS
@@ -727,6 +739,22 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
     
     // Compare the files
     const result = await compareCredentialFiles(verifiedFilePath, uploadedFilePath);
+    const durationMs = Date.now() - startTime;
+    const accuracy = typeof result.ocrComparison?.similarity === 'number'
+      ? result.ocrComparison.similarity
+      : undefined;
+
+    logMetric({
+      name: 'Pipeline_OCRComparisonWithIPFS',
+      durationMs,
+      inputSize: (result.verifiedText ? result.verifiedText.length : 0) +
+                 (result.uploadedText ? result.uploadedText.length : 0),
+      accuracy,
+      extra: {
+        ipfsCid,
+        overallStatus: result.overallStatus
+      }
+    });
     
     // Cleanup verified file
     if (verifiedFilePath) {
@@ -740,6 +768,16 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
     return result;
     
   } catch (error) {
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Pipeline_OCRComparisonWithIPFS',
+      durationMs,
+      extra: {
+        ipfsCid,
+        error: error.message
+      }
+    });
+    
     // Cleanup on error
     if (verifiedFilePath) {
       try {
@@ -763,6 +801,7 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
 async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, dbCredentialType = null, progressCallback = null) {
   console.log('\n\n=== AI-Enhanced Credential Comparison Started ===');
   console.log('Parameters:', { ipfsCid, uploadedFilePath, tempDir, dbCredentialType });
+  const startTime = Date.now();
   
   // Helper to send progress updates
   const updateProgress = (message, percent) => {
@@ -805,7 +844,6 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     const uploadedMarkers = await geminiService.detectAuthenticityMarkers(uploadedFilePath);
     updateProgress('  Authenticity markers detected', 80);
     
-    
     // Check if AI analysis was successful
     if (!verifiedAnalysis.success || !uploadedAnalysis.success || !visualComparison.success) {
       // Check if quota was exhausted
@@ -837,11 +875,29 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
         ocrResult.quotaWarning = 'Gemini AI free tier quota exhausted. Comparison completed using OCR-only mode. AI features will be available after quota resets (usually daily).';
       }
       
+      const durationMs = Date.now() - startTime;
+      const accuracy = typeof ocrResult.ocrComparison?.similarity === 'number'
+        ? ocrResult.ocrComparison.similarity
+        : undefined;
+
+      logMetric({
+        name: 'Pipeline_AIEnhancedComparison',
+        durationMs,
+        inputSize: (ocrResult.verifiedText ? ocrResult.verifiedText.length : 0) +
+                   (ocrResult.uploadedText ? ocrResult.uploadedText.length : 0),
+        accuracy,
+        extra: {
+          mode: 'ocr-fallback',
+          ipfsCid,
+          quotaExhausted,
+          overallStatus: ocrResult.overallStatus
+        }
+      });
+      
       return ocrResult;
     }
     
     updateProgress('AI visual analysis completed successfully!', 82);
-    
     
     // Extract credential types from AI analysis
     const verifiedTypeRaw = dbCredentialType || verifiedAnalysis.analysis.documentType;
@@ -907,6 +963,27 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
     updateProgress('Comparison complete!', 100);
     console.log('\n=== AI-Enhanced Comparison Complete ===\n');
     
+    const durationMs = Date.now() - startTime;
+    const accuracy = typeof textComparison.similarity === 'number'
+      ? textComparison.similarity
+      : undefined;
+
+    logMetric({
+      name: 'Pipeline_AIEnhancedComparison',
+      durationMs,
+      inputSize: (verifiedText ? verifiedText.length : 0) +
+                 (uploadedText ? uploadedText.length : 0),
+      accuracy,
+      extra: {
+        mode: 'ai',
+        ipfsCid,
+        overallStatus,
+        matchConfidence,
+        authenticityScore: visualComparison.comparison.authenticityMarkers.overallAuthenticityScore,
+        tamperingSeverity: visualComparison.comparison.tamperingIndicators.severity
+      }
+    });
+    
     // Return comprehensive result
     return {
       success: true,
@@ -956,6 +1033,17 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
   } catch (error) {
     console.error('AI-Enhanced comparison error:', error);
     console.error('Error stack:', error.stack);
+    
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Pipeline_AIEnhancedComparison',
+      durationMs,
+      extra: {
+        mode: 'error',
+        ipfsCid,
+        error: error.message
+      }
+    });
     
     // Cleanup on error
     if (verifiedFilePath) {

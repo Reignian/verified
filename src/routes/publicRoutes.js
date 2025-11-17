@@ -12,6 +12,7 @@ const adminQueries = require('../queries/adminQueries');
 const ContactRateLimitService = require('../services/contactRateLimitService');
 const tesseractService = require('../services/tesseractService');
 const geminiService = require('../services/geminiService');
+const { logMetric } = require('../services/metricsService');
 
 // Configure multer for file uploads
 const upload = multer({
@@ -203,6 +204,7 @@ router.post('/verify-credential', (req, res) => {
 // POST /api/public/compare-credential - Compare uploaded file with verified credential
 router.post('/compare-credential', upload.single('file'), async (req, res) => {
   let uploadedFilePath = null;
+  const routeStart = Date.now();
   
   try {
     const { credentialId } = req.body;
@@ -266,6 +268,18 @@ router.post('/compare-credential', upload.single('file'), async (req, res) => {
           tempDir,
           credential.credential_type // Pass credential type from database
         );
+
+        const durationMs = Date.now() - routeStart;
+        logMetric({
+          name: 'Route_Public_CompareCredential',
+          durationMs,
+          extra: {
+            success: true,
+            credentialId,
+            ipfsCid: credential.ipfs_cid,
+            overallStatus: comparisonResult.overallStatus
+          }
+        });
         
         // Log comparison attempt
         adminQueries.logCredentialVerification({
@@ -300,6 +314,18 @@ router.post('/compare-credential', upload.single('file'), async (req, res) => {
         
       } catch (comparisonError) {
         console.error('Comparison error:', comparisonError);
+
+        const durationMs = Date.now() - routeStart;
+        logMetric({
+          name: 'Route_Public_CompareCredential',
+          durationMs,
+          extra: {
+            success: false,
+            credentialId,
+            error: comparisonError.message,
+            stage: 'comparison_error'
+          }
+        });
         
         // Cleanup uploaded file
         if (uploadedFilePath) {
@@ -319,6 +345,17 @@ router.post('/compare-credential', upload.single('file'), async (req, res) => {
     
   } catch (error) {
     console.error('Comparison route error:', error);
+
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Public_CompareCredential',
+      durationMs,
+      extra: {
+        success: false,
+        error: error.message,
+        stage: 'route_error'
+      }
+    });
     
     // Cleanup uploaded file
     if (uploadedFilePath) {
@@ -339,6 +376,7 @@ router.post('/compare-credential', upload.single('file'), async (req, res) => {
 // POST /api/public/verify-by-file - Verify credential by uploading the file directly
 router.post('/verify-by-file', upload.single('file'), async (req, res) => {
   let uploadedFilePath = null;
+  const routeStart = Date.now();
   
   try {
     if (!req.file) {
@@ -733,11 +771,34 @@ router.post('/verify-by-file', upload.single('file'), async (req, res) => {
     };
     
     console.log('Sending response with', JSON.stringify(responseData).length, 'bytes');
+    {
+      const durationMs = Date.now() - routeStart;
+      logMetric({
+        name: 'Route_Public_VerifyByFile',
+        durationMs,
+        extra: {
+          success: true,
+          verifiedMatchCount: verifiedMatches.length,
+          potentialMatches: finalMatchingCredentials.length,
+          aiExtractionSuccess: aiExtraction.success
+        }
+      });
+    }
     res.json(responseData);
     console.log('Response sent successfully');
     
   } catch (error) {
     console.error('Verify-by-file error:', error);
+
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Public_VerifyByFile',
+      durationMs,
+      extra: {
+        success: false,
+        error: error.message
+      }
+    });
     
     // Cleanup uploaded file on error
     if (uploadedFilePath) {

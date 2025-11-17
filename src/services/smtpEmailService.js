@@ -3,6 +3,7 @@
 
 const nodemailer = require('nodemailer');
 const SystemSettingsService = require('./systemSettingsService');
+const { logMetric } = require('./metricsService');
 
 // Retry helper function for transient network errors
 const retryOperation = async (operation, maxRetries = 3, delayMs = 5000) => {
@@ -55,6 +56,7 @@ const createTransporter = () => {
 
 // Send welcome email to new student account
 const sendWelcomeEmail = async (studentEmail, studentName, username, password) => {
+  const startTime = Date.now();
   try {
     const systemName = await SystemSettingsService.getSetting('system_name') || 'VerifiED';
     const replyEmail = await SystemSettingsService.getSetting('reply_email') || process.env.EMAIL_USER;
@@ -156,6 +158,17 @@ ${signature}
     console.log(`   Subject: Welcome to ${systemName}`);
     console.log(`   Message ID: ${info.messageId}`);
     
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_SendWelcome',
+      durationMs,
+      extra: {
+        to: studentEmail,
+        systemName,
+        success: true
+      }
+    });
+    
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('[ERROR] Failed to send welcome email:', error.message);
@@ -172,12 +185,24 @@ ${signature}
       errorDetail = 'Authentication failed - Check EMAIL_USER and EMAIL_PASS credentials.';
     }
     
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_SendWelcome',
+      durationMs,
+      extra: {
+        to: studentEmail,
+        error: errorDetail,
+        errorCode: error.code
+      }
+    });
+    
     return { success: false, error: errorDetail, errorCode: error.code };
   }
 };
 
 // Send credential issuance notification email
 const sendCredentialIssuanceEmail = async (studentEmail, studentName, username, credentialType, isNewAccount = false, password = null) => {
+  const startTime = Date.now();
   try {
     const systemName = await SystemSettingsService.getSetting('system_name') || 'VerifiED';
     const replyEmail = await SystemSettingsService.getSetting('reply_email') || process.env.EMAIL_USER;
@@ -339,6 +364,18 @@ ${signature}
     console.log(`   Password Included: ${isNewAccount && password ? 'Yes' : 'No'}`);
     console.log(`   Message ID: ${info.messageId}`);
     
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_SendCredentialIssuance',
+      durationMs,
+      extra: {
+        to: studentEmail,
+        credentialType,
+        isNewAccount,
+        success: true
+      }
+    });
+    
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('[ERROR] Failed to send credential notification email:', error.message);
@@ -355,19 +392,54 @@ ${signature}
       errorDetail = 'Authentication failed - Check EMAIL_USER and EMAIL_PASS credentials.';
     }
     
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_SendCredentialIssuance',
+      durationMs,
+      extra: {
+        to: studentEmail,
+        credentialType,
+        isNewAccount,
+        error: errorDetail,
+        errorCode: error.code
+      }
+    });
+    
     return { success: false, error: errorDetail, errorCode: error.code };
   }
 };
 
 // Test email configuration
 const testEmailConfiguration = async () => {
+  const startTime = Date.now();
   try {
     const transporter = createTransporter();
     await transporter.verify();
     console.log('[SUCCESS] SMTP server is ready to send emails');
+    
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_TestConfiguration',
+      durationMs,
+      extra: {
+        success: true
+      }
+    });
+    
     return { success: true, message: 'SMTP configuration is valid' };
   } catch (error) {
     console.error('[ERROR] SMTP configuration error:', error.message);
+    
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'Email_TestConfiguration',
+      durationMs,
+      extra: {
+        success: false,
+        error: error.message
+      }
+    });
+    
     return { success: false, error: error.message };
   }
 };

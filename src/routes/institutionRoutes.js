@@ -17,6 +17,7 @@ const pdfParse = require('pdf-parse');
 const tesseractService = require('../services/tesseractService');
 const geminiService = require('../services/geminiService');
 const smtpEmailService = require('../services/smtpEmailService');
+const { logMetric } = require('../services/metricsService');
 
 const upload = multer({ storage: multer.memoryStorage() });
 
@@ -515,9 +516,21 @@ router.get('/recent-custom-type', (req, res) => {
 // POST /api/institution/upload-credential - Upload credential to IPFS and database
 router.post('/upload-credential', upload.single('credentialFile'), async (req, res) => {
   const { credential_type_id, owner_id, sender_id, custom_type, program_id } = req.body;
+  const routeStart = Date.now();
   
   // Either credential_type_id OR custom_type must be provided
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !req.file) {
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_UploadCredential_IPFSOnly',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'validation',
+        owner_id,
+        sender_id
+      }
+    });
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -547,9 +560,36 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
     academicQueries.createCredential(credentialData, (err, results) => {
       if (err) {
         console.error('Error creating credential:', err);
+
+        const durationMs = Date.now() - routeStart;
+        logMetric({
+          name: 'Route_Institution_UploadCredential_IPFSOnly',
+          durationMs,
+          extra: {
+            success: false,
+            stage: 'db_insert',
+            owner_id,
+            sender_id,
+            error: err.message
+          }
+        });
+
         return res.status(500).json({ error: 'Database error' });
       }
       
+      const durationMs = Date.now() - routeStart;
+      logMetric({
+        name: 'Route_Institution_UploadCredential_IPFSOnly',
+        durationMs,
+        extra: {
+          success: true,
+          owner_id,
+          sender_id,
+          credential_id: results.insertId,
+          ipfs_hash: pinataResult.ipfsHash
+        }
+      });
+
       res.json({
         message: 'Credential uploaded successfully',
         credential_id: results.insertId,
@@ -560,6 +600,16 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
     });
 
   } catch (error) {
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_UploadCredential_IPFSOnly',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'route_error',
+        error: error.message
+      }
+    });
     res.status(500).json({ error: 'Upload failed' });
   }
 });
@@ -567,9 +617,33 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
 // POST /api/institution/upload-credential-after-blockchain - Upload credential ONLY after blockchain confirmation
 router.post('/upload-credential-after-blockchain', upload.single('credentialFile'), async (req, res) => {
   const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash, program_id } = req.body;
+  const routeStart = Date.now();
   
   // Either credential_type_id OR custom_type must be provided, plus blockchain_id (credential ID) is required
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !blockchain_id || !req.file) {
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_UploadCredentialAfterBlockchain',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'validation',
+        owner_id,
+        sender_id,
+        blockchain_id
+      }
+    });
+    logMetric({
+      name: 'Pipeline_CredentialIssuance',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'validation',
+        owner_id,
+        sender_id,
+        blockchain_id
+      }
+    });
     return res.status(400).json({ error: 'Missing required fields' });
   }
 
@@ -618,6 +692,36 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
       academicQueries.createCredential(credentialData, async (err, results) => {
         if (err) {
           console.error('Error creating credential:', err);
+
+          const durationMs = Date.now() - routeStart;
+          logMetric({
+            name: 'Route_Institution_UploadCredentialAfterBlockchain',
+            durationMs,
+            extra: {
+              success: false,
+              stage: 'db_insert',
+              owner_id,
+              sender_id,
+              blockchain_id,
+              transaction_hash,
+              error: err.message
+            }
+          });
+
+          logMetric({
+            name: 'Pipeline_CredentialIssuance',
+            durationMs,
+            extra: {
+              success: false,
+              stage: 'db_insert',
+              owner_id,
+              sender_id,
+              blockchain_id,
+              transaction_hash,
+              error: err.message
+            }
+          });
+
           return res.status(500).json({ error: 'Database error' });
         }
         
@@ -812,6 +916,39 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
           console.error('Error fetching student details for email:', err);
         }
         
+        const durationMs = Date.now() - routeStart;
+        logMetric({
+          name: 'Route_Institution_UploadCredentialAfterBlockchain',
+          durationMs,
+          extra: {
+            success: true,
+            owner_id,
+            sender_id,
+            credential_id: results.insertId,
+            blockchain_id,
+            transaction_hash,
+            ipfs_hash: pinataResult.ipfsHash,
+            email_sent: emailSent,
+            email_message_id: emailMessageId
+          }
+        });
+
+        logMetric({
+          name: 'Pipeline_CredentialIssuance',
+          durationMs,
+          extra: {
+            success: true,
+            owner_id,
+            sender_id,
+            credential_id: results.insertId,
+            blockchain_id,
+            transaction_hash,
+            ipfs_hash: pinataResult.ipfsHash,
+            email_sent: emailSent,
+            email_message_id: emailMessageId
+          }
+        });
+
         res.json({
           message: 'Credential uploaded successfully',
           credential_id: results.insertId,
@@ -829,6 +966,25 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
 
   } catch (error) {
     console.error('Upload after blockchain failed:', error);
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_UploadCredentialAfterBlockchain',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'route_error',
+        error: error.message
+      }
+    });
+    logMetric({
+      name: 'Pipeline_CredentialIssuance',
+      durationMs,
+      extra: {
+        success: false,
+        stage: 'route_error',
+        error: error.message
+      }
+    });
     res.status(500).json({ error: 'Upload failed' });
   }
 });
@@ -1391,6 +1547,7 @@ router.get('/contract-info', (req, res) => {
 // POST /api/institution/analyze-credential - Analyze credential file with OCR + AI
 router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (req, res) => {
   const uploadedFilePath = req.file ? req.file.path : null;
+  const routeStart = Date.now();
   
   try {
     if (!req.file) {
@@ -1463,6 +1620,19 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
       };
     }
     
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_AnalyzeCredential',
+      durationMs,
+      extra: {
+        success: true,
+        mode: result.mode,
+        aiSuccess: aiResult.success,
+        ocrCredentialType,
+        documentType: aiResult.success ? aiResult.data.documentType : ocrCredentialType
+      }
+    });
+    
     // Cleanup temporary file
     if (uploadedFilePath && fs.existsSync(uploadedFilePath)) {
       fs.unlinkSync(uploadedFilePath);
@@ -1483,6 +1653,16 @@ router.post('/analyze-credential', uploadTemp.single('credentialFile'), async (r
         console.error('Failed to cleanup temp file:', cleanupErr);
       }
     }
+    
+    const durationMs = Date.now() - routeStart;
+    logMetric({
+      name: 'Route_Institution_AnalyzeCredential',
+      durationMs,
+      extra: {
+        success: false,
+        error: error.message
+      }
+    });
     
     res.status(500).json({ 
       success: false, 

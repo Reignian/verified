@@ -2,6 +2,7 @@ const pinataSDK = require('@pinata/sdk');
 const fs = require('fs');
 const FormData = require('form-data');
 const { Readable } = require('stream');
+const { logMetric } = require('./metricsService');
 
 // Initialize Pinata with your credentials
 const pinata = new pinataSDK('991fce5c15746a608dbf', 'b05c5ec4f007e291be2427b1df8bd6341a1b3c9c141b5f9be04fad6dde86d015');
@@ -21,6 +22,7 @@ const testConnection = async () => {
 
 // Upload file to Pinata IPFS
 const uploadToPinata = async (file, metadata = {}) => {
+  const startTime = Date.now();
   try {
     const options = {
       pinataMetadata: {
@@ -38,7 +40,20 @@ const uploadToPinata = async (file, metadata = {}) => {
 
     const result = await pinata.pinFileToIPFS(file, options);
     console.log('File uploaded to Pinata:', result);
-    
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'IPFS_UploadToPinata',
+      durationMs,
+      extra: {
+        success: true,
+        name: metadata.name || 'Credential File',
+        uploadedBy: metadata.uploadedBy || 'Academic Institution',
+        credentialType: metadata.credentialType || 'Unknown',
+        ipfsHash: result.IpfsHash
+      }
+    });
+
     return {
       ipfsHash: result.IpfsHash,
       pinSize: result.PinSize,
@@ -48,12 +63,26 @@ const uploadToPinata = async (file, metadata = {}) => {
     console.error('Error uploading to Pinata:', error);
     console.error('Error message:', error.message);
     console.error('Error response:', error.response?.data);
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'IPFS_UploadToPinata',
+      durationMs,
+      extra: {
+        success: false,
+        name: metadata.name || 'Credential File',
+        uploadedBy: metadata.uploadedBy || 'Academic Institution',
+        credentialType: metadata.credentialType || 'Unknown',
+        error: error.message
+      }
+    });
     throw error;
   }
 };
 
 // Upload file buffer to Pinata (for handling file uploads from frontend)
 const uploadBufferToPinata = async (buffer, filename, metadata = {}) => {
+  const startTime = Date.now();
   try {
     console.log('Pinata uploadBufferToPinata called with:', {
       bufferSize: buffer.length,
@@ -87,7 +116,22 @@ const uploadBufferToPinata = async (buffer, filename, metadata = {}) => {
     // Use pinFileToIPFS with readable stream
     const result = await pinata.pinFileToIPFS(readableStream, options);
     console.log('Pinata result:', result);
-    
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'IPFS_UploadBufferToPinata',
+      durationMs,
+      inputSize: buffer.length,
+      extra: {
+        success: true,
+        filename,
+        uploadedBy: metadata.uploadedBy || 'Academic Institution',
+        credentialType: metadata.credentialType || 'Unknown',
+        ipfsHash: result.IpfsHash,
+        pinSize: result.PinSize
+      }
+    });
+
     return {
       ipfsHash: result.IpfsHash,
       pinSize: result.PinSize,
@@ -97,6 +141,20 @@ const uploadBufferToPinata = async (buffer, filename, metadata = {}) => {
     console.error('Error in uploadBufferToPinata:', error);
     console.error('Error message:', error.message);
     console.error('Error response:', error.response?.data);
+
+    const durationMs = Date.now() - startTime;
+    logMetric({
+      name: 'IPFS_UploadBufferToPinata',
+      durationMs,
+      inputSize: buffer.length,
+      extra: {
+        success: false,
+        filename,
+        uploadedBy: metadata.uploadedBy || 'Academic Institution',
+        credentialType: metadata.credentialType || 'Unknown',
+        error: error.message
+      }
+    });
     throw error;
   }
 };
