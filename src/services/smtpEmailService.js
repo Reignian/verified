@@ -357,25 +357,6 @@ ${signature}
       5000 // 5 second delay between retries
     );
     
-    console.log('[SUCCESS] Credential notification email sent successfully!');
-    console.log(`   To: ${studentEmail}`);
-    console.log(`   Subject: ${credentialType} Issued`);
-    console.log(`   First Credential: ${isNewAccount ? 'Yes' : 'No'}`);
-    console.log(`   Password Included: ${isNewAccount && password ? 'Yes' : 'No'}`);
-    console.log(`   Message ID: ${info.messageId}`);
-    
-    const durationMs = Date.now() - startTime;
-    logMetric({
-      name: 'Email_SendCredentialIssuance',
-      durationMs,
-      extra: {
-        to: studentEmail,
-        credentialType,
-        isNewAccount,
-        success: true
-      }
-    });
-    
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('[ERROR] Failed to send credential notification email:', error.message);
@@ -391,19 +372,6 @@ ${signature}
     } else if (error.code === 'EAUTH') {
       errorDetail = 'Authentication failed - Check EMAIL_USER and EMAIL_PASS credentials.';
     }
-    
-    const durationMs = Date.now() - startTime;
-    logMetric({
-      name: 'Email_SendCredentialIssuance',
-      durationMs,
-      extra: {
-        to: studentEmail,
-        credentialType,
-        isNewAccount,
-        error: errorDetail,
-        errorCode: error.code
-      }
-    });
     
     return { success: false, error: errorDetail, errorCode: error.code };
   }

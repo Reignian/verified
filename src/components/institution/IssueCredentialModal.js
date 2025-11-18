@@ -479,7 +479,8 @@ function IssueCredentialModal({
         credentialData, 
         formData.credentialFile, 
         blockchainResult.credentialId,  // Pass credential ID (not transaction hash)
-        blockchainResult.transactionHash  // Pass transaction hash for reference
+        blockchainResult.transactionHash,  // Pass transaction hash for reference
+        blockchainResult.issuanceStart  // Pass issuance start timestamp (after MetaMask confirmation)
       );
 
       // Step 3: Complete (100% progress)

@@ -86,7 +86,10 @@ class BlockchainService {
       // Send transaction with bytes32 parameters
       const tx = await contract.issueCredential(ipfsHashBytes32, studentIdBytes32);
 
-      // Wait for confirmation
+      // Capture issuance start time right after MetaMask confirmation / tx submission
+      const issuanceStart = Date.now();
+
+      // Wait for confirmation (mining time is included in the overall duration from issuanceStart)
       const receipt = await tx.wait();
 
       // Parse events to get credential ID
@@ -131,7 +134,8 @@ class BlockchainService {
       if (credentialId) {
         return {
           credentialId: credentialId.toString(),
-          transactionHash: transactionHash
+          transactionHash: transactionHash,
+          issuanceStart
         };
       } else {
         // If we can't find the event, still return success with transaction hash
@@ -143,13 +147,15 @@ class BlockchainService {
           
           return {
             credentialId: credentialCounter.toString(),
-            transactionHash: transactionHash
+            transactionHash: transactionHash,
+            issuanceStart
           };
         } catch (counterError) {
           // Return success without credential ID
           return {
             credentialId: 'unknown',
-            transactionHash: transactionHash
+            transactionHash: transactionHash,
+            issuanceStart
           };
         }
       }

@@ -616,32 +616,32 @@ router.post('/upload-credential', upload.single('credentialFile'), async (req, r
 
 // POST /api/institution/upload-credential-after-blockchain - Upload credential ONLY after blockchain confirmation
 router.post('/upload-credential-after-blockchain', upload.single('credentialFile'), async (req, res) => {
-  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash, program_id } = req.body;
-  const routeStart = Date.now();
+  const { credential_type_id, owner_id, sender_id, custom_type, blockchain_id, transaction_hash, program_id, issuance_start } = req.body;
+
+  // If frontend provided an issuance_start timestamp (ms since epoch), use it as the
+  // beginning of the end-to-end pipeline. Otherwise, fall back to server route start.
+  const routeStart = issuance_start && !Number.isNaN(Number(issuance_start))
+    ? Number(issuance_start)
+    : Date.now();
+  
+  // Capture uploaded file size and name for debugging/metrics
+  const fileSizeBytes = req.file && typeof req.file.size === 'number' ? req.file.size : null;
+  const fileName = req.file && req.file.originalname ? req.file.originalname : null;
   
   // Either credential_type_id OR custom_type must be provided, plus blockchain_id (credential ID) is required
   if ((!credential_type_id && !custom_type) || !owner_id || !sender_id || !blockchain_id || !req.file) {
     const durationMs = Date.now() - routeStart;
     logMetric({
-      name: 'Route_Institution_UploadCredentialAfterBlockchain',
-      durationMs,
-      extra: {
-        success: false,
-        stage: 'validation',
-        owner_id,
-        sender_id,
-        blockchain_id
-      }
-    });
-    logMetric({
       name: 'Pipeline_CredentialIssuance',
       durationMs,
+      inputSize: fileSizeBytes || undefined,
       extra: {
         success: false,
         stage: 'validation',
         owner_id,
         sender_id,
-        blockchain_id
+        blockchain_id,
+        file_name: fileName
       }
     });
     return res.status(400).json({ error: 'Missing required fields' });
@@ -673,9 +673,6 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         ? studentResults[0].credential_count === 0 
         : false;
       
-      console.log(`Credential count check for student ${owner_id}: ${studentResults?.[0]?.credential_count || 0} credentials`);
-      console.log(`Is first credential: ${isFirstCredential ? 'Yes' : 'No'}`);
-      
       // Save to database with credential ID as blockchain_id
       const credentialData = {
         credential_type_id: credential_type_id ? parseInt(credential_type_id) : null,
@@ -695,22 +692,9 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
 
           const durationMs = Date.now() - routeStart;
           logMetric({
-            name: 'Route_Institution_UploadCredentialAfterBlockchain',
-            durationMs,
-            extra: {
-              success: false,
-              stage: 'db_insert',
-              owner_id,
-              sender_id,
-              blockchain_id,
-              transaction_hash,
-              error: err.message
-            }
-          });
-
-          logMetric({
             name: 'Pipeline_CredentialIssuance',
             durationMs,
+            inputSize: fileSizeBytes || undefined,
             extra: {
               success: false,
               stage: 'db_insert',
@@ -718,7 +702,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
               sender_id,
               blockchain_id,
               transaction_hash,
-              error: err.message
+              error: err.message,
+              file_name: fileName
             }
           });
 
@@ -820,19 +805,9 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
                     tx_timestamp: txTimestamp
                   };
                   
-                  console.log('Attempting to save transaction costs:', {
-                    credential_id: credentialId,
-                    transaction_hash: transaction_hash,
-                    institution_id: institutionId,
-                    gas_cost_pol: gasCostPOL,
-                    gas_cost_usd: gasCostUSD
-                  });
-                  
                   academicQueries.insertTransactionCost(costData, (err) => {
                     if (err) {
                       console.error('Error saving transaction costs:', err);
-                    } else {
-                      console.log(`Transaction costs saved successfully for credential ${credentialId}`);
                     }
                   });
                 }
@@ -891,7 +866,6 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
                       console.error('Error clearing plain password:', err);
                       reject(err);
                     } else {
-                      console.log(`Plain password cleared for student ID: ${student.id} after first credential email`);
                       resolve();
                     }
                   }
@@ -918,24 +892,9 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         
         const durationMs = Date.now() - routeStart;
         logMetric({
-          name: 'Route_Institution_UploadCredentialAfterBlockchain',
-          durationMs,
-          extra: {
-            success: true,
-            owner_id,
-            sender_id,
-            credential_id: results.insertId,
-            blockchain_id,
-            transaction_hash,
-            ipfs_hash: pinataResult.ipfsHash,
-            email_sent: emailSent,
-            email_message_id: emailMessageId
-          }
-        });
-
-        logMetric({
           name: 'Pipeline_CredentialIssuance',
           durationMs,
+          inputSize: fileSizeBytes || undefined,
           extra: {
             success: true,
             owner_id,
@@ -945,7 +904,8 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
             transaction_hash,
             ipfs_hash: pinataResult.ipfsHash,
             email_sent: emailSent,
-            email_message_id: emailMessageId
+            email_message_id: emailMessageId,
+            file_name: fileName
           }
         });
 
@@ -968,21 +928,14 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
     console.error('Upload after blockchain failed:', error);
     const durationMs = Date.now() - routeStart;
     logMetric({
-      name: 'Route_Institution_UploadCredentialAfterBlockchain',
-      durationMs,
-      extra: {
-        success: false,
-        stage: 'route_error',
-        error: error.message
-      }
-    });
-    logMetric({
       name: 'Pipeline_CredentialIssuance',
       durationMs,
+      inputSize: fileSizeBytes || undefined,
       extra: {
         success: false,
         stage: 'route_error',
-        error: error.message
+        error: error.message,
+        file_name: fileName
       }
     });
     res.status(500).json({ error: 'Upload failed' });

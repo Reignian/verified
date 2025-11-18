@@ -178,11 +178,9 @@ function TransactionHistoryTable({ institutionId }) {
                   <th>Student</th>
                   <th>Credential Type</th>
                   <th>Program</th>
-                  <th>Gas Used</th>
-                  <th>Gas Price (Gwei)</th>
-                  <th>Cost (POL)</th>
-                  <th>Cost (USD)</th>
-                  <th>Cost (PHP)</th>
+                  <th>Gas</th>
+                  <th>POL Price</th>
+                  <th>Cost</th>
                   <th>Transaction</th>
                 </tr>
               </thead>
@@ -208,19 +206,33 @@ function TransactionHistoryTable({ institutionId }) {
                       )}
                     </td>
                     <td className="gas-cell">
-                      {tx.gas_used ? tx.gas_used.toLocaleString() : 'N/A'}
+                      {tx.gas_used || tx.gas_price_gwei ? (
+                        <div>
+                          {tx.gas_used && `${tx.gas_used.toLocaleString()} (gas)`}
+                          {tx.gas_used && tx.gas_price_gwei && ' / '}
+                          {tx.gas_price_gwei && `${formatNumber(tx.gas_price_gwei, 2)} Gwei`}
+                        </div>
+                      ) : 'N/A'}
                     </td>
-                    <td className="gas-price-cell">
-                      {tx.gas_price_gwei ? formatNumber(tx.gas_price_gwei, 2) : 'N/A'}
+                    <td className="pol-price-cell">
+                      {tx.pol_price_usd || tx.pol_price_php ? (
+                        <div>
+                          {tx.pol_price_usd && `$${formatNumber(tx.pol_price_usd, 4)} (USD)`}
+                          {tx.pol_price_usd && tx.pol_price_php && ' / '}
+                          {tx.pol_price_php && `₱${formatNumber(tx.pol_price_php, 2)} (PHP)`}
+                        </div>
+                      ) : 'N/A'}
                     </td>
-                    <td className="cost-pol-cell">
-                      {tx.gas_cost_pol ? formatNumber(tx.gas_cost_pol, 6) : 'N/A'}
-                    </td>
-                    <td className="cost-usd-cell">
-                      {tx.gas_cost_usd ? `$${formatNumber(tx.gas_cost_usd, 4)}` : 'N/A'}
-                    </td>
-                    <td className="cost-php-cell">
-                      {tx.gas_cost_php ? `₱${formatNumber(tx.gas_cost_php, 2)}` : 'N/A'}
+                    <td className="cost-cell">
+                      {tx.gas_cost_pol || tx.gas_cost_usd || tx.gas_cost_php ? (
+                        <div>
+                          {tx.gas_cost_pol && `${formatNumber(tx.gas_cost_pol, 6)} POL`}
+                          {tx.gas_cost_pol && (tx.gas_cost_usd || tx.gas_cost_php) && ' / '}
+                          {tx.gas_cost_usd && `$${formatNumber(tx.gas_cost_usd, 4)} (USD)`}
+                          {tx.gas_cost_usd && tx.gas_cost_php && ' / '}
+                          {tx.gas_cost_php && `₱${formatNumber(tx.gas_cost_php, 2)} (PHP)`}
+                        </div>
+                      ) : 'N/A'}
                     </td>
                     <td className="transaction-cell">
                       {tx.transaction_hash ? (
