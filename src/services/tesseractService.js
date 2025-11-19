@@ -731,11 +731,25 @@ async function compareCredentialFiles(verifiedFilePath, uploadedFilePath, dbCred
  */
 async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
   let verifiedFilePath = null;
+  let verifiedFileSizeBytes = null;
+  let uploadedFileSizeBytes = null;
   const startTime = Date.now();
   
   try {
     // Download verified file from IPFS
     verifiedFilePath = await downloadFromIPFS(ipfsCid, tempDir);
+    
+    // Compute raw file sizes for metrics
+    try {
+      const [verifiedStats, uploadedStats] = await Promise.all([
+        fs.stat(verifiedFilePath),
+        fs.stat(uploadedFilePath)
+      ]);
+      verifiedFileSizeBytes = verifiedStats.size;
+      uploadedFileSizeBytes = uploadedStats.size;
+    } catch (sizeError) {
+      console.warn('Failed to compute file sizes for comparison metrics:', sizeError.message);
+    }
     
     // Compare the files
     const result = await compareCredentialFiles(verifiedFilePath, uploadedFilePath);
@@ -752,7 +766,9 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
       accuracy,
       extra: {
         ipfsCid,
-        overallStatus: result.overallStatus
+        overallStatus: result.overallStatus,
+        verified_file_size_bytes: verifiedFileSizeBytes,
+        uploaded_file_size_bytes: uploadedFileSizeBytes
       }
     });
     
@@ -774,7 +790,9 @@ async function processComparisonWithIPFS(ipfsCid, uploadedFilePath, tempDir) {
       durationMs,
       extra: {
         ipfsCid,
-        error: error.message
+        error: error.message,
+        verified_file_size_bytes: verifiedFileSizeBytes,
+        uploaded_file_size_bytes: uploadedFileSizeBytes
       }
     });
     
@@ -810,12 +828,26 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
   };
   
   let verifiedFilePath = null;
+  let verifiedFileSizeBytes = null;
+  let uploadedFileSizeBytes = null;
   
   try {
     // Step 1: Download verified file from IPFS
     updateProgress('Downloading verified credential from IPFS...', 10);
     verifiedFilePath = await downloadFromIPFS(ipfsCid, tempDir);
     updateProgress('Verified credential downloaded', 20);
+    
+    // Compute raw file sizes for metrics (verified from IPFS and uploaded file)
+    try {
+      const [verifiedStats, uploadedStats] = await Promise.all([
+        fs.stat(verifiedFilePath),
+        fs.stat(uploadedFilePath)
+      ]);
+      verifiedFileSizeBytes = verifiedStats.size;
+      uploadedFileSizeBytes = uploadedStats.size;
+    } catch (sizeError) {
+      console.warn('Failed to compute file sizes for AI-enhanced comparison metrics:', sizeError.message);
+    }
     
     // Step 2: AI Visual Analysis (Gemini supports PDFs directly!)
     updateProgress('Starting AI visual analysis with Gemini 2.0...', 25);
@@ -890,7 +922,9 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
           mode: 'ocr-fallback',
           ipfsCid,
           quotaExhausted,
-          overallStatus: ocrResult.overallStatus
+          overallStatus: ocrResult.overallStatus,
+          verified_file_size_bytes: verifiedFileSizeBytes,
+          uploaded_file_size_bytes: uploadedFileSizeBytes
         }
       });
       
@@ -980,7 +1014,9 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
         overallStatus,
         matchConfidence,
         authenticityScore: visualComparison.comparison.authenticityMarkers.overallAuthenticityScore,
-        tamperingSeverity: visualComparison.comparison.tamperingIndicators.severity
+        tamperingSeverity: visualComparison.comparison.tamperingIndicators.severity,
+        verified_file_size_bytes: verifiedFileSizeBytes,
+        uploaded_file_size_bytes: uploadedFileSizeBytes
       }
     });
     
@@ -1041,7 +1077,9 @@ async function processAIEnhancedComparison(ipfsCid, uploadedFilePath, tempDir, d
       extra: {
         mode: 'error',
         ipfsCid,
-        error: error.message
+        error: error.message,
+        verified_file_size_bytes: verifiedFileSizeBytes,
+        uploaded_file_size_bytes: uploadedFileSizeBytes
       }
     });
     

@@ -248,7 +248,6 @@ function VerifierSection() {
 
   const closeComparisonModal = () => {
     setShowComparisonModal(false);
-    setComparisonResult(null);
   };
 
   const resetComparison = () => {
@@ -933,6 +932,18 @@ function VerifierSection() {
                         </button>
                       )}
                     </div>
+                    {comparisonResult && comparisonResult.success && showVerificationResult && verificationType === 'single' && (
+                      <div className="mt-3 text-end">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={() => setShowComparisonModal(true)}
+                        >
+                          <i className="fas fa-chart-bar me-1"></i>
+                          View detailed analysis
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
                 
@@ -1107,6 +1118,18 @@ function VerifierSection() {
                         </div>
                       )}
                     </div>
+                    )}
+                    {verificationMode === 'access_code' && comparisonResult && comparisonResult.success && (
+                      <div className="mt-3 text-end">
+                        <button
+                          type="button"
+                          className="btn btn-outline-secondary btn-sm"
+                          onClick={() => setShowComparisonModal(true)}
+                        >
+                          <i className="fas fa-chart-bar me-1"></i>
+                          View detailed analysis
+                        </button>
+                      </div>
                     )}
                   </div>
                 )}
