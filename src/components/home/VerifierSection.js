@@ -346,8 +346,31 @@ function VerifierSection() {
         : false;
 
       const dbStudentId = (credential.student_id ?? '').toString().trim();
-      const chainStudentId = (chainData.studentId ?? '').toString().trim();
-      const studentIdMatch = dbStudentId && chainStudentId ? dbStudentId === chainStudentId : false;
+      let dbStudentIdHashHex = '';
+      if (dbStudentId) {
+        try {
+          dbStudentIdHashHex = ethers.sha256(ethers.toUtf8Bytes(dbStudentId)).toLowerCase();
+        } catch (e) {
+          dbStudentIdHashHex = '';
+        }
+      }
+
+      const chainStudentIdHashHex = (chainData.studentIdHashHex ?? '').toString().trim().toLowerCase();
+      let studentIdMatch = dbStudentIdHashHex && chainStudentIdHashHex
+        ? dbStudentIdHashHex === chainStudentIdHashHex
+        : false;
+
+      // Backward compatibility: support legacy credentials where plaintext student ID was stored
+      if (!studentIdMatch && dbStudentId && chainData.studentId) {
+        try {
+          const chainStudentIdPlain = chainData.studentId.toString().trim();
+          if (chainStudentIdPlain) {
+            studentIdMatch = dbStudentId === chainStudentIdPlain;
+          }
+        } catch (e) {
+          // ignore
+        }
+      }
 
       const dbCid = (credential.ipfs_cid ?? '').toString().trim();
       const chainCidHashHex = (chainData.ipfsCidHashHex ?? '').toString().trim();
@@ -411,6 +434,7 @@ function VerifierSection() {
           blockchainId,
           onChainIssuer: chainData.issuer,
           onChainStudentId: chainData.studentId ?? null,
+          onChainStudentIdHashHex: chainStudentIdHashHex || null,
           onChainCidHashHex: chainCidHashHex,
           onChainCreatedAt: chainData.createdAt ?? null,
           expectedCidHashHex: computedCidHashHex,
@@ -418,6 +442,7 @@ function VerifierSection() {
           onChainIssueDateUTC: chainDayForMatch,
           expectedIssuer: dbIssuer,
           expectedStudentId: dbStudentId,
+          expectedStudentIdHashHex: dbStudentIdHashHex || null,
         }
       };
 
