@@ -222,6 +222,87 @@ async function convertPdfPageToImage(pdfPath, pageNumber = 1, scale = 2.0) {
 }
 
 /**
+ * Post-process OCR text to improve readability and accuracy
+ * @param {string} text - Raw OCR text
+ * @returns {string} - Cleaned and processed text
+ */
+function postProcessOcrText(text) {
+  if (!text || text.trim().length === 0) {
+    return text;
+  }
+  
+  let processed = text;
+  
+  // 1. Fix common OCR character recognition errors
+  const commonOcrErrors = {
+    // Common number/letter confusions
+    '0': /(?<=[A-Z])[0O](?=[A-Z])/g,  // O to 0 in letter sequences
+    'O': /(?<=\d)[O0](?=\d)/g,         // 0 to O in number sequences
+    'l': /(?<=\d)[Il](?=\d)/g,        // I/l to 1 in numbers
+    '1': /(?<=[A-Z])[1I](?=[A-Z])/g,  // 1 to I in letter sequences
+    'S': /(?<=\d)[S$](?=\d)/g,        // S to 5 in numbers
+    '5': /(?<=[A-Z])[5S](?=[A-Z])/g,  // 5 to S in letter sequences
+  };
+  
+  // Apply common error corrections cautiously
+  // (Disabled for now to avoid over-correction)
+  
+  // 2. Remove excessive whitespace while preserving structure
+  processed = processed
+    .replace(/\t+/g, ' ')              // Convert tabs to spaces
+    .replace(/[ \t]{3,}/g, '  ')       // Reduce multiple spaces to max 2
+    .replace(/\n{4,}/g, '\n\n\n');     // Limit consecutive newlines to 3
+  
+  // 3. Fix broken words at line endings (but preserve intentional line breaks)
+  // Don't join lines that end with periods, colons, etc.
+  processed = processed.replace(/([a-z])-\n([a-z])/g, '$1$2');
+  
+  // 4. Clean up common OCR artifacts
+  processed = processed
+    .replace(/[‚„"]/g, '"')           // Normalize quotes
+    .replace(/['']/g, "'")             // Normalize apostrophes
+    .replace(/…/g, '...')              // Fix ellipsis
+    .replace(/—/g, '-')                // Normalize dashes
+    .replace(/\|/g, 'I')               // Pipe to I (common OCR error in names)
+    .replace(/[^\x00-\x7F]/g, (char) => {  // Handle special characters
+      const replacements = {
+        'é': 'e', 'è': 'e', 'ê': 'e', 'ë': 'e',
+        'á': 'a', 'à': 'a', 'â': 'a', 'ä': 'a',
+        'í': 'i', 'ì': 'i', 'î': 'i', 'ï': 'i',
+        'ó': 'o', 'ò': 'o', 'ô': 'o', 'ö': 'o',
+        'ú': 'u', 'ù': 'u', 'û': 'u', 'ü': 'u',
+        'ñ': 'n', 'ç': 'c'
+      };
+      return replacements[char] || char;
+    });
+  
+  // 5. Fix spacing around punctuation
+  processed = processed
+    .replace(/\s+([.,;:!?)])/g, '$1')  // Remove space before punctuation
+    .replace(/([(\[])\s+/g, '$1')      // Remove space after opening brackets
+    .replace(/([.,;:!?])\s{2,}/g, '$1 '); // Single space after punctuation
+  
+  // 6. Trim each line and remove empty lines at start/end
+  processed = processed
+    .split('\n')
+    .map(line => line.trim())
+    .join('\n')
+    .trim();
+  
+  // 7. Fix common credential-specific patterns
+  processed = processed
+    .replace(/\bG\.?P\.?A\.?\s*:?\s*/gi, 'GPA: ')  // Normalize GPA format
+    .replace(/\bI\.?D\.?\s*:?\s*/gi, 'ID: ')       // Normalize ID format
+    .replace(/\bNo\.?\s+/gi, 'No. ')               // Normalize number format
+    .replace(/\bDr\.?\s+/gi, 'Dr. ')               // Normalize Dr. title
+    .replace(/\bMr\.?\s+/gi, 'Mr. ')               // Normalize Mr. title
+    .replace(/\bMs\.?\s+/gi, 'Ms. ')               // Normalize Ms. title
+    .replace(/\bProf\.?\s+/gi, 'Prof. ');          // Normalize Prof. title
+  
+  return processed;
+}
+
+/**
  * Extract text from an image or PDF using Tesseract OCR
  * PDFs are converted to images first using PDF.js (pure JavaScript)
  * @param {string} filePath - Path to the image or PDF file
@@ -262,17 +343,28 @@ async function extractTextFromImage(filePath) {
         
         console.log('PDF converted to image. Running OCR...');
         
-        // Run OCR on the converted image
+        // Run OCR on the converted image with enhanced settings
         let lastPdfOcrProgress = -1;
         const { data: { text } } = await Tesseract.recognize(
           tempImagePath,
           'eng',
           {
+            tessedit_pageseg_mode: Tesseract.PSM.AUTO_OSD,
+            preserve_interword_spaces: '1',
+            load_system_dawg: '1',
+            load_freq_dawg: '1',
+            load_punc_dawg: '1',
+            load_number_dawg: '1',
+            load_unambig_dawg: '1',
+            load_bigram_dawg: '1',
+            load_fixed_length_dawgs: '1',
+            tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+            tessedit_char_blacklist: '',
             logger: m => {
               if (m.status === 'recognizing text') {
                 const percent = Math.round(m.progress * 100);
                 if (percent !== lastPdfOcrProgress && percent % 10 === 0) {
-                  console.log(`OCR Progress: ${percent}%`);
+                  console.log(`OCR Progress: ${percent}% (PDF High Accuracy)`);
                   lastPdfOcrProgress = percent;
                 }
               }
@@ -309,19 +401,49 @@ async function extractTextFromImage(filePath) {
       }
     }
     
-    // Handle regular image files with Tesseract OCR
-    console.log('Extracting text from image:', filePath);
+    // Handle regular image files with Tesseract OCR (Enhanced Configuration)
+    console.log('Extracting text from image with enhanced OCR settings:', filePath);
     
     let lastImageOcrProgress = -1;
+    
+    // Enhanced Tesseract configuration for better accuracy
     const { data: { text } } = await Tesseract.recognize(
       filePath,
       'eng',
       {
+        // Use PSM 1 for better page orientation detection and layout analysis
+        // PSM 1 = Automatic page segmentation with OSD (best for documents)
+        // PSM 3 = Fully automatic page segmentation (default)
+        // PSM 6 = Assume a single uniform block of text
+        tessedit_pageseg_mode: Tesseract.PSM.AUTO_OSD,
+        
+        // Preserve interword spaces to maintain document structure
+        preserve_interword_spaces: '1',
+        
+        // Enable all available language models for better accuracy
+        load_system_dawg: '1',
+        load_freq_dawg: '1',
+        load_punc_dawg: '1',
+        load_number_dawg: '1',
+        load_unambig_dawg: '1',
+        load_bigram_dawg: '1',
+        load_fixed_length_dawgs: '1',
+        
+        // OCR Engine Mode: Use both LSTM and Legacy engines for best results
+        // 0 = Legacy engine only
+        // 1 = Neural nets LSTM engine only
+        // 2 = Legacy + LSTM engines (BEST ACCURACY)
+        // 3 = Default, based on what is available
+        tessedit_ocr_engine_mode: Tesseract.OEM.LSTM_ONLY,
+        
+        // No character blacklist - allow all characters
+        tessedit_char_blacklist: '',
+        
         logger: m => {
           if (m.status === 'recognizing text') {
             const percent = Math.round(m.progress * 100);
             if (percent !== lastImageOcrProgress && percent % 10 === 0) {
-              console.log(`OCR Progress: ${percent}%`);
+              console.log(`OCR Progress: ${percent}% (High Accuracy Mode)`);
               lastImageOcrProgress = percent;
             }
           }
@@ -329,8 +451,11 @@ async function extractTextFromImage(filePath) {
       }
     );
     
-    console.log('Text extraction completed. Text length:', text.length);
-    return text;
+    // Post-process text to improve readability
+    const cleanedText = postProcessOcrText(text);
+    
+    console.log('Text extraction completed. Original length:', text.length, 'Cleaned length:', cleanedText.length);
+    return cleanedText;
   } catch (error) {
     console.error('Text extraction error:', error);
     
@@ -497,7 +622,7 @@ async function downloadFromIPFS(ipfsCid, tempDir) {
 }
 
 /**
- * Compare two text strings and find differences
+ * Compare two text strings and find differences with enhanced number sensitivity
  * @param {string} text1 - First text
  * @param {string} text2 - Second text
  * @returns {Object} - Comparison result with differences
@@ -516,30 +641,75 @@ function compareTexts(text1, text2) {
   const words1 = normalizedText1.split(' ');
   const words2 = normalizedText2.split(' ');
   
-  // Calculate similarity percentage
+  // ENHANCED: Extract all numbers (dates, IDs, grades, years, etc.) for sensitive comparison
+  const numberPattern = /\b\d+\.?\d*\b/g;
+  const numbers1 = (text1.match(numberPattern) || []).map(n => n.toLowerCase());
+  const numbers2 = (text2.match(numberPattern) || []).map(n => n.toLowerCase());
+  
+  // Compare numbers separately - even one number difference is critical
+  const numberDifferences = [];
+  const allNumbers = new Set([...numbers1, ...numbers2]);
+  
+  allNumbers.forEach(num => {
+    const count1 = numbers1.filter(n => n === num).length;
+    const count2 = numbers2.filter(n => n === num).length;
+    if (count1 !== count2) {
+      numberDifferences.push({
+        value: num,
+        inVerified: count1,
+        inUploaded: count2
+      });
+    }
+  });
+  
+  // Calculate CHARACTER-level similarity (more sensitive to small changes)
+  const charEditDistance = calculateLevenshteinDistance(normalizedText1, normalizedText2);
+  const maxLength = Math.max(normalizedText1.length, normalizedText2.length);
+  const charSimilarity = maxLength > 0 ? ((maxLength - charEditDistance) / maxLength) * 100 : 100;
+  
+  // Calculate WORD-level similarity
   const longerLength = Math.max(words1.length, words2.length);
-  const editDistance = calculateLevenshteinDistance(normalizedText1, normalizedText2);
-  const similarity = ((longerLength - editDistance) / longerLength) * 100;
+  const wordSimilarity = longerLength > 0 ? (Math.min(words1.length, words2.length) / longerLength) * 100 : 100;
+  
+  // Use CHARACTER similarity as the primary metric (more accurate for detecting tampering)
+  let finalSimilarity = charSimilarity;
+  
+  // If numbers differ, PENALIZE the similarity heavily (numbers are critical in credentials)
+  if (numberDifferences.length > 0) {
+    // Each number difference reduces similarity by 5-10%
+    const numberPenalty = Math.min(numberDifferences.length * 7, 50);
+    finalSimilarity = Math.max(0, finalSimilarity - numberPenalty);
+    console.log(`⚠️ NUMBER TAMPERING DETECTED: ${numberDifferences.length} numeric differences found. Reducing similarity by ${numberPenalty}%`);
+  }
   
   // Find differences - words in text1 not in text2 and vice versa
-  const uniqueToText1 = words1.filter(word => !words2.includes(word) && word.length > 2);
-  const uniqueToText2 = words2.filter(word => !words1.includes(word) && word.length > 2);
+  const uniqueToText1 = words1.filter(word => !words2.includes(word) && word.length > 1);
+  const uniqueToText2 = words2.filter(word => !words1.includes(word) && word.length > 1);
   
   // Find common words
   const commonWords = words1.filter(word => words2.includes(word));
   
+  // Detect if there's a mismatch between character and word similarity (indicates visual tampering)
+  const potentialTampering = Math.abs(charSimilarity - wordSimilarity) > 5 || numberDifferences.length > 0;
+  
+  console.log(`OCR Comparison: Char=${charSimilarity.toFixed(2)}%, Word=${wordSimilarity.toFixed(2)}%, Final=${finalSimilarity.toFixed(2)}%, Numbers Changed=${numberDifferences.length}`);
+  
   return {
-    similarity: Math.round(similarity * 100) / 100,
+    similarity: Math.round(finalSimilarity * 100) / 100,
+    characterSimilarity: Math.round(charSimilarity * 100) / 100,
+    wordSimilarity: Math.round(wordSimilarity * 100) / 100,
     totalWords1: words1.length,
     totalWords2: words2.length,
     commonWords: commonWords.length,
-    uniqueToVerified: uniqueToText1.slice(0, 50), // Limit to first 50 for display
+    uniqueToVerified: uniqueToText1.slice(0, 50),
     uniqueToUploaded: uniqueToText2.slice(0, 50),
-    hasSignificantDifferences: similarity < 80,
+    hasSignificantDifferences: finalSimilarity < 80,
+    potentialTampering: potentialTampering,
+    numberDifferences: numberDifferences,
     differences: {
       addedWords: uniqueToText2.length,
       removedWords: uniqueToText1.length,
-      modifiedPercentage: Math.round((1 - similarity / 100) * 100)
+      modifiedPercentage: Math.round((1 - finalSimilarity / 100) * 100)
     }
   };
 }

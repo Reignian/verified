@@ -45,6 +45,42 @@ function VerifierSection() {
   const [fileVerificationProgress, setFileVerificationProgress] = useState('');
   const [abortController, setAbortController] = useState(null); // For canceling verification
   
+  // Comparison modal tab state
+  const [activeComparisonTab, setActiveComparisonTab] = useState('ai'); // 'ai' or 'ocr'
+  
+  // Auto-select OCR tab when modal opens if AI is not available
+  useEffect(() => {
+    if (showComparisonModal && comparisonResult) {
+      // If AI analysis is not available, automatically show OCR tab
+      if (!comparisonResult.aiAnalysis) {
+        setActiveComparisonTab('ocr');
+      } else {
+        // If AI is available, default to AI tab
+        setActiveComparisonTab('ai');
+      }
+    }
+  }, [showComparisonModal, comparisonResult]);
+
+  // ESC key handler for full screen modal
+  useEffect(() => {
+    const handleEscKey = (event) => {
+      if (event.key === 'Escape' && showComparisonModal) {
+        closeComparisonModal();
+      }
+    };
+
+    if (showComparisonModal) {
+      document.addEventListener('keydown', handleEscKey);
+      // Prevent body scroll when modal is open
+      document.body.style.overflow = 'hidden';
+    }
+
+    return () => {
+      document.removeEventListener('keydown', handleEscKey);
+      document.body.style.overflow = 'unset';
+    };
+  }, [showComparisonModal]);
+  
   // Handler to switch verification mode and clear results
   const handleVerificationModeChange = (mode) => {
     setVerificationMode(mode);
@@ -248,6 +284,7 @@ function VerifierSection() {
 
   const closeComparisonModal = () => {
     setShowComparisonModal(false);
+    // Don't reset tab here - let it be set when modal opens
   };
 
   const resetComparison = () => {
@@ -1345,39 +1382,255 @@ function VerifierSection() {
         </div>
       )}
 
-      {/* Comparison Result Modal */}
+      {/* Modernized Comparison Result Modal with Tabs - Full Screen */}
       {showComparisonModal && comparisonResult && (
-        <div className="verifier-modal-overlay" onClick={closeComparisonModal}>
-          <div className="comparison-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="verifier-modal-header">
-              <h5 className="verifier-modal-title">
-                <i className="fas fa-file-contract me-2"></i>
-                File Comparison Results
-              </h5>
-              <button 
-                type="button" 
-                className="verifier-btn-close" 
-                onClick={closeComparisonModal}
-                aria-label="Close"
+        <div 
+          className="verifier-modal-overlay" 
+          onClick={closeComparisonModal}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: 0,
+            animation: 'fadeIn 0.3s ease-out'
+          }}
+        >
+          <div className="comparison-modal comparison-modal-modern" onClick={(e) => e.stopPropagation()}>
+            {/* Tab Navigation */}
+            <div className="comparison-tabs">
+              {comparisonResult.aiAnalysis && (
+                <button
+                  className={`comparison-tab ${activeComparisonTab === 'ai' ? 'active' : ''}`}
+                  onClick={() => setActiveComparisonTab('ai')}
+                >
+                  <i className="fas fa-robot"></i>
+                  <span>AI Analysis</span>
+                  <span className="comparison-tab-badge">Advanced</span>
+                </button>
+              )}
+              <button
+                className={`comparison-tab ${activeComparisonTab === 'ocr' ? 'active' : ''}`}
+                onClick={() => setActiveComparisonTab('ocr')}
               >
-                <i className="fas fa-times"></i>
+                <i className="fas fa-file-alt"></i>
+                <span>OCR Extraction</span>
+                {!comparisonResult.aiAnalysis && <span className="comparison-tab-badge" style={{background: '#28a745'}}>Active</span>}
               </button>
             </div>
             
-            <div className="verifier-modal-body">
-              {/* Quota Warning */}
-              {comparisonResult.quotaWarning && (
-                <div className="alert alert-warning mb-3">
-                  <h6 className="alert-heading">
-                    <i className="fas fa-info-circle me-2"></i>
-                    Gemini AI Quota Notice
-                  </h6>
-                  <p className="mb-0">{comparisonResult.quotaWarning}</p>
-                  <hr className="my-2" />
-                  <small className="text-muted">
-                    <i className="fas fa-clock me-1"></i>
-                    Free tier quota resets daily. Visit <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a> to check your usage.
-                  </small>
+            {/* Close Button - Top Right Corner */}
+            <button 
+              type="button" 
+              className="verifier-btn-close" 
+              onClick={closeComparisonModal}
+              aria-label="Close Full Screen"
+              title="Close (ESC)"
+              style={{
+                position: 'fixed',
+                right: '30px',
+                top: '30px',
+                background: 'rgba(255, 255, 255, 0.95)',
+                color: '#667eea',
+                border: '2px solid rgba(102, 126, 234, 0.3)',
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                fontSize: '1.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10000,
+                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.2)'
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.background = '#667eea';
+                e.target.style.color = 'white';
+                e.target.style.transform = 'scale(1.1) rotate(90deg)';
+                e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.background = 'rgba(255, 255, 255, 0.95)';
+                e.target.style.color = '#667eea';
+                e.target.style.transform = 'scale(1) rotate(0deg)';
+                e.target.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.2)';
+              }}
+            >
+              <i className="fas fa-times"></i>
+            </button>
+            
+            {/* AI Analysis Tab Content */}
+            {comparisonResult.aiAnalysis && (
+              <div className={`comparison-tab-content ${activeComparisonTab === 'ai' ? 'active' : ''}`}>
+                {/* Quota Warning */}
+                {comparisonResult.quotaWarning && (
+                  <div className="alert alert-warning mb-3">
+                    <h6 className="alert-heading">
+                      <i className="fas fa-info-circle me-2"></i>
+                      Gemini AI Quota Notice
+                    </h6>
+                    <p className="mb-0">{comparisonResult.quotaWarning}</p>
+                    <hr className="my-2" />
+                    <small className="text-muted">
+                      <i className="fas fa-clock me-1"></i>
+                      Free tier quota resets daily. Visit <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a> to check your usage.
+                    </small>
+                  </div>
+                )}
+                
+                {/* Overall Status */}
+                {comparisonResult.success && (
+                  <div className={`alert ${
+                    comparisonResult.overallStatus === 'identical' || comparisonResult.overallStatus === 'authentic' ? 'alert-success' : 
+                    comparisonResult.overallStatus === 'suspicious' ? 'alert-warning' : 
+                    'alert-danger'
+                  } text-center mb-4`}>
+                    <i className={`fas ${
+                      comparisonResult.overallStatus === 'identical' ? 'fa-check-double' :
+                      comparisonResult.overallStatus === 'authentic' ? 'fa-check-circle' : 
+                      comparisonResult.overallStatus === 'suspicious' ? 'fa-exclamation-triangle' : 
+                      'fa-times-circle'
+                    } me-2 fs-4`}></i>
+                    <h5 className="mb-2">{comparisonResult.statusMessage}</h5>
+                    <small>AI Confidence: {comparisonResult.matchConfidence}</small>
+                  </div>
+                )}
+
+                {/* Landscape Grid Layout */}
+                <div className="ai-content-landscape">
+                  {/* Visual Analysis Card */}
+                  {comparisonResult.keyFindings && (
+                    <div className="ai-section-card">
+                      <div className="ai-section-header">
+                        <div className="ai-section-icon">
+                          <i className="fas fa-eye"></i>
+                        </div>
+                        <h6 className="ai-section-title">Visual Analysis</h6>
+                      </div>
+                      <div className="row g-3">
+                        <div className="col-6">
+                          <div className="analysis-card" style={{padding: '15px'}}>
+                            <div style={{fontSize: '0.85rem', color: '#666', marginBottom: '5px'}}>Document Match</div>
+                            <div style={{fontSize: '1.2rem', fontWeight: '700', color: comparisonResult.keyFindings.exactSameDocument ? '#28a745' : '#ffc107'}}>
+                              {comparisonResult.keyFindings.exactSameDocument ? 'Identical' : 'Different'}
+                            </div>
+                          </div>
+                        </div>
+                        {comparisonResult.keyFindings.authenticityScore !== null && (
+                          <div className="col-6">
+                            <div className="analysis-card" style={{padding: '15px'}}>
+                              <div style={{fontSize: '0.85rem', color: '#666', marginBottom: '5px'}}>Authenticity</div>
+                              <div style={{fontSize: '1.2rem', fontWeight: '700', color: '#667eea'}}>
+                                {comparisonResult.keyFindings.authenticityScore}%
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {comparisonResult.keyFindings.sealMatch !== null && (
+                          <div className="col-6">
+                            <div className="analysis-card" style={{padding: '15px'}}>
+                              <div style={{fontSize: '0.85rem', color: '#666', marginBottom: '5px'}}>Official Seal</div>
+                              <div style={{fontSize: '1.1rem', fontWeight: '700', color: comparisonResult.keyFindings.sealMatch ? '#28a745' : '#dc3545'}}>
+                                {comparisonResult.keyFindings.sealMatch ? 'Match ✓' : 'Mismatch ✗'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                        {comparisonResult.keyFindings.signatureMatch !== null && (
+                          <div className="col-6">
+                            <div className="analysis-card" style={{padding: '15px'}}>
+                              <div style={{fontSize: '0.85rem', color: '#666', marginBottom: '5px'}}>Signature</div>
+                              <div style={{fontSize: '1.1rem', fontWeight: '700', color: comparisonResult.keyFindings.signatureMatch ? '#28a745' : '#dc3545'}}>
+                                {comparisonResult.keyFindings.signatureMatch ? 'Match ✓' : 'Mismatch ✗'}
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tampering Detection with Document Recreation */}
+                  {comparisonResult.specificTampering && comparisonResult.specificTampering.length > 0 && (
+                    <div className="ai-section-card full-width-section">
+                      <div className="ai-section-header">
+                        <div className="ai-section-icon" style={{background: 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'}}>
+                          <i className="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h6 className="ai-section-title" style={{color: '#dc3545'}}>
+                          Tampering Detected ({comparisonResult.specificTampering.length} {comparisonResult.specificTampering.length === 1 ? 'field' : 'fields'})
+                        </h6>
+                      </div>
+
+                      {/* Side-by-Side Document Recreation */}
+                      <div className="tampering-side-by-side">
+                        {/* Verified Document Layout */}
+                        <div className="verified-document-preview">
+                          <div style={{textAlign: 'center', marginBottom: '15px', paddingBottom: '10px', borderBottom: '2px solid #28a745'}}>
+                            <i className="fas fa-shield-alt me-2" style={{color: '#28a745'}}></i>
+                            <strong style={{color: '#28a745'}}>Verified (Original)</strong>
+                          </div>
+                          <div className="document-layout-preview" style={{borderColor: '#28a745'}}>
+                            {comparisonResult.specificTampering.map((item, idx) => (
+                              <div key={`verified-${idx}`} className="document-field-overlay" style={{borderLeftColor: '#28a745'}}>
+                                <div className="document-field-label">{item.field}</div>
+                                <div className="document-field-value" style={{color: '#28a745'}}>{item.originalValue || 'N/A'}</div>
+                                {item.location && (
+                                  <div style={{fontSize: '0.7rem', color: '#999', marginTop: '5px'}}>
+                                    <i className="fas fa-map-marker-alt me-1"></i>{item.location}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Comparison Arrow */}
+                        <div className="comparison-arrow">
+                          <i className="fas fa-not-equal"></i>
+                        </div>
+
+                        {/* Uploaded Document Layout (Tampered) */}
+                        <div className="tampered-document-preview">
+                          <div style={{textAlign: 'center', marginBottom: '15px', paddingBottom: '10px', borderBottom: '2px solid #dc3545'}}>
+                            <i className="fas fa-file-upload me-2" style={{color: '#dc3545'}}></i>
+                            <strong style={{color: '#dc3545'}}>Uploaded (Tampered)</strong>
+                          </div>
+                          <div className="document-layout-preview">
+                            {comparisonResult.specificTampering.map((item, idx) => (
+                              <div key={`tampered-${idx}`} className="document-field-overlay tampered-field">
+                                <div className="tampered-field-marker">{item.severity}</div>
+                                <div className="document-field-label">{item.field}</div>
+                                <div className="document-field-value" style={{color: '#dc3545'}}>{item.tamperedValue || 'N/A'}</div>
+                                <div style={{fontSize: '0.75rem', color: '#dc3545', marginTop: '8px', padding: '8px', background: 'rgba(220, 53, 69, 0.1)', borderRadius: '4px'}}>
+                                  <div><i className="fas fa-tools me-1"></i><strong>Method:</strong> {item.tamperingMethod}</div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* OCR Tab Content */}
+            <div className={`comparison-tab-content ${activeComparisonTab === 'ocr' ? 'active' : ''}`}>
+              {/* OCR Only Notice (if AI not available) */}
+              {!comparisonResult.aiAnalysis && (
+                <div className="ocr-only-notice">
+                  <h5><i className="fas fa-info-circle me-2"></i>OCR-Only Mode</h5>
+                  <p>AI visual analysis is unavailable. Results are based on optical character recognition (OCR) text extraction only.</p>
                 </div>
               )}
               
@@ -1401,209 +1654,10 @@ function VerifierSection() {
                 </div>
               )}
 
-              {/* Successful Comparison */}
+              {/* Successful Comparison - OCR Content */}
               {comparisonResult.success && (
                 <>
-                  {/* Overall Status Alert */}
-                  <div className={`alert ${
-                    comparisonResult.overallStatus === 'identical' || comparisonResult.overallStatus === 'authentic' ? 'alert-success' : 
-                    comparisonResult.overallStatus === 'suspicious' ? 'alert-warning' : 
-                    'alert-danger'
-                  } text-center mb-4`}>
-                    <i className={`fas ${
-                      comparisonResult.overallStatus === 'identical' ? 'fa-check-double' :
-                      comparisonResult.overallStatus === 'authentic' ? 'fa-check-circle' : 
-                      comparisonResult.overallStatus === 'suspicious' ? 'fa-exclamation-triangle' : 
-                      'fa-times-circle'
-                    } me-2 fs-4`}></i>
-                    <h5 className="mb-2">{comparisonResult.statusMessage}</h5>
-                    <small>AI Confidence: {comparisonResult.matchConfidence}</small>
-                  </div>
-
-                  {/* Credential Types */}
-                  <div className="comparison-types mb-4">
-                    <div className="row">
-                      <div className="col-6">
-                        <div className="type-card verified-type">
-                          <small className="text-muted d-block">Verified File</small>
-                          <strong>{comparisonResult.verifiedType}</strong>
-                        </div>
-                      </div>
-                      <div className="col-6">
-                        <div className="type-card uploaded-type">
-                          <small className="text-muted d-block">Uploaded File</small>
-                          <strong>{comparisonResult.uploadedType}</strong>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* AI Analysis Summary */}
-                  {comparisonResult.aiAnalysis && comparisonResult.keyFindings && (
-                    <div className="ai-analysis-section mb-4">
-                      <h6 className="mb-3">
-                        <i className="fas fa-robot me-2 text-primary"></i>
-                        AI Visual Analysis
-                      </h6>
-                      <div className="row g-3">
-                        <div className="col-md-6">
-                          <div className="analysis-card">
-                            <div className="analysis-icon">
-                              {comparisonResult.keyFindings.exactSameDocument ? 
-                                <i className="fas fa-equals text-success"></i> : 
-                                <i className="fas fa-not-equal text-warning"></i>
-                              }
-                            </div>
-                            <div className="analysis-content">
-                              <div className="analysis-label">Document Match</div>
-                              <div className="analysis-value">
-                                {comparisonResult.keyFindings.exactSameDocument ? 'Identical' : 'Different'}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        {comparisonResult.keyFindings.authenticityScore !== null && (
-                          <div className="col-md-6">
-                            <div className="analysis-card">
-                              <div className="analysis-icon">
-                                <i className="fas fa-shield-alt text-primary"></i>
-                              </div>
-                              <div className="analysis-content">
-                                <div className="analysis-label">Authenticity Score</div>
-                                <div className="analysis-value">{comparisonResult.keyFindings.authenticityScore}%</div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {comparisonResult.keyFindings.sealMatch !== null && (
-                          <div className="col-md-6">
-                            <div className="analysis-card">
-                              <div className="analysis-icon">
-                                {comparisonResult.keyFindings.sealMatch ? 
-                                  <i className="fas fa-stamp text-success"></i> : 
-                                  <i className="fas fa-stamp text-danger"></i>
-                                }
-                              </div>
-                              <div className="analysis-content">
-                                <div className="analysis-label">Official Seal</div>
-                                <div className="analysis-value">
-                                  {comparisonResult.keyFindings.sealMatch ? 'Match ✓' : 'Mismatch ✗'}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                        {comparisonResult.keyFindings.signatureMatch !== null && (
-                          <div className="col-md-6">
-                            <div className="analysis-card">
-                              <div className="analysis-icon">
-                                {comparisonResult.keyFindings.signatureMatch ? 
-                                  <i className="fas fa-signature text-success"></i> : 
-                                  <i className="fas fa-signature text-danger"></i>
-                                }
-                              </div>
-                              <div className="analysis-content">
-                                <div className="analysis-label">Signature</div>
-                                <div className="analysis-value">
-                                  {comparisonResult.keyFindings.signatureMatch ? 'Match ✓' : 'Mismatch ✗'}
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                      
-                      {/* Tampering Detection */}
-                      {comparisonResult.keyFindings.tamperingDetected && (
-                        <div className="alert alert-danger mt-3">
-                          <h6 className="alert-heading">
-                            <i className="fas fa-exclamation-triangle me-2"></i>
-                            Tampering Detected
-                          </h6>
-                          <p className="mb-0">
-                            <strong>Severity:</strong> {comparisonResult.keyFindings.tamperingSeverity}
-                          </p>
-                        </div>
-                      )}
-                      
-                      {/* Specific Tampering Details */}
-                      {comparisonResult.specificTampering && comparisonResult.specificTampering.length > 0 && (
-                        <div className="tampering-details-section mt-3">
-                          <h6 className="mb-3">
-                            <i className="fas fa-search-location me-2 text-danger"></i>
-                            Specific Tampering Detected ({comparisonResult.specificTampering.length} {comparisonResult.specificTampering.length === 1 ? 'field' : 'fields'})
-                          </h6>
-                          <div className="tampering-items">
-                            {comparisonResult.specificTampering.map((item, idx) => (
-                              <div key={idx} className={`tampering-item alert ${
-                                item.severity === 'Severe' ? 'alert-danger' :
-                                item.severity === 'Moderate' ? 'alert-warning' :
-                                'alert-info'
-                              }`}>
-                                <div className="d-flex justify-content-between align-items-start mb-2">
-                                  <div className="tampering-field">
-                                    <i className="fas fa-exclamation-circle me-2"></i>
-                                    <strong>{item.field}</strong>
-                                  </div>
-                                  <span className={`badge ${
-                                    item.severity === 'Severe' ? 'bg-danger' :
-                                    item.severity === 'Moderate' ? 'bg-warning' :
-                                    'bg-info'
-                                  }`}>
-                                    {item.severity}
-                                  </span>
-                                </div>
-                                
-                                <div className="tampering-comparison mb-2">
-                                  <div className="row g-2">
-                                    <div className="col-md-6">
-                                      <div className="tampering-value verified-value">
-                                        <small className="text-muted d-block">
-                                          <i className="fas fa-shield-alt me-1"></i>
-                                          Original (Verified):
-                                        </small>
-                                        <code className="text-success">{item.originalValue || 'N/A'}</code>
-                                      </div>
-                                    </div>
-                                    <div className="col-md-6">
-                                      <div className="tampering-value tampered-value">
-                                        <small className="text-muted d-block">
-                                          <i className="fas fa-file-upload me-1"></i>
-                                          Tampered (Uploaded):
-                                        </small>
-                                        <code className="text-danger">{item.tamperedValue || 'N/A'}</code>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                                
-                                <div className="tampering-metadata">
-                                  <div className="row g-2 small">
-                                    <div className="col-md-6">
-                                      <i className="fas fa-map-marker-alt me-1 text-primary"></i>
-                                      <strong>Location:</strong> {item.location}
-                                    </div>
-                                    <div className="col-md-6">
-                                      <i className="fas fa-tools me-1 text-warning"></i>
-                                      <strong>Method:</strong> {item.tamperingMethod}
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                  
-                  {/* OCR-Only Mode Notice */}
-                  {!comparisonResult.aiAnalysis && comparisonResult.matchConfidence && comparisonResult.matchConfidence.includes('OCR-only') && (
-                    <div className="alert alert-info mb-4">
-                      <i className="fas fa-info-circle me-2"></i>
-                      <strong>Note:</strong> AI visual analysis unavailable. Results based on OCR text comparison only.
-                    </div>
-                  )}
+                  {/* OCR Similarity Score */}
 
                   {/* Text Similarity Score */}
                   {comparisonResult.ocrComparison && (
@@ -1765,64 +1819,86 @@ function VerifierSection() {
                     </div>
                   )}
 
-                  {/* Extracted Text Preview */}
-                  <div className="text-preview-section">
-                    <h6 className="mb-3">
-                      <i className="fas fa-file-alt me-2"></i>
-                      Extracted Text Preview
-                    </h6>
-                    <div className="accordion" id="textPreviewAccordion">
-                      <div className="accordion-item">
-                        <h2 className="accordion-header">
-                          <button 
-                            className="accordion-button collapsed" 
-                            type="button" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#verifiedText"
-                          >
-                            <i className="fas fa-shield-alt me-2 text-primary"></i>
-                            Verified File Text (OCR)
-                          </button>
-                        </h2>
-                        <div id="verifiedText" className="accordion-collapse collapse" data-bs-parent="#textPreviewAccordion">
-                          <div className="accordion-body">
-                            <pre className="text-preview">{comparisonResult.verifiedText}</pre>
+                  {/* OCR Layout Recreation */}
+                  <div className="row g-4">
+                    {/* Verified File OCR Layout */}
+                    <div className="col-md-6">
+                      <div className="ai-section-card">
+                        <div className="ai-section-header">
+                          <div className="ai-section-icon" style={{background: 'linear-gradient(135deg, #28a745 0%, #20c997 100%)'}}>
+                            <i className="fas fa-shield-alt"></i>
                           </div>
+                          <h6 className="ai-section-title">Verified File
+                            <span className="ocr-confidence-badge ocr-confidence-high ms-2">OCR Extracted</span>
+                          </h6>
+                        </div>
+                        <div className="ocr-layout-container">
+                          <div className="ocr-watermark">VERIFIED</div>
+                          {comparisonResult.verifiedText && comparisonResult.verifiedText.split('\n').filter(line => line.trim()).slice(0, 15).map((line, idx) => (
+                            <div key={`verified-ocr-${idx}`} className="ocr-extracted-section">
+                              <div className="ocr-section-content">{line}</div>
+                            </div>
+                          ))}
+                          {comparisonResult.verifiedText && comparisonResult.verifiedText.split('\n').filter(line => line.trim()).length > 15 && (
+                            <div className="text-center mt-3">
+                              <button 
+                                className="btn btn-sm btn-outline-primary" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#fullVerifiedText"
+                              >
+                                <i className="fas fa-eye me-1"></i> View Full Text
+                              </button>
+                              <div id="fullVerifiedText" className="collapse mt-2">
+                                <div style={{maxHeight: '300px', overflow: 'auto', background: '#f8f9fa', padding: '15px', borderRadius: '8px'}}>
+                                  <pre style={{fontSize: '0.85rem', margin: 0}}>{comparisonResult.verifiedText}</pre>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      
-                      <div className="accordion-item">
-                        <h2 className="accordion-header">
-                          <button 
-                            className="accordion-button collapsed" 
-                            type="button" 
-                            data-bs-toggle="collapse" 
-                            data-bs-target="#uploadedText"
-                          >
-                            <i className="fas fa-file-upload me-2 text-secondary"></i>
-                            Uploaded File Text (OCR)
-                          </button>
-                        </h2>
-                        <div id="uploadedText" className="accordion-collapse collapse" data-bs-parent="#textPreviewAccordion">
-                          <div className="accordion-body">
-                            <pre className="text-preview">{comparisonResult.uploadedText}</pre>
+                    </div>
+
+                    {/* Uploaded File OCR Layout */}
+                    <div className="col-md-6">
+                      <div className="ai-section-card">
+                        <div className="ai-section-header">
+                          <div className="ai-section-icon" style={{background: 'linear-gradient(135deg, #6c757d 0%, #495057 100%)'}}>
+                            <i className="fas fa-file-upload"></i>
                           </div>
+                          <h6 className="ai-section-title">Uploaded File
+                            <span className="ocr-confidence-badge ocr-confidence-high ms-2">OCR Extracted</span>
+                          </h6>
+                        </div>
+                        <div className="ocr-layout-container">
+                          <div className="ocr-watermark">UPLOADED</div>
+                          {comparisonResult.uploadedText && comparisonResult.uploadedText.split('\n').filter(line => line.trim()).slice(0, 15).map((line, idx) => (
+                            <div key={`uploaded-ocr-${idx}`} className="ocr-extracted-section">
+                              <div className="ocr-section-content">{line}</div>
+                            </div>
+                          ))}
+                          {comparisonResult.uploadedText && comparisonResult.uploadedText.split('\n').filter(line => line.trim()).length > 15 && (
+                            <div className="text-center mt-3">
+                              <button 
+                                className="btn btn-sm btn-outline-secondary" 
+                                data-bs-toggle="collapse" 
+                                data-bs-target="#fullUploadedText"
+                              >
+                                <i className="fas fa-eye me-1"></i> View Full Text
+                              </button>
+                              <div id="fullUploadedText" className="collapse mt-2">
+                                <div style={{maxHeight: '300px', overflow: 'auto', background: '#f8f9fa', padding: '15px', borderRadius: '8px'}}>
+                                  <pre style={{fontSize: '0.85rem', margin: 0}}>{comparisonResult.uploadedText}</pre>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 </>
               )}
-            </div>
-            
-            <div className="verifier-modal-footer">
-              <button 
-                type="button" 
-                className="btn btn-secondary" 
-                onClick={closeComparisonModal}
-              >
-                Close
-              </button>
             </div>
           </div>
         </div>

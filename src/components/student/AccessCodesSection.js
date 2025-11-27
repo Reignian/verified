@@ -11,6 +11,8 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
   const [multiAccessCodes, setMultiAccessCodes] = useState([]);
   const [loadingStates, setLoadingStates] = useState({});
   const [deleteLoadingStates, setDeleteLoadingStates] = useState({});
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
 
   // Load single access codes with accurate active/inactive state from backend
   const loadCodes = async () => {
@@ -84,6 +86,33 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
     return `${origin}${path}?${params.toString()}#verifier`;
   };
 
+  // Copy just the access code to clipboard
+  const handleCopyAccessCode = async (code) => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = code;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      // Show toast notification
+      setToastMessage('Access code copied!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    } catch (err) {
+      // As a last resort, show the code to copy manually
+      window.prompt('Copy this access code:', code);
+    }
+  };
+
   // Copy the share link to clipboard
   const handleCopyShareLink = async (index, customCode = null) => {
     const code = customCode || (activeTab === 'single' ? accessCodes[index]?.code : multiAccessCodes[index]?.code);
@@ -103,7 +132,10 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
         document.execCommand('copy');
         document.body.removeChild(textArea);
       }
-      alert('Share link copied to clipboard!');
+      // Show toast notification
+      setToastMessage('Share link copied!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
     } catch (err) {
       // As a last resort, show the URL to copy manually
       window.prompt('Copy this verification link:', url);
@@ -274,7 +306,15 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
                   <div key={`${accessCode.credentialId}-${index}`} className="access-code-card">
                     <div className="access-code-header">
                       <div className="access-code-info">
-                        <div className="access-code-value">{accessCode.code}</div>
+                        <div 
+                          className="access-code-value clickable-code" 
+                          onClick={() => handleCopyAccessCode(accessCode.code)}
+                          title="Click to copy access code"
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span>{accessCode.code}</span>
+                          <i className="fas fa-copy" style={{ fontSize: '0.9rem', opacity: 0.6 }}></i>
+                        </div>
                         <div className="access-code-status">
                           <span className={`status-badge-small ${accessCode.status}`}>{accessCode.status}</span>
                         </div>
@@ -360,7 +400,15 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
                   <div key={`multi-${multiCode.id}-${index}`} className="access-code-card">
                     <div className="access-code-header">
                       <div className="access-code-info">
-                        <div className="access-code-value">{multiCode.code}</div>
+                        <div 
+                          className="access-code-value clickable-code" 
+                          onClick={() => handleCopyAccessCode(multiCode.code)}
+                          title="Click to copy access code"
+                          style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
+                        >
+                          <span>{multiCode.code}</span>
+                          <i className="fas fa-copy" style={{ fontSize: '0.9rem', opacity: 0.6 }}></i>
+                        </div>
                         <div className="access-code-status">
                           <span className={`status-badge-small ${multiCode.status}`}>{multiCode.status}</span>
                         </div>
@@ -430,6 +478,34 @@ function AccessCodesSection({ credentials, totalAccessCodes, onRefresh }) {
               </div>
             )}
           </>
+        )}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div 
+            onClick={() => setShowToast(false)}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '16px 24px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              zIndex: 9999,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              animation: 'slideInRight 0.3s ease-out',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            <i className="fas fa-check-circle" style={{ fontSize: '1.2rem' }}></i>
+            <span>{toastMessage}</span>
+          </div>
         )}
       </div>
     </div>

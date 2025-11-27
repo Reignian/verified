@@ -18,6 +18,35 @@ function CredentialsSection({
   const [credentialCount, setCredentialCount] = useState(0);
   const [showSingleConfirmModal, setShowSingleConfirmModal] = useState(false);
   const [selectedSingleCredential, setSelectedSingleCredential] = useState(null);
+  const [showToast, setShowToast] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  // Copy access code to clipboard
+  const handleCopyGeneratedCode = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(generatedCode);
+      } else {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = generatedCode;
+        textArea.style.position = 'fixed';
+        textArea.style.top = '-9999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+      }
+      // Show toast notification
+      setToastMessage('Access code copied!');
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 2000);
+    } catch (err) {
+      // As a last resort, show the code to copy manually
+      window.prompt('Copy this access code:', generatedCode);
+    }
+  };
 
   // Auto-close success modal after 3 seconds
   useEffect(() => {
@@ -413,8 +442,41 @@ function CredentialsSection({
                       <i className="fas fa-check-circle text-success" style={{ fontSize: '4rem' }}></i>
                     </div>
                     <h4 className="text-success mb-3">Access Code Generated!</h4>
-                    <h5 className="mb-2">{generatedCode}</h5>
-                    <p className="text-muted mb-4">Your new access code has been created successfully.</p>
+                    <div 
+                      onClick={handleCopyGeneratedCode}
+                      style={{
+                        cursor: 'pointer',
+                        padding: '15px 25px',
+                        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                        borderRadius: '12px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        color: 'white',
+                        fontSize: '1.3rem',
+                        fontWeight: '600',
+                        fontFamily: 'monospace',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)',
+                        transition: 'all 0.2s ease',
+                        marginBottom: '15px'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+                      }}
+                      title="Click to copy access code"
+                    >
+                      <span>{generatedCode}</span>
+                      <i className="fas fa-copy" style={{ fontSize: '1.1rem' }}></i>
+                    </div>
+                    <p className="text-muted mb-4">
+                      <i className="fas fa-info-circle me-1"></i>
+                      Click the code above to copy it instantly!
+                    </p>
                   </div>
                 </div>
               </div>
@@ -470,6 +532,34 @@ function CredentialsSection({
                 </div>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Toast Notification */}
+        {showToast && (
+          <div 
+            onClick={() => setShowToast(false)}
+            style={{
+              position: 'fixed',
+              top: '20px',
+              right: '20px',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              color: 'white',
+              padding: '16px 24px',
+              borderRadius: '12px',
+              boxShadow: '0 4px 15px rgba(102, 126, 234, 0.4)',
+              zIndex: 9999,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              animation: 'slideInRight 0.3s ease-out',
+              fontSize: '1rem',
+              fontWeight: '600'
+            }}
+          >
+            <i className="fas fa-check-circle" style={{ fontSize: '1.2rem' }}></i>
+            <span>{toastMessage}</span>
           </div>
         )}
       </div>
