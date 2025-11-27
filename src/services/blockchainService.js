@@ -53,7 +53,7 @@ class BlockchainService {
       }
 
       // Get signer from MetaMask
-      const signer = await this.provider.getSigner();
+      const signer = await this.provider.getSigner(); 
       
       // Create contract instance
       const contract = new ethers.Contract(
@@ -80,11 +80,12 @@ class BlockchainService {
         throw new Error('Invalid ipfsHash parameter; expected a hex string or CID string');
       }
 
-      // Student identifier: still encoded as bytes32 string (truncated to 31 chars to fit)
-      const studentIdBytes32 = ethers.encodeBytes32String(String(studentId).slice(0, 31));
+      // Student identifier: hashed as bytes32 using keccak256 of the raw student ID string
+      const studentIdStr = String(studentId).trim();
+      const studentIdHashBytes32 = ethers.sha256(ethers.toUtf8Bytes(studentIdStr));
 
       // Send transaction with bytes32 parameters
-      const tx = await contract.issueCredential(ipfsHashBytes32, studentIdBytes32);
+      const tx = await contract.issueCredential(ipfsHashBytes32, studentIdHashBytes32);
 
       // Capture issuance start time right after MetaMask confirmation / tx submission
       const issuanceStart = Date.now();
@@ -208,6 +209,10 @@ class BlockchainService {
         studentIdStr = ethers.decodeBytes32String(studentIdBytes);
       } catch {}
 
+      const studentIdHashHex = typeof studentIdBytes === 'string'
+        ? studentIdBytes
+        : ethers.hexlify(studentIdBytes);
+
       return {
         // bytes32 SHA-256 of original CID as hex string
         ipfsCidHashHex: typeof ipfsCidHashBytes32 === 'string' 
@@ -216,6 +221,7 @@ class BlockchainService {
         issuer,
         studentIdBytes,
         studentId: studentIdStr,
+        studentIdHashHex,
         createdAt: Number(createdAt),
         createdAtDate: new Date(Number(createdAt) * 1000)
       };
