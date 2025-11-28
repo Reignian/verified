@@ -433,9 +433,14 @@ function CredentialsSection({
 
         {/* Success Modal */}
         {showSuccessModal && (
-          <div className="modal show d-block" tabIndex="-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
+          <div 
+            className="modal show d-block" 
+            tabIndex="-1" 
+            style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+            onClick={() => setShowSuccessModal(false)}
+          >
             <div className="modal-dialog modal-dialog-centered">
-              <div className="modal-content">
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-body text-center py-5">
                   <div className="mb-4">
                     <div className="success-checkmark mb-3">
