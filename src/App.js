@@ -1,6 +1,7 @@
 // fileName: App.js (Updated with Admin Routes)
 
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+
 import { useState, useEffect } from 'react';
 import HomePage from './components/home/HomePage';
 import AcademicInstitution from './components/institution/AcademicInstitution';
@@ -9,6 +10,17 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import Login from './components/common/Login';
 import SignUp from './components/common/SignUp';
 import Navigation from './components/common/Navigation';
+
+function ProtectedRoute({ allowedTypes, children }) {
+  const userId = localStorage.getItem('userId');
+  const userType = localStorage.getItem('userType');
+
+  if (!userId || (allowedTypes && !allowedTypes.includes(userType))) {
+    return <Navigate to="/" replace />;
+  }
+
+  return children;
+}
 
 function AppContent() {
   const [user, setUser] = useState(null);
@@ -38,12 +50,17 @@ function AppContent() {
   }, []); // Remove location dependency to prevent re-renders on route changes
 
   const handleLogout = () => {
-    localStorage.removeItem('userId');
-    localStorage.removeItem('userType');
-    localStorage.removeItem('institutionId');
-    localStorage.removeItem('publicAddress');
-    setUser(null);
+    // First navigate to homepage so the user sees the public landing page
     navigate('/');
+
+    // Then clear auth state and storage shortly after navigation
+    setTimeout(() => {
+      localStorage.removeItem('userId');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('institutionId');
+      localStorage.removeItem('publicAddress');
+      setUser(null);
+    }, 0);
   };
 
   const handleLoginSuccess = () => {
@@ -71,9 +88,30 @@ function AppContent() {
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/institution-dashboard" element={<AcademicInstitution />} />
-        <Route path="/student-dashboard" element={<MyVerifiED />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
+        <Route
+          path="/institution-dashboard"
+          element={
+            <ProtectedRoute allowedTypes={['institution', 'institution_staff']}>
+              <AcademicInstitution />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student-dashboard"
+          element={
+            <ProtectedRoute allowedTypes={['student']}>
+              <MyVerifiED />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard"
+          element={
+            <ProtectedRoute allowedTypes={['admin']}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </>
   );

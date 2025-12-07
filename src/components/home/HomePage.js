@@ -147,7 +147,7 @@ function HomePage() {
             </div>
             <div className="col-lg-6 text-center">
               <img 
-                src="/icon_verify.png" 
+                src={`${process.env.PUBLIC_URL}/icon_verify.png`} 
                 alt="VerifiED - Secure credential verification" 
                 className="img-fluid" 
                 style={{
