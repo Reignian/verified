@@ -7,6 +7,68 @@ import { ethers } from 'ethers';
 // Pinata gateway URL from environment variable
 const PINATA_GATEWAY = process.env.REACT_APP_PINATA_GATEWAY || 'https://gateway.pinata.cloud/ipfs';
 
+/**
+ * Helper function to check if a line contains tampered words
+ * @param {string} line - The text line to check
+ * @param {Array} tamperedWords - Array of words that were tampered
+ * @returns {boolean} - True if line contains any tampered words
+ */
+const lineContainsTamperedWords = (line, tamperedWords) => {
+  if (!line || !tamperedWords || tamperedWords.length === 0) return false;
+  
+  const lineWords = line.toLowerCase().split(/\s+/);
+  return tamperedWords.some(word => {
+    const normalizedWord = word.toLowerCase();
+    return lineWords.some(lineWord => 
+      lineWord.includes(normalizedWord) || normalizedWord.includes(lineWord)
+    );
+  });
+};
+
+/**
+ * Helper function to highlight tampered words in a line of text
+ * @param {string} line - The text line
+ * @param {Array} tamperedWords - Array of words that were tampered
+ * @param {string} highlightClass - CSS class to use ('tampered-word' for red, 'added-word' for green)
+ * @returns {JSX.Element} - Line with highlighted tampered words
+ */
+const highlightTamperedWords = (line, tamperedWords, highlightClass = 'tampered-word') => {
+  if (!line || !tamperedWords || tamperedWords.length === 0) {
+    return <span>{line}</span>;
+  }
+  
+  // Create a regex pattern that matches any of the tampered words (case-insensitive)
+  const pattern = tamperedWords
+    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')) // Escape special chars
+    .join('|');
+  
+  if (!pattern) return <span>{line}</span>;
+  
+  try {
+    const regex = new RegExp(`\\b(${pattern})\\b`, 'gi');
+    const parts = line.split(regex);
+    
+    return (
+      <span>
+        {parts.map((part, index) => {
+          const isTampered = tamperedWords.some(word => 
+            word.toLowerCase() === part.toLowerCase()
+          );
+          
+          return isTampered ? (
+            <span key={index} className={highlightClass}>{part}</span>
+          ) : (
+            <span key={index}>{part}</span>
+          );
+        })}
+      </span>
+    );
+  } catch (error) {
+    console.warn('Error highlighting tampered words:', error);
+    return <span>{line}</span>;
+  }
+};
+
 // Enable reading URL params to prefill the access code
 function VerifierSection() {
   const [showVerificationResult, setShowVerificationResult] = useState(false);
@@ -1859,27 +1921,25 @@ function VerifierSection() {
                         </div>
                         <div className="ocr-layout-container">
                           <div className="ocr-watermark">VERIFIED</div>
-                          {comparisonResult.verifiedText && comparisonResult.verifiedText.split('\n').filter(line => line.trim()).slice(0, 15).map((line, idx) => (
-                            <div key={`verified-ocr-${idx}`} className="ocr-extracted-section">
-                              <div className="ocr-section-content">{line}</div>
-                            </div>
-                          ))}
-                          {comparisonResult.verifiedText && comparisonResult.verifiedText.split('\n').filter(line => line.trim()).length > 15 && (
-                            <div className="text-center mt-3">
-                              <button 
-                                className="btn btn-sm btn-outline-primary" 
-                                data-bs-toggle="collapse" 
-                                data-bs-target="#fullVerifiedText"
-                              >
-                                <i className="fas fa-eye me-1"></i> View Full Text
-                              </button>
-                              <div id="fullVerifiedText" className="collapse mt-2">
-                                <div style={{maxHeight: '300px', overflow: 'auto', background: '#f8f9fa', padding: '15px', borderRadius: '8px'}}>
-                                  <pre style={{fontSize: '0.85rem', margin: 0}}>{comparisonResult.verifiedText}</pre>
+                          {comparisonResult.verifiedText && (() => {
+                            // Extract removed words from comparison result (words only in verified file) - show in RED
+                            const removedWords = comparisonResult.ocrComparison?.uniqueToVerified || [];
+                            
+                            return comparisonResult.verifiedText.split('\n').filter(line => line.trim()).map((line, idx) => {
+                              const hasRemovedWords = lineContainsTamperedWords(line, removedWords);
+                              
+                              return (
+                                <div 
+                                  key={`verified-ocr-${idx}`} 
+                                  className={`ocr-extracted-section ${hasRemovedWords ? 'tampered-line' : ''}`}
+                                >
+                                  <div className="ocr-section-content">
+                                    {highlightTamperedWords(line, removedWords, 'tampered-word')}
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          )}
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -1897,27 +1957,25 @@ function VerifierSection() {
                         </div>
                         <div className="ocr-layout-container">
                           <div className="ocr-watermark">UPLOADED</div>
-                          {comparisonResult.uploadedText && comparisonResult.uploadedText.split('\n').filter(line => line.trim()).slice(0, 15).map((line, idx) => (
-                            <div key={`uploaded-ocr-${idx}`} className="ocr-extracted-section">
-                              <div className="ocr-section-content">{line}</div>
-                            </div>
-                          ))}
-                          {comparisonResult.uploadedText && comparisonResult.uploadedText.split('\n').filter(line => line.trim()).length > 15 && (
-                            <div className="text-center mt-3">
-                              <button 
-                                className="btn btn-sm btn-outline-secondary" 
-                                data-bs-toggle="collapse" 
-                                data-bs-target="#fullUploadedText"
-                              >
-                                <i className="fas fa-eye me-1"></i> View Full Text
-                              </button>
-                              <div id="fullUploadedText" className="collapse mt-2">
-                                <div style={{maxHeight: '300px', overflow: 'auto', background: '#f8f9fa', padding: '15px', borderRadius: '8px'}}>
-                                  <pre style={{fontSize: '0.85rem', margin: 0}}>{comparisonResult.uploadedText}</pre>
+                          {comparisonResult.uploadedText && (() => {
+                            // Extract added words from comparison result (words only in uploaded file) - show in GREEN
+                            const addedWords = comparisonResult.ocrComparison?.uniqueToUploaded || [];
+                            
+                            return comparisonResult.uploadedText.split('\n').filter(line => line.trim()).map((line, idx) => {
+                              const hasAddedWords = lineContainsTamperedWords(line, addedWords);
+                              
+                              return (
+                                <div 
+                                  key={`uploaded-ocr-${idx}`} 
+                                  className={`ocr-extracted-section ${hasAddedWords ? 'added-line' : ''}`}
+                                >
+                                  <div className="ocr-section-content">
+                                    {highlightTamperedWords(line, addedWords, 'added-word')}
+                                  </div>
                                 </div>
-                              </div>
-                            </div>
-                          )}
+                              );
+                            });
+                          })()}
                         </div>
                       </div>
                     </div>

@@ -1254,6 +1254,7 @@
   padding: 25px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
 
 .ai-section-card:hover {
@@ -1402,6 +1403,8 @@
   padding: 30px;
   position: relative;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+  overflow: hidden;
+  width: 100%;
 }
 
 .ocr-watermark {
@@ -1422,6 +1425,51 @@
   background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
   border-radius: 8px;
   border-left: 4px solid #667eea;
+  position: relative;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  word-wrap: break-word;
+}
+
+/* Tampered line styling (no border change, only background) - for removed words (red) */
+.ocr-extracted-section.tampered-line {
+  background: linear-gradient(135deg, rgba(220, 53, 69, 0.05) 0%, rgba(220, 53, 69, 0.08) 100%);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.1);
+}
+
+/* Added line styling (no border change, only background) - for added words (green) */
+.ocr-extracted-section.added-line {
+  background: linear-gradient(135deg, rgba(40, 167, 69, 0.05) 0%, rgba(40, 167, 69, 0.08) 100%);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.1);
+}
+
+/* Removed word highlighting (red - for verified file) */
+.tampered-word {
+  color: #dc3545 !important;
+  font-weight: 700;
+  background: rgba(220, 53, 69, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  animation: pulseText 2s infinite;
+}
+
+/* Added word highlighting (green - for uploaded file) */
+.added-word {
+  color: #28a745 !important;
+  font-weight: 700;
+  background: rgba(40, 167, 69, 0.1);
+  padding: 2px 4px;
+  border-radius: 3px;
+  animation: pulseText 2s infinite;
+}
+
+@keyframes pulseText {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
 }
 
 .ocr-section-title {
@@ -1438,6 +1486,11 @@
   color: #333;
   line-height: 1.8;
   font-family: 'Courier New', monospace;
+  word-wrap: break-word;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 100%;
 }
 
 /* OCR Confidence Indicator */
