@@ -16,15 +16,14 @@ function AppContent() {
   const location = useLocation();
   
   // Check if current page is login or signup page
-  const isLoginPage = location.pathname === '/login' || location.pathname === '/verified/login' || 
-                      location.pathname === '/signup' || location.pathname === '/verified/signup';
+  const isLoginPage = location.pathname === '/login' || location.pathname === '/signup';
 
   // Determine current page type
   const getCurrentPage = () => {
     const path = location.pathname;
-    if (path === '/institution-dashboard' || path === '/verified/institution-dashboard') return 'institution';
-    if (path === '/student-dashboard' || path === '/verified/student-dashboard') return 'student';
-    if (path === '/admin-dashboard' || path === '/verified/admin-dashboard') return 'admin';
+    if (path === '/institution-dashboard') return 'institution';
+    if (path === '/student-dashboard') return 'student';
+    if (path === '/admin-dashboard') return 'admin';
     return 'home';
   };
 
@@ -70,17 +69,11 @@ function AppContent() {
       
       <Routes>
         <Route path="/" element={<HomePage />} />
-        <Route path="/verified" element={<HomePage />} />
         <Route path="/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
-        <Route path="/verified/login" element={<Login onLoginSuccess={handleLoginSuccess} />} />
         <Route path="/signup" element={<SignUp />} />
-        <Route path="/verified/signup" element={<SignUp />} />
         <Route path="/institution-dashboard" element={<AcademicInstitution />} />
-        <Route path="/verified/institution-dashboard" element={<AcademicInstitution />} />
         <Route path="/student-dashboard" element={<MyVerifiED />} />
-        <Route path="/verified/student-dashboard" element={<MyVerifiED />} />
         <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/verified/admin-dashboard" element={<AdminDashboard />} />
       </Routes>
     </>
   );
@@ -88,7 +81,7 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/verified">
       <AppContent />
     </BrowserRouter>
   );

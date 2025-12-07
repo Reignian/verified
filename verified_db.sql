@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Dec 07, 2025 at 05:28 AM
+-- Generation Time: Dec 07, 2025 at 05:48 AM
 -- Server version: 8.0.43
 -- PHP Version: 8.2.12
 
@@ -55,7 +55,8 @@ INSERT INTO `account` (`id`, `account_type`, `username`, `password`, `email`, `s
 (1053, 'student', 'gerby202201085', '$2b$10$yoawuFG0xscRZbm9bdFqV.1gSVR8B1ujnUWy9e254PABN5BEPsB6K', 'gerby.hallasgo@sample.edu.ph', NULL, '2025-11-10 18:09:47', NULL),
 (1054, 'student', 'jamal20230000', '$2b$10$6anU.CEj1vv70zqDGc2.we42vqxGayAgvZ2GKYRvsyAHRhSaYY0Nq', 'jamal.albadi@sample.edu.ph', NULL, '2025-11-10 18:10:57', NULL),
 (1055, 'student', 'stephanie mei20231111', '$2b$10$qWphfjGAKXaQQ5.9ZQZYzeAng9NSt.MzBQUpWzfTlvHdZJN4Cl0we', 'stephanie@sample.edu.ph', NULL, '2025-11-10 18:12:30', NULL),
-(1056, 'student', 'jerard20214321', '$2b$10$1BYPX7G9H1zqIr.jYJUM5.cld1oGNEnZv7VhozAz.RTGYfUV0ulq2', 'jerard@sample.edu.ph', NULL, '2025-11-10 18:13:51', NULL);
+(1056, 'student', 'jerard20214321', '$2b$10$1BYPX7G9H1zqIr.jYJUM5.cld1oGNEnZv7VhozAz.RTGYfUV0ulq2', 'jerard@sample.edu.ph', NULL, '2025-11-10 18:13:51', NULL),
+(1057, 'student', 'qwerty123123', '$2b$10$YqJmaTeHOyngna5mpr.qgOBpCuGTchyapef/.H0.gyrYCcRotwFSa', 'qwertyqwerty@gmail.com', NULL, '2025-12-07 04:44:14', 'RSJL1Of4NS');
 
 -- --------------------------------------------------------
 
@@ -138,7 +139,9 @@ INSERT INTO `activity_log` (`id`, `institution_id`, `user_id`, `action`, `action
 (101, 1048, 1048, 'credential_issued', 'create', 'Issued Diploma credential to Juan Dela Cruz', '2025-11-26 08:36:36'),
 (102, 1048, 1048, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Juan Dela Cruz', '2025-11-26 18:01:21'),
 (103, 1048, 1048, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Juan Dela Cruz', '2025-11-26 19:14:57'),
-(104, 1048, 1048, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Jerard Jamilon Regalado', '2025-11-26 19:18:45');
+(104, 1048, 1048, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Jerard Jamilon Regalado', '2025-11-26 19:18:45'),
+(105, 1048, 1048, 'credential_issued', 'create', 'Issued Transcript of Records (TOR) credential to Juan Dela Cruz', '2025-12-07 04:41:51'),
+(106, 1048, 1048, 'student_added', 'create', 'Added student: qwerty qwerty', '2025-12-07 04:44:18');
 
 -- --------------------------------------------------------
 
@@ -226,7 +229,7 @@ CREATE TABLE `credential` (
 --
 
 INSERT INTO `credential` (`id`, `credential_type_id`, `custom_type`, `owner_id`, `sender_id`, `program_id`, `ipfs_cid`, `status`, `blockchain_id`, `transaction_id`, `created_at`, `updated_at`) VALUES
-(93, 2, NULL, 1056, 1048, 12, 'QmeCPp35YQ8LXubBGGLZVQsMSYyVD5QU3w6JFvibGNAeXp', 'blockchain_verified', '157', '0x19cf0f10eb44f4d127e8c550a94cdb769bd9b660d050baef75fb42b56de92f4f', '2025-11-26 19:18:44', '2025-11-26 19:18:44');
+(94, 2, NULL, 1050, 1048, 9, 'QmZoXQ3MgkeUDnwx24LjWbk3vTYmCDpUCeHfdCheF1JCP5', 'blockchain_verified', '159', '0xbaaef8c1ce6a9c8911970703c9eff5650e38e9dee21bbd8d5cf6df3e649ced73', '2025-12-07 04:41:49', '2025-12-07 04:41:49');
 
 -- --------------------------------------------------------
 
@@ -242,6 +245,13 @@ CREATE TABLE `credential_access` (
   `created_at` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `is_deleted` tinyint(1) NOT NULL DEFAULT '0'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `credential_access`
+--
+
+INSERT INTO `credential_access` (`id`, `credential_id`, `access_code`, `is_active`, `created_at`, `is_deleted`) VALUES
+(27, 94, '62167X', 1, '2025-12-07 04:46:40', 0);
 
 -- --------------------------------------------------------
 
@@ -518,7 +528,7 @@ CREATE TABLE `transaction_costs` (
 --
 
 INSERT INTO `transaction_costs` (`id`, `credential_id`, `transaction_hash`, `institution_id`, `gas_used`, `gas_price_gwei`, `gas_cost_pol`, `pol_price_usd`, `pol_price_php`, `gas_cost_usd`, `gas_cost_php`, `tx_timestamp`, `created_at`) VALUES
-(26, 93, '0x19cf0f10eb44f4d127e8c550a94cdb769bd9b660d050baef75fb42b56de92f4f', 1048, 119327, 30.009092950, 0.003580895034444650, 0.138027, 8.1200, 0.000494, 0.0291, 79539842, '2025-11-26 19:18:45');
+(27, 94, '0xbaaef8c1ce6a9c8911970703c9eff5650e38e9dee21bbd8d5cf6df3e649ced73', 1048, 119327, 30.000000181, 0.003579810021598187, 0.123115, 7.2600, 0.000441, 0.0260, 79988729, '2025-12-07 04:41:51');
 
 --
 -- Indexes for dumped tables
@@ -681,13 +691,13 @@ ALTER TABLE `transaction_costs`
 -- AUTO_INCREMENT for table `account`
 --
 ALTER TABLE `account`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1057;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1058;
 
 --
 -- AUTO_INCREMENT for table `activity_log`
 --
 ALTER TABLE `activity_log`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=105;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
 
 --
 -- AUTO_INCREMENT for table `contact_messages`
@@ -705,13 +715,13 @@ ALTER TABLE `contact_submissions`
 -- AUTO_INCREMENT for table `credential`
 --
 ALTER TABLE `credential`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=94;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=95;
 
 --
 -- AUTO_INCREMENT for table `credential_access`
 --
 ALTER TABLE `credential_access`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- AUTO_INCREMENT for table `credential_types`
@@ -729,7 +739,7 @@ ALTER TABLE `credential_validation_logs`
 -- AUTO_INCREMENT for table `credential_verifications`
 --
 ALTER TABLE `credential_verifications`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=107;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=109;
 
 --
 -- AUTO_INCREMENT for table `institution`
@@ -771,7 +781,7 @@ ALTER TABLE `program`
 -- AUTO_INCREMENT for table `student`
 --
 ALTER TABLE `student`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1057;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1058;
 
 --
 -- AUTO_INCREMENT for table `system_settings`
@@ -783,7 +793,7 @@ ALTER TABLE `system_settings`
 -- AUTO_INCREMENT for table `transaction_costs`
 --
 ALTER TABLE `transaction_costs`
-  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
+  MODIFY `id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=28;
 
 --
 -- Constraints for dumped tables

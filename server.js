@@ -18,9 +18,9 @@ const testRoutes = require('./src/routes/testRoutes');
 const app = express();
 const PORT = process.env.PORT || process.env.BACKEND_PORT || 3001;
 
-// CORS Configuration - Allow Netlify frontend and local development
+// CORS Configuration - Allow GitHub Pages frontend and local development
 const allowedOrigins = [
-  'https://bc-verified.netlify.app',
+  'https://reignian.github.io',
   'http://localhost:3000',
   'http://localhost:3001'
 ];

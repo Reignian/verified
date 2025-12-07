@@ -2,6 +2,7 @@
   "name": "testing",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://reignian.github.io/verified",
   "proxy": "http://localhost:3001",
   "dependencies": {
     "@google/generative-ai": "^0.1.3",
