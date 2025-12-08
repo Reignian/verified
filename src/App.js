@@ -1,6 +1,6 @@
 // fileName: App.js (Updated with Admin Routes)
 
-import { BrowserRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
+import { HashRouter, Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 
 import { useState, useEffect } from 'react';
 import HomePage from './components/home/HomePage';
@@ -119,9 +119,9 @@ function AppContent() {
 
 function App() {
   return (
-    <BrowserRouter basename="/verified">
+    <HashRouter>
       <AppContent />
-    </BrowserRouter>
+    </HashRouter>
   );
 }
 

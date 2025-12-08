@@ -350,7 +350,7 @@ router.post('/students/add/:institutionId', (req, res) => {
     password = generateRandomPassword(10); // 10-character random password
   }
 
-  academicQueries.checkStudentIdExists(student_id, (err, exists) => {
+  academicQueries.checkStudentIdExists(student_id, institutionId, (err, exists) => {
     if (err) {
       return res.status(500).json({ error: 'Database error checking student ID' });
     }

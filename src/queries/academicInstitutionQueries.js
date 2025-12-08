@@ -486,9 +486,9 @@ const deleteStudent = (studentId, callback) => {
   });
 };
 
-const checkStudentIdExists = (studentId, callback) => {
-  const query = 'SELECT COUNT(*) as count FROM student WHERE student_id = ?';
-  connection.query(query, [studentId], (err, results) => {
+const checkStudentIdExists = (studentId, institutionId, callback) => {
+  const query = 'SELECT COUNT(*) as count FROM student WHERE student_id = ? AND institution_id = ?';
+  connection.query(query, [studentId, institutionId], (err, results) => {
     if (err) return callback(err);
     callback(null, results[0].count > 0);
   });
