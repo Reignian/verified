@@ -369,28 +369,44 @@ router.post('/students/add/:institutionId', (req, res) => {
       const studentData = { student_id, first_name, middle_name, last_name, username, email, password, program_id };
       const plainPassword = password; // Store plain password for email
 
-      academicQueries.addStudent(studentData, institutionId, async (err, result) => {
+      academicQueries.addStudent(studentData, institutionId, (err, result) => {
         if (err) {
           console.error('Error adding student:', err);
           return res.status(500).json({ error: 'Failed to create student account' });
         }
 
-        // Send automated welcome email with credentials
-        const studentFullName = `${first_name} ${middle_name ? middle_name + ' ' : ''}${last_name}`.trim();
-        const emailResult = await smtpEmailService.sendWelcomeEmail(
-          email,
-          studentFullName,
-          username,
-          plainPassword
-        );
-
+        // Send response immediately
         res.json({
           success: true,
           message: 'Student account created successfully',
           student: result,
-          email_sent: emailResult.success,
-          email_message_id: emailResult.messageId || null
+          email_queued: true
         });
+
+        // Send automated welcome email in background (fire-and-forget)
+        (async () => {
+          try {
+            const studentFullName = `${first_name} ${middle_name ? middle_name + ' ' : ''}${last_name}`.trim();
+            console.log(`[BACKGROUND] 📧 Sending welcome email to ${email}...`);
+            
+            const emailResult = await smtpEmailService.sendWelcomeEmail(
+              email,
+              studentFullName,
+              username,
+              plainPassword
+            );
+
+            if (emailResult.success) {
+              console.log(`[BACKGROUND] ✅ Welcome email sent successfully to ${email}`);
+              console.log(`[BACKGROUND]    Message ID: ${emailResult.messageId}`);
+            } else {
+              console.error(`[BACKGROUND] ❌ Failed to send welcome email to ${email}`);
+              console.error(`[BACKGROUND]    Error: ${emailResult.error}`);
+            }
+          } catch (emailErr) {
+            console.error('[BACKGROUND] Error in welcome email sending process:', emailErr.message);
+          }
+        })();
       });
     });
   });
@@ -712,184 +728,7 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
         
         const credentialId = results.insertId;
         
-        // Fetch and save transaction costs from blockchain
-        if (transaction_hash) {
-          try {
-            const RPC_URL = process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-';
-            
-            // Fetch current POL price
-            let polPriceUSD = 0.16;
-            let polPricePHP = 9.0;
-            
-            try {
-              const priceResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
-                params: { ids: 'polygon-ecosystem-token', vs_currencies: 'usd,php' },
-                timeout: 5000
-              });
-              const priceData = priceResponse.data['polygon-ecosystem-token'];
-              if (priceData) {
-                polPriceUSD = priceData.usd;
-                polPricePHP = priceData.php;
-              }
-            } catch (priceErr) {
-              console.error('Failed to fetch POL price for cost calculation:', priceErr.message);
-            }
-            
-            // Fetch transaction receipt
-            const receiptResponse = await axios.post(RPC_URL, {
-              jsonrpc: '2.0',
-              id: 1,
-              method: 'eth_getTransactionReceipt',
-              params: [transaction_hash]
-            }, { timeout: 10000 });
-            
-            const receipt = receiptResponse.data?.result;
-            
-            if (receipt) {
-              // Fetch transaction details for gas price
-              const txResponse = await axios.post(RPC_URL, {
-                jsonrpc: '2.0',
-                id: 1,
-                method: 'eth_getTransactionByHash',
-                params: [transaction_hash]
-              }, { timeout: 10000 });
-              
-              const txDetails = txResponse.data?.result;
-              
-              if (txDetails) {
-                // Calculate costs
-                const gasUsed = parseInt(receipt.gasUsed, 16);
-                const gasPriceWei = parseInt(txDetails.gasPrice, 16);
-                const gasPriceGwei = gasPriceWei / 1e9;
-                const gasCostPOL = (gasUsed * gasPriceWei) / 1e18;
-                const gasCostUSD = gasCostPOL * polPriceUSD;
-                const gasCostPHP = gasCostPOL * polPricePHP;
-                const txTimestamp = parseInt(txDetails.blockNumber, 16); // Use block number as timestamp
-                
-                // Get institution_id from sender (check staff first, then institution)
-                const db = require('../config/database');
-                
-                // First, try to get institution_id from institution_staff table
-                db.query('SELECT institution_id FROM institution_staff WHERE id = ?', [sender_id], (err, staffResults) => {
-                  if (!err && staffResults && staffResults.length > 0) {
-                    // Sender is staff, use their institution_id
-                    const institutionId = staffResults[0].institution_id;
-                    saveTransactionCost(institutionId);
-                  } else {
-                    // Sender might be institution directly, check institution table
-                    db.query('SELECT id FROM institution WHERE id = ?', [sender_id], (err, instResults) => {
-                      if (!err && instResults && instResults.length > 0) {
-                        // Sender is institution
-                        const institutionId = instResults[0].id;
-                        saveTransactionCost(institutionId);
-                      } else {
-                        console.error('Could not determine institution_id for sender:', sender_id);
-                      }
-                    });
-                  }
-                });
-                
-                // Helper function to save transaction costs
-                function saveTransactionCost(institutionId) {
-                  const costData = {
-                    credential_id: credentialId,
-                    transaction_hash: transaction_hash,
-                    institution_id: institutionId,
-                    gas_used: gasUsed,
-                    gas_price_gwei: gasPriceGwei,
-                    gas_cost_pol: gasCostPOL,
-                    pol_price_usd: polPriceUSD,
-                    pol_price_php: polPricePHP,
-                    gas_cost_usd: gasCostUSD,
-                    gas_cost_php: gasCostPHP,
-                    tx_timestamp: txTimestamp
-                  };
-                  
-                  academicQueries.insertTransactionCost(costData, (err) => {
-                    if (err) {
-                      console.error('Error saving transaction costs:', err);
-                    }
-                  });
-                }
-              }
-            }
-          } catch (blockchainErr) {
-            console.error('Error fetching blockchain data for cost calculation:', blockchainErr.message);
-          }
-        }
-        
-        // Get student account details again for email notification (with updated info)
-        academicQueries.getStudentAccountDetails(owner_id, async (err, studentResults) => {
-        let emailSent = false;
-        let emailMessageId = null;
-        
-        if (!err && studentResults && studentResults.length > 0) {
-          const student = studentResults[0];
-          
-          // Determine credential type name
-          let credentialTypeName = custom_type || 'Credential';
-          if (credential_type_id && !custom_type) {
-            // Fetch credential type name from database
-            academicQueries.getCredentialTypes(async (err, types) => {
-              if (!err && types) {
-                const type = types.find(t => t.id === parseInt(credential_type_id));
-                if (type) credentialTypeName = type.type_name;
-              }
-              
-              // Send email after determining credential type
-              await sendCredentialEmail(student, credentialTypeName);
-            });
-          } else {
-            // Send email immediately if using custom type
-            await sendCredentialEmail(student, credentialTypeName);
-          }
-          
-          async function sendCredentialEmail(student, typeName) {
-            // Use the isFirstCredential flag captured BEFORE insertion
-            const studentFullName = `${student.first_name} ${student.middle_name ? student.middle_name + ' ' : ''}${student.last_name}`.trim();
-            
-            let passwordToSend = null;
-            
-            // If this is the first credential, fetch the stored plain password from database
-            if (isFirstCredential) {
-              // Use the plain_password from the student object (already fetched from database)
-              passwordToSend = student.plain_password;
-              
-              // Clear the plain_password from database after sending email for security
-              const db = require('../config/database');
-              await new Promise((resolve, reject) => {
-                db.query(
-                  'UPDATE account SET plain_password = NULL WHERE id = ?',
-                  [student.id],
-                  (err) => {
-                    if (err) {
-                      console.error('Error clearing plain password:', err);
-                      reject(err);
-                    } else {
-                      resolve();
-                    }
-                  }
-                );
-              });
-            }
-            
-            // Send automated credential notification email
-            const emailResult = await smtpEmailService.sendCredentialIssuanceEmail(
-              student.email,
-              studentFullName,
-              student.username,
-              typeName,
-              isFirstCredential,
-              passwordToSend
-            );
-            
-            emailSent = emailResult.success;
-            emailMessageId = emailResult.messageId || null;
-          }
-        } else {
-          console.error('Error fetching student details for email:', err);
-        }
-        
+        // Send response immediately (don't wait for email or transaction cost fetching)
         const durationMs = Date.now() - routeStart;
         logMetric({
           name: 'Pipeline_CredentialIssuance',
@@ -903,8 +742,6 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
             blockchain_id,
             transaction_hash,
             ipfs_hash: pinataResult.ipfsHash,
-            email_sent: emailSent,
-            email_message_id: emailMessageId,
             file_name: fileName
           }
         });
@@ -917,10 +754,200 @@ router.post('/upload-credential-after-blockchain', upload.single('credentialFile
           blockchain_id: blockchain_id, // Credential ID
           transaction_hash: transaction_hash, // Transaction hash for reference
           status: 'Blockchain verified and uploaded to IPFS',
-          email_sent: emailSent,
-          email_message_id: emailMessageId
+          email_queued: true
         });
-        });
+        
+        // ============ BACKGROUND PROCESSES (Fire-and-forget) ============
+        // These run asynchronously after the response is sent to the user
+        
+        // Background process 1: Fetch and save transaction costs
+        (async () => {
+          if (transaction_hash) {
+            try {
+              const RPC_URL = process.env.BLOCKCHAIN_RPC_URL || 'https://polygon-mainnet.g.alchemy.com/v2/x_-JZb-YD_H8n3_11nOE-';
+              
+              // Fetch current POL price
+              let polPriceUSD = 0.16;
+              let polPricePHP = 9.0;
+              
+              try {
+                const priceResponse = await axios.get('https://api.coingecko.com/api/v3/simple/price', {
+                  params: { ids: 'polygon-ecosystem-token', vs_currencies: 'usd,php' },
+                  timeout: 5000
+                });
+                const priceData = priceResponse.data['polygon-ecosystem-token'];
+                if (priceData) {
+                  polPriceUSD = priceData.usd;
+                  polPricePHP = priceData.php;
+                }
+              } catch (priceErr) {
+                console.error('Failed to fetch POL price for cost calculation:', priceErr.message);
+              }
+              
+              // Fetch transaction receipt
+              const receiptResponse = await axios.post(RPC_URL, {
+                jsonrpc: '2.0',
+                id: 1,
+                method: 'eth_getTransactionReceipt',
+                params: [transaction_hash]
+              }, { timeout: 10000 });
+              
+              const receipt = receiptResponse.data?.result;
+              
+              if (receipt) {
+                // Fetch transaction details for gas price
+                const txResponse = await axios.post(RPC_URL, {
+                  jsonrpc: '2.0',
+                  id: 1,
+                  method: 'eth_getTransactionByHash',
+                  params: [transaction_hash]
+                }, { timeout: 10000 });
+                
+                const txDetails = txResponse.data?.result;
+                
+                if (txDetails) {
+                  // Calculate costs
+                  const gasUsed = parseInt(receipt.gasUsed, 16);
+                  const gasPriceWei = parseInt(txDetails.gasPrice, 16);
+                  const gasPriceGwei = gasPriceWei / 1e9;
+                  const gasCostPOL = (gasUsed * gasPriceWei) / 1e18;
+                  const gasCostUSD = gasCostPOL * polPriceUSD;
+                  const gasCostPHP = gasCostPOL * polPricePHP;
+                  const txTimestamp = parseInt(txDetails.blockNumber, 16); // Use block number as timestamp
+                  
+                  // Get institution_id from sender (check staff first, then institution)
+                  const db = require('../config/database');
+                  
+                  // First, try to get institution_id from institution_staff table
+                  db.query('SELECT institution_id FROM institution_staff WHERE id = ?', [sender_id], (err, staffResults) => {
+                    if (!err && staffResults && staffResults.length > 0) {
+                      // Sender is staff, use their institution_id
+                      const institutionId = staffResults[0].institution_id;
+                      saveTransactionCost(institutionId);
+                    } else {
+                      // Sender might be institution directly, check institution table
+                      db.query('SELECT id FROM institution WHERE id = ?', [sender_id], (err, instResults) => {
+                        if (!err && instResults && instResults.length > 0) {
+                          // Sender is institution
+                          const institutionId = instResults[0].id;
+                          saveTransactionCost(institutionId);
+                        } else {
+                          console.error('Could not determine institution_id for sender:', sender_id);
+                        }
+                      });
+                    }
+                  });
+                  
+                  // Helper function to save transaction costs
+                  function saveTransactionCost(institutionId) {
+                    const costData = {
+                      credential_id: credentialId,
+                      transaction_hash: transaction_hash,
+                      institution_id: institutionId,
+                      gas_used: gasUsed,
+                      gas_price_gwei: gasPriceGwei,
+                      gas_cost_pol: gasCostPOL,
+                      pol_price_usd: polPriceUSD,
+                      pol_price_php: polPricePHP,
+                      gas_cost_usd: gasCostUSD,
+                      gas_cost_php: gasCostPHP,
+                      tx_timestamp: txTimestamp
+                    };
+                    
+                    academicQueries.insertTransactionCost(costData, (err) => {
+                      if (err) {
+                        console.error('[BACKGROUND] Error saving transaction costs:', err);
+                      } else {
+                        console.log('[BACKGROUND] ✅ Transaction costs saved successfully');
+                      }
+                    });
+                  }
+                }
+              }
+            } catch (blockchainErr) {
+              console.error('[BACKGROUND] Error fetching blockchain data for cost calculation:', blockchainErr.message);
+            }
+          }
+        })();
+        
+        // Background process 2: Send email notification
+        (async () => {
+          try {
+            // Get student account details for email notification
+            academicQueries.getStudentAccountDetails(owner_id, async (err, studentResults) => {
+              if (err || !studentResults || studentResults.length === 0) {
+                console.error('[BACKGROUND] Error fetching student details for email:', err);
+                return;
+              }
+              
+              const student = studentResults[0];
+              const studentFullName = `${student.first_name} ${student.middle_name ? student.middle_name + ' ' : ''}${student.last_name}`.trim();
+              
+              // Determine credential type name
+              let credentialTypeName = custom_type || 'Credential';
+              
+              if (credential_type_id && !custom_type) {
+                // Fetch credential type name from database
+                academicQueries.getCredentialTypes(async (err, types) => {
+                  if (!err && types) {
+                    const type = types.find(t => t.id === parseInt(credential_type_id));
+                    if (type) credentialTypeName = type.type_name;
+                  }
+                  await sendEmailAsync(student, studentFullName, credentialTypeName);
+                });
+              } else {
+                await sendEmailAsync(student, studentFullName, credentialTypeName);
+              }
+            });
+            
+            async function sendEmailAsync(student, studentFullName, typeName) {
+              let passwordToSend = null;
+              
+              // If this is the first credential, fetch the stored plain password from database
+              if (isFirstCredential) {
+                passwordToSend = student.plain_password;
+                
+                // Clear the plain_password from database after sending email for security
+                const db = require('../config/database');
+                await new Promise((resolve, reject) => {
+                  db.query(
+                    'UPDATE account SET plain_password = NULL WHERE id = ?',
+                    [student.id],
+                    (err) => {
+                      if (err) {
+                        console.error('[BACKGROUND] Error clearing plain password:', err);
+                        reject(err);
+                      } else {
+                        resolve();
+                      }
+                    }
+                  );
+                });
+              }
+              
+              // Send automated credential notification email
+              console.log(`[BACKGROUND] 📧 Sending email to ${student.email}...`);
+              const emailResult = await smtpEmailService.sendCredentialIssuanceEmail(
+                student.email,
+                studentFullName,
+                student.username,
+                typeName,
+                isFirstCredential,
+                passwordToSend
+              );
+              
+              if (emailResult.success) {
+                console.log(`[BACKGROUND] ✅ Email sent successfully to ${student.email}`);
+                console.log(`[BACKGROUND]    Message ID: ${emailResult.messageId}`);
+              } else {
+                console.error(`[BACKGROUND] ❌ Failed to send email to ${student.email}`);
+                console.error(`[BACKGROUND]    Error: ${emailResult.error}`);
+              }
+            }
+          } catch (emailErr) {
+            console.error('[BACKGROUND] Error in email sending process:', emailErr.message);
+          }
+        })();
       });
     });
 
